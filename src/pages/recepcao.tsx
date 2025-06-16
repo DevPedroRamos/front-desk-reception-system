@@ -7,11 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { UserPlus, MapPin, Clock } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const Recepcao = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     cliente_nome: "",
     cliente_cpf: "",
@@ -23,14 +26,112 @@ const Recepcao = () => {
     mesa: "",
   });
 
-  // Mock data para demonstração
-  const corretores = [
-    "Maria Santos",
-    "Carlos Oliveira", 
-    "Fernanda Rocha",
-    "João Pereira",
-    "Ana Silva"
-  ];
+  // Buscar corretores do banco de dados
+  const { data: corretores = [] } = useQuery({
+    queryKey: ['corretores'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('name, apelido')
+        .eq('role', 'corretor');
+      
+      if (error) {
+        console.error('Erro ao buscar corretores:', error);
+        return [];
+      }
+      
+      return data || [];
+    }
+  });
+
+  // Buscar visitas ativas para verificar mesas ocupadas
+  const { data: visitasAtivas = [] } = useQuery({
+    queryKey: ['visitas-ativas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('visits')
+        .select('mesa, loja, andar')
+        .eq('status', 'ativo');
+      
+      if (error) {
+        console.error('Erro ao buscar visitas ativas:', error);
+        return [];
+      }
+      
+      return data || [];
+    }
+  });
+
+  // Mutation para criar nova visita
+  const createVisitMutation = useMutation({
+    mutationFn: async (visitData: typeof formData) => {
+      // Primeiro, verificar se existe um corretor com esse nome
+      let corretor_id = null;
+      if (visitData.corretor_nome) {
+        const { data: corretorData } = await supabase
+          .from('users')
+          .select('id')
+          .or(`name.ilike.%${visitData.corretor_nome}%,apelido.ilike.%${visitData.corretor_nome}%`)
+          .limit(1)
+          .single();
+        
+        corretor_id = corretorData?.id || null;
+      }
+
+      const { data, error } = await supabase
+        .from('visits')
+        .insert({
+          cliente_nome: visitData.cliente_nome,
+          cliente_cpf: visitData.cliente_cpf,
+          cliente_whatsapp: visitData.cliente_whatsapp || null,
+          corretor_nome: visitData.corretor_nome || '',
+          corretor_id: corretor_id || '00000000-0000-0000-0000-000000000000',
+          empreendimento: visitData.empreendimento || null,
+          loja: visitData.loja,
+          andar: visitData.andar,
+          mesa: parseInt(visitData.mesa),
+          status: 'ativo'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erro ao criar visita:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Visita registrada!",
+        description: `Cliente ${data.cliente_nome} foi registrado na mesa ${data.mesa}.`,
+      });
+
+      // Limpar formulário
+      setFormData({
+        cliente_nome: "",
+        cliente_cpf: "",
+        cliente_whatsapp: "",
+        corretor_nome: "",
+        empreendimento: "",
+        loja: "",
+        andar: "",
+        mesa: "",
+      });
+
+      // Atualizar dados das visitas ativas
+      queryClient.invalidateQueries({ queryKey: ['visitas-ativas'] });
+    },
+    onError: (error) => {
+      console.error('Erro ao registrar visita:', error);
+      toast({
+        title: "Erro ao registrar visita",
+        description: "Ocorreu um erro ao salvar os dados. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  });
 
   const empreendimentos = [
     "Residencial Park View",
@@ -40,13 +141,16 @@ const Recepcao = () => {
     "Golden Tower"
   ];
 
-  const mesasOcupadas = [3, 7, 12, 15]; // Mesas atualmente ocupadas
+  // Calcular mesas ocupadas baseado nas visitas ativas
+  const mesasOcupadas = visitasAtivas
+    .filter(visita => visita.loja === formData.loja && visita.andar === formData.andar)
+    .map(visita => visita.mesa);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validação básica
-    if (!formData.cliente_nome || !formData.cliente_cpf || !formData.mesa) {
+    if (!formData.cliente_nome || !formData.cliente_cpf || !formData.mesa || !formData.loja || !formData.andar) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -65,24 +169,7 @@ const Recepcao = () => {
       return;
     }
 
-    console.log("Nova visita registrada:", formData);
-    
-    toast({
-      title: "Visita registrada!",
-      description: `Cliente ${formData.cliente_nome} foi registrado na mesa ${formData.mesa}.`,
-    });
-
-    // Limpar formulário
-    setFormData({
-      cliente_nome: "",
-      cliente_cpf: "",
-      cliente_whatsapp: "",
-      corretor_nome: "",
-      empreendimento: "",
-      loja: "",
-      andar: "",
-      mesa: "",
-    });
+    createVisitMutation.mutate(formData);
   };
 
   const renderMesaOption = (mesa: number) => {
@@ -126,38 +213,49 @@ const Recepcao = () => {
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
               Status das Mesas
+              {formData.loja && formData.andar && (
+                <span className="text-sm font-normal text-slate-600">
+                  - {formData.loja}, {formData.andar}
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-5 md:grid-cols-10 gap-3">
-              {Array.from({ length: 20 }, (_, i) => i + 1).map((mesa) => {
-                const isOcupada = mesasOcupadas.includes(mesa);
-                return (
-                  <div
-                    key={mesa}
-                    className={`
-                      w-12 h-12 rounded-lg border-2 flex items-center justify-center text-sm font-semibold
-                      ${isOcupada 
-                        ? 'bg-red-100 border-red-300 text-red-700' 
-                        : 'bg-green-100 border-green-300 text-green-700'
-                      }
-                    `}
-                  >
-                    {mesa}
+            {!formData.loja || !formData.andar ? (
+              <p className="text-slate-500">Selecione a loja e o andar para ver o status das mesas.</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-5 md:grid-cols-10 gap-3">
+                  {Array.from({ length: 20 }, (_, i) => i + 1).map((mesa) => {
+                    const isOcupada = mesasOcupadas.includes(mesa);
+                    return (
+                      <div
+                        key={mesa}
+                        className={`
+                          w-12 h-12 rounded-lg border-2 flex items-center justify-center text-sm font-semibold
+                          ${isOcupada 
+                            ? 'bg-red-100 border-red-300 text-red-700' 
+                            : 'bg-green-100 border-green-300 text-green-700'
+                          }
+                        `}
+                      >
+                        {mesa}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-6 mt-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-100 border-2 border-green-300 rounded"></div>
+                    <span className="text-slate-600">Disponível</span>
                   </div>
-                );
-              })}
-            </div>
-            <div className="flex items-center gap-6 mt-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-100 border-2 border-green-300 rounded"></div>
-                <span className="text-slate-600">Disponível</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded"></div>
-                <span className="text-slate-600">Ocupada</span>
-              </div>
-            </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded"></div>
+                    <span className="text-slate-600">Ocupada</span>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -218,8 +316,8 @@ const Recepcao = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {corretores.map((corretor) => (
-                          <SelectItem key={corretor} value={corretor}>
-                            {corretor}
+                          <SelectItem key={corretor.name} value={corretor.name}>
+                            {corretor.name} ({corretor.apelido})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -252,7 +350,7 @@ const Recepcao = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="loja">Loja</Label>
+                    <Label htmlFor="loja">Loja *</Label>
                     <Select onValueChange={(value) => setFormData(prev => ({ ...prev, loja: value }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a loja" />
@@ -266,7 +364,7 @@ const Recepcao = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="andar">Andar</Label>
+                    <Label htmlFor="andar">Andar *</Label>
                     <Select onValueChange={(value) => setFormData(prev => ({ ...prev, andar: value }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o andar" />
@@ -300,8 +398,9 @@ const Recepcao = () => {
                 <Button 
                   type="submit" 
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  disabled={createVisitMutation.isPending}
                 >
-                  Registrar Entrada
+                  {createVisitMutation.isPending ? "Registrando..." : "Registrar Entrada"}
                 </Button>
                 <Button 
                   type="button" 
