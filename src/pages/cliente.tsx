@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserCheck, Building2, Phone } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/router";
+import { useSearchParams } from "react-router-dom";
 
 const Cliente = () => {
   const { toast } = useToast();
-  const router = useRouter();
+  const [searchParams] = useSearchParams();
   const [corretorNome, setCorretorNome] = useState("");
   const [formData, setFormData] = useState({
     nome: "",
@@ -30,10 +29,11 @@ const Cliente = () => {
 
   useEffect(() => {
     // Pegar o nome do corretor da URL
-    if (router.query.corretor) {
-      setCorretorNome(decodeURIComponent(router.query.corretor as string));
+    const corretor = searchParams.get('corretor');
+    if (corretor) {
+      setCorretorNome(decodeURIComponent(corretor));
     }
-  }, [router.query]);
+  }, [searchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

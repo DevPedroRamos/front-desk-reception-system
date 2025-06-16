@@ -12,7 +12,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Calendar, Users, UserCheck, BarChart3, Settings } from "lucide-react";
-import { useRouter } from "next/router";
+import { useLocation } from "react-router-dom";
 
 const menuItems = [
   {
@@ -43,7 +43,7 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const router = useRouter();
+  const location = useLocation();
 
   return (
     <Sidebar className="border-r border-slate-200">
@@ -70,7 +70,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild
-                    isActive={router.pathname === item.url}
+                    isActive={location.pathname === item.url}
                   >
                     <a href={item.url} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors">
                       <item.icon className="h-4 w-4" />
