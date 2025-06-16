@@ -2,276 +2,259 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Users, Link2, Search, Copy, Calendar } from "lucide-react";
-import { useState } from "react";
+import { UserCheck, Clock, Building2, QrCode } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
+import { VisitCard } from "@/components/VisitCard";
 import { useToast } from "@/hooks/use-toast";
 
 const Corretor = () => {
   const { toast } = useToast();
-  const [searchCpf, setSearchCpf] = useState("");
-  const [corretorNome, setCorretorNome] = useState("Maria Santos"); // Mock do corretor logado
-  const [generatedLink, setGeneratedLink] = useState("");
 
-  // Mock data dos agendamentos do corretor
-  const agendamentos = [
-    {
-      id: "1",
-      cliente_nome: "João Silva",
-      cliente_cpf: "123.456.789-00",
-      whatsapp: "(11) 99999-1234",
-      empreendimento: "Residencial Park View",
-      data: "2024-01-16",
-      hora: "14:00",
-      status: "confirmado"
-    },
-    {
-      id: "2",
-      cliente_nome: "Ana Costa",
-      cliente_cpf: "987.654.321-00",
-      whatsapp: "(11) 88888-5678",
-      empreendimento: "Condomínio Jardins",
-      data: "2024-01-17",
-      hora: "15:30",
-      status: "pendente"
+  // Buscar agendamentos do dia
+  const { data: agendamentos = [], isLoading: agendamentosLoading, refetch: refetchAgendamentos } = useQuery({
+    queryKey: ['agendamentos-hoje'],
+    queryFn: async () => {
+      const hoje = new Date().toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .eq('data', hoje)
+        .order('hora', { ascending: true });
+      
+      if (error) {
+        console.error('Erro ao buscar agendamentos:', error);
+        return [];
+      }
+      
+      return data || [];
     }
-  ];
+  });
 
-  const handleGenerateLink = () => {
-    if (!corretorNome) {
-      toast({
-        title: "Nome obrigatório",
-        description: "Por favor, insira o nome do corretor.",
-        variant: "destructive",
-      });
-      return;
+  // Buscar visitas ativas
+  const { data: visitasAtivas = [], isLoading: visitasLoading, refetch: refetchVisitas } = useQuery({
+    queryKey: ['visitas-ativas-corretor'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('visits')
+        .select('*')
+        .eq('status', 'ativo')
+        .order('horario_entrada', { ascending: false });
+      
+      if (error) {
+        console.error('Erro ao buscar visitas ativas:', error);
+        return [];
+      }
+      
+      return data || [];
     }
+  });
 
-    // Gerar link personalizado
-    const encodedName = encodeURIComponent(corretorNome);
-    const baseUrl = window.location.origin;
-    const link = `${baseUrl}/cliente?corretor=${encodedName}`;
-    
-    setGeneratedLink(link);
-    
-    toast({
-      title: "Link gerado!",
-      description: "Link de indicação criado com sucesso.",
-    });
-  };
+  // Configurar tempo real
+  useEffect(() => {
+    const channel = supabase
+      .channel('corretor-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'agendamentos'
+        },
+        () => {
+          refetchAgendamentos();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'visits'
+        },
+        () => {
+          refetchVisitas();
+        }
+      )
+      .subscribe();
 
-  const handleCopyLink = async () => {
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetchAgendamentos, refetchVisitas]);
+
+  // Função para finalizar visita
+  const handleFinalizarVisita = async (visitId: string) => {
     try {
-      await navigator.clipboard.writeText(generatedLink);
+      const { error } = await supabase.rpc('finalizar_visita', { visit_id: visitId });
+      
+      if (error) {
+        console.error('Erro ao finalizar visita:', error);
+        toast({
+          title: "Erro ao finalizar visita",
+          description: "Ocorreu um erro ao finalizar a visita. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
-        title: "Link copiado!",
-        description: "O link foi copiado para a área de transferência.",
+        title: "Visita finalizada!",
+        description: "A visita foi finalizada com sucesso.",
       });
+
+      refetchVisitas();
     } catch (error) {
+      console.error('Erro ao finalizar visita:', error);
       toast({
-        title: "Erro ao copiar",
-        description: "Não foi possível copiar o link.",
+        title: "Erro ao finalizar visita",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive",
       });
     }
   };
 
-  const handleSearchClient = () => {
-    if (!searchCpf) {
-      toast({
-        title: "CPF obrigatório",
-        description: "Por favor, insira um CPF para buscar.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const gerarLinkIndicacao = (nomeCorretor: string) => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/cliente?corretor=${encodeURIComponent(nomeCorretor)}`;
+  };
 
-    // Mock da busca
-    console.log("Buscando cliente por CPF:", searchCpf);
-    
+  const copiarLink = (nomeCorretor: string) => {
+    const link = gerarLinkIndicacao(nomeCorretor);
+    navigator.clipboard.writeText(link);
     toast({
-      title: "Busca realizada",
-      description: `Buscando dados do cliente com CPF ${searchCpf}...`,
+      title: "Link copiado!",
+      description: "O link de indicação foi copiado para a área de transferência.",
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "confirmado": return "bg-green-100 text-green-800 border-green-200";
-      case "pendente": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      default: return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
+  if (agendamentosLoading || visitasLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Carregando dados...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <Users className="h-5 w-5 text-blue-600" />
+          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+            <UserCheck className="h-5 w-5 text-green-600" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Área do Corretor</h1>
-            <p className="text-slate-600">Bem-vindo, {corretorNome}</p>
+            <p className="text-slate-600">Gerencie seus agendamentos e atendimentos</p>
           </div>
         </div>
 
+        {/* Links de Indicação */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              Links de Indicação
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-slate-600 mb-4">
+              Gere links personalizados para seus clientes agendarem visitas:
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                <span className="text-sm font-medium">João Silva:</span>
+                <Button 
+                  size="sm" 
+                  onClick={() => copiarLink("João Silva")}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Copiar Link
+                </Button>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                <span className="text-sm font-medium">Maria Santos:</span>
+                <Button 
+                  size="sm" 
+                  onClick={() => copiarLink("Maria Santos")}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Copiar Link
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Busca de Cliente */}
+          {/* Agendamentos de Hoje */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Buscar Cliente
+                <Clock className="h-5 w-5" />
+                Agendamentos de Hoje
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="search-cpf">CPF do Cliente</Label>
-                <Input
-                  id="search-cpf"
-                  placeholder="000.000.000-00"
-                  value={searchCpf}
-                  onChange={(e) => setSearchCpf(e.target.value)}
-                />
-              </div>
-              
-              <Button 
-                onClick={handleSearchClient}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                Buscar Cliente
-              </Button>
-              
-              <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
-                <strong>Dica:</strong> Use esta ferramenta para verificar se um cliente já possui agendamentos ou visitas anteriores.
-              </div>
+            <CardContent>
+              {agendamentos.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">
+                  Nenhum agendamento para hoje.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {agendamentos.map((agendamento) => (
+                    <div key={agendamento.id} className="p-4 border border-slate-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold text-slate-900">{agendamento.cliente_nome}</h3>
+                        <Badge variant="outline">{agendamento.hora}</Badge>
+                      </div>
+                      <div className="space-y-1 text-sm text-slate-600">
+                        <p><strong>CPF:</strong> {agendamento.cliente_cpf}</p>
+                        <p><strong>WhatsApp:</strong> {agendamento.whatsapp}</p>
+                        {agendamento.empreendimento && (
+                          <p><strong>Interesse:</strong> {agendamento.empreendimento}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Gerador de Link */}
+          {/* Atendimentos Ativos */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Link2 className="h-5 w-5" />
-                Link de Indicação
+                <Building2 className="h-5 w-5" />
+                Atendimentos Ativos
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="corretor-name">Seu Nome</Label>
-                <Input
-                  id="corretor-name"
-                  placeholder="Digite seu nome"
-                  value={corretorNome}
-                  onChange={(e) => setCorretorNome(e.target.value)}
-                />
-              </div>
-              
-              <Button 
-                onClick={handleGenerateLink}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                <Link2 className="h-4 w-4 mr-2" />
-                Gerar Link
-              </Button>
-              
-              {generatedLink && (
-                <div className="space-y-2">
-                  <Label>Link Personalizado</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={generatedLink}
-                      readOnly
-                      className="text-sm bg-slate-50"
+            <CardContent>
+              {visitasAtivas.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">
+                  Nenhum atendimento ativo no momento.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {visitasAtivas.map((visita) => (
+                    <VisitCard
+                      key={visita.id}
+                      visit={visita}
+                      onFinalize={handleFinalizarVisita}
                     />
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={handleCopyLink}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-slate-600">
-                    Compartilhe este link com seus clientes para que eles possam confirmar visitas diretamente.
-                  </p>
+                  ))}
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
-
-        {/* Meus Agendamentos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Meus Agendamentos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {agendamentos.length > 0 ? (
-              <div className="space-y-4">
-                {agendamentos.map((agendamento) => (
-                  <div 
-                    key={agendamento.id}
-                    className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-slate-900">
-                          {agendamento.cliente_nome}
-                        </h3>
-                        <p className="text-sm text-slate-600">
-                          CPF: {agendamento.cliente_cpf}
-                        </p>
-                      </div>
-                      <Badge className={getStatusColor(agendamento.status)}>
-                        {agendamento.status === "confirmado" ? "Confirmado" : "Pendente"}
-                      </Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-slate-500">Data:</span>
-                        <span className="ml-2 font-medium">
-                          {new Date(agendamento.data).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Horário:</span>
-                        <span className="ml-2 font-medium">{agendamento.hora}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">WhatsApp:</span>
-                        <span className="ml-2 font-medium">{agendamento.whatsapp}</span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-slate-500">Empreendimento:</span>
-                        <span className="ml-2 font-medium">{agendamento.empreendimento}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                  Nenhum agendamento
-                </h3>
-                <p className="text-slate-600">
-                  Você não possui agendamentos no momento.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </Layout>
   );
