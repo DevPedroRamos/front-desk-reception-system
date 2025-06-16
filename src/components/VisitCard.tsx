@@ -12,7 +12,7 @@ interface Visit {
   loja: string;
   mesa: number;
   horario_entrada: string;
-  status: "ativo" | "finalizado";
+  status: string;
 }
 
 interface VisitCardProps {
