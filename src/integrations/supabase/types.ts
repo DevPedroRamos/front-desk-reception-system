@@ -53,6 +53,24 @@ export type Database = {
           },
         ]
       }
+      empreendimentos: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           apelido: string
@@ -170,6 +188,19 @@ export type Database = {
       }
       get_dashboard_stats: {
         Args: Record<PropertyKey, never>
+        Returns: {
+          total_visitas_hoje: number
+          visitas_ativas: number
+          visitas_finalizadas_hoje: number
+          mesas_ocupadas: number
+        }[]
+      }
+      get_dashboard_stats_filtered: {
+        Args: {
+          start_date?: string
+          end_date?: string
+          superintendente?: string
+        }
         Returns: {
           total_visitas_hoje: number
           visitas_ativas: number

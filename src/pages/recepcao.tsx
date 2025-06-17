@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AutoSuggest } from "@/components/AutoSuggest";
 
 const Recepcao = () => {
   const { toast } = useToast();
@@ -26,13 +27,21 @@ const Recepcao = () => {
     mesa: "",
   });
 
+  // Definir configuração das lojas
+  const lojasConfig = {
+    "Loja 1": { mesas: 22, temAndar: false },
+    "Loja 2": { mesas: 29, temAndar: true },
+    "Loja 3": { mesas: 10, temAndar: false },
+    "Loja Superior 37 andar": { mesas: 29, temAndar: false }
+  };
+
   // Buscar corretores do banco de dados
   const { data: corretores = [] } = useQuery({
     queryKey: ['corretores'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('name, apelido')
+        .select('id, name, apelido')
         .eq('role', 'corretor');
       
       if (error) {
@@ -40,7 +49,31 @@ const Recepcao = () => {
         return [];
       }
       
-      return data || [];
+      return data?.map(corretor => ({
+        id: corretor.id,
+        name: `${corretor.name} (${corretor.apelido})`
+      })) || [];
+    }
+  });
+
+  // Buscar empreendimentos do banco de dados
+  const { data: empreendimentos = [] } = useQuery({
+    queryKey: ['empreendimentos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('empreendimentos')
+        .select('id, nome')
+        .order('nome');
+      
+      if (error) {
+        console.error('Erro ao buscar empreendimentos:', error);
+        return [];
+      }
+      
+      return data?.map(emp => ({
+        id: emp.id,
+        name: emp.nome
+      })) || [];
     }
   });
 
@@ -65,13 +98,13 @@ const Recepcao = () => {
   // Mutation para criar nova visita
   const createVisitMutation = useMutation({
     mutationFn: async (visitData: typeof formData) => {
-      // Primeiro, verificar se existe um corretor com esse nome
+      // Buscar ID do corretor se foi informado
       let corretor_id = null;
       if (visitData.corretor_nome) {
         const { data: corretorData } = await supabase
           .from('users')
           .select('id')
-          .or(`name.ilike.%${visitData.corretor_nome}%,apelido.ilike.%${visitData.corretor_nome}%`)
+          .or(`name.ilike.%${visitData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${visitData.corretor_nome}%`)
           .limit(1)
           .single();
         
@@ -88,7 +121,7 @@ const Recepcao = () => {
           corretor_id: corretor_id || '00000000-0000-0000-0000-000000000000',
           empreendimento: visitData.empreendimento || null,
           loja: visitData.loja,
-          andar: visitData.andar,
+          andar: visitData.andar || 'N/A',
           mesa: parseInt(visitData.mesa),
           status: 'ativo'
         })
@@ -133,27 +166,37 @@ const Recepcao = () => {
     }
   });
 
-  const empreendimentos = [
-    "Residencial Park View",
-    "Condomínio Jardins",
-    "Torres do Atlântico",
-    "Villa Sunset",
-    "Golden Tower"
-  ];
-
   // Calcular mesas ocupadas baseado nas visitas ativas
   const mesasOcupadas = visitasAtivas
-    .filter(visita => visita.loja === formData.loja && visita.andar === formData.andar)
+    .filter(visita => visita.loja === formData.loja && 
+      (formData.andar === '' || visita.andar === formData.andar || formData.andar === 'N/A'))
     .map(visita => visita.mesa);
+
+  // Limpar andar quando trocar de loja
+  useEffect(() => {
+    if (formData.loja && !lojasConfig[formData.loja as keyof typeof lojasConfig]?.temAndar) {
+      setFormData(prev => ({ ...prev, andar: "" }));
+    }
+  }, [formData.loja]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validação básica
-    if (!formData.cliente_nome || !formData.cliente_cpf || !formData.mesa || !formData.loja || !formData.andar) {
+    if (!formData.cliente_nome || !formData.cliente_cpf || !formData.mesa || !formData.loja) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Verificar se precisa de andar para Loja 2
+    if (formData.loja === "Loja 2" && !formData.andar) {
+      toast({
+        title: "Andar obrigatório",
+        description: "Para Loja 2, é necessário selecionar o andar.",
         variant: "destructive",
       });
       return;
@@ -193,6 +236,11 @@ const Recepcao = () => {
     );
   };
 
+  const getMaxMesas = () => {
+    if (!formData.loja) return 0;
+    return lojasConfig[formData.loja as keyof typeof lojasConfig]?.mesas || 0;
+  };
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto space-y-8">
@@ -213,20 +261,21 @@ const Recepcao = () => {
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
               Status das Mesas
-              {formData.loja && formData.andar && (
+              {formData.loja && (
                 <span className="text-sm font-normal text-slate-600">
-                  - {formData.loja}, {formData.andar}
+                  - {formData.loja}
+                  {formData.loja === "Loja 2" && formData.andar && `, ${formData.andar}`}
                 </span>
               )}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {!formData.loja || !formData.andar ? (
-              <p className="text-slate-500">Selecione a loja e o andar para ver o status das mesas.</p>
+            {!formData.loja ? (
+              <p className="text-slate-500">Selecione a loja para ver o status das mesas.</p>
             ) : (
               <>
                 <div className="grid grid-cols-5 md:grid-cols-10 gap-3">
-                  {Array.from({ length: 20 }, (_, i) => i + 1).map((mesa) => {
+                  {Array.from({ length: getMaxMesas() }, (_, i) => i + 1).map((mesa) => {
                     const isOcupada = mesasOcupadas.includes(mesa);
                     return (
                       <div
@@ -308,21 +357,13 @@ const Recepcao = () => {
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="corretor_nome">Corretor</Label>
-                    <Select onValueChange={(value) => setFormData(prev => ({ ...prev, corretor_nome: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o corretor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {corretores.map((corretor) => (
-                          <SelectItem key={corretor.name} value={corretor.name}>
-                            {corretor.name} ({corretor.apelido})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <AutoSuggest
+                    label="Corretor"
+                    placeholder="Digite o nome do corretor"
+                    options={corretores}
+                    value={formData.corretor_nome}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, corretor_nome: value }))}
+                  />
                 </div>
               </div>
 
@@ -333,58 +374,56 @@ const Recepcao = () => {
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <AutoSuggest
+                    label="Empreendimento de Interesse"
+                    placeholder="Digite o nome do empreendimento"
+                    options={empreendimentos}
+                    value={formData.empreendimento}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, empreendimento: value }))}
+                  />
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="empreendimento">Empreendimento de Interesse</Label>
-                    <Select onValueChange={(value) => setFormData(prev => ({ ...prev, empreendimento: value }))}>
+                    <Label htmlFor="loja">Loja *</Label>
+                    <Select onValueChange={(value) => setFormData(prev => ({ ...prev, loja: value, mesa: "" }))}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o empreendimento" />
+                        <SelectValue placeholder="Selecione a loja" />
                       </SelectTrigger>
                       <SelectContent>
-                        {empreendimentos.map((emp) => (
-                          <SelectItem key={emp} value={emp}>
-                            {emp}
+                        {Object.keys(lojasConfig).map((loja) => (
+                          <SelectItem key={loja} value={loja}>
+                            {loja} ({lojasConfig[loja as keyof typeof lojasConfig].mesas} mesas)
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="loja">Loja *</Label>
-                    <Select onValueChange={(value) => setFormData(prev => ({ ...prev, loja: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a loja" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Loja A">Loja A</SelectItem>
-                        <SelectItem value="Loja B">Loja B</SelectItem>
-                        <SelectItem value="Loja C">Loja C</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="andar">Andar *</Label>
-                    <Select onValueChange={(value) => setFormData(prev => ({ ...prev, andar: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o andar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Térreo">Térreo</SelectItem>
-                        <SelectItem value="1º Andar">1º Andar</SelectItem>
-                        <SelectItem value="2º Andar">2º Andar</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {formData.loja === "Loja 2" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="andar">Andar *</Label>
+                      <Select onValueChange={(value) => setFormData(prev => ({ ...prev, andar: value, mesa: "" }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o andar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Térreo">Térreo</SelectItem>
+                          <SelectItem value="Mezanino">Mezanino</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   
                   <div className="space-y-2">
                     <Label htmlFor="mesa">Mesa *</Label>
-                    <Select onValueChange={(value) => setFormData(prev => ({ ...prev, mesa: value }))}>
+                    <Select 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, mesa: value }))}
+                      disabled={!formData.loja || (formData.loja === "Loja 2" && !formData.andar)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a mesa" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: 20 }, (_, i) => i + 1).map((mesa) => 
+                        {Array.from({ length: getMaxMesas() }, (_, i) => i + 1).map((mesa) => 
                           renderMesaOption(mesa)
                         )}
                       </SelectContent>
