@@ -1,393 +1,318 @@
-
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { DashboardCard } from "@/components/DashboardCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Users, Clock, CheckCircle, MapPin, Download, Printer, Calendar as CalendarIcon } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
 import { VisitCard } from "@/components/VisitCard";
-import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, Download, Printer, Users, UserCheck, ClipboardList, Building } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 const Index = () => {
-  const { toast } = useToast();
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
-  const [selectedSuperintendente, setSelectedSuperintendente] = useState<string>("todos");
+  const { user, profile } = useAuthContext();
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [superintendente, setSuperintendente] = useState("");
 
-  const superintendentes = [
-    "ALINE",
-    "ANTONELLA", 
-    "BELLA",
-    "ISABELLA",
-    "JEAN",
-    "LISBOA",
-    "MATHEUS",
-    "VASQUES"
-  ];
-
-  // Buscar estatísticas do dashboard com filtros
-  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
-    queryKey: ['dashboard-stats', startDate, endDate, selectedSuperintendente],
+  const { data: stats } = useQuery({
+    queryKey: ["dashboard-stats", startDate, endDate, superintendente],
     queryFn: async () => {
-      let query = supabase.rpc('get_dashboard_stats_filtered', {
-        start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
-        end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null,
-        superintendente: selectedSuperintendente === "todos" ? null : selectedSuperintendente
+      const { data, error } = await supabase.rpc("get_dashboard_stats_filtered", {
+        start_date: startDate || null,
+        end_date: endDate || null,
+        superintendente: superintendente || null,
       });
-
-      const { data, error } = await query;
       
-      if (error) {
-        console.error('Erro ao buscar estatísticas:', error);
-        // Fallback para função sem filtros se a com filtros não existir
-        const { data: fallbackData, error: fallbackError } = await supabase.rpc('get_dashboard_stats');
-        if (fallbackError) throw fallbackError;
-        return fallbackData?.[0] || {
-          total_visitas_hoje: 0,
-          visitas_ativas: 0,
-          visitas_finalizadas_hoje: 0,
-          mesas_ocupadas: 0
-        };
-      }
-      
+      if (error) throw error;
       return data?.[0] || {
         total_visitas_hoje: 0,
         visitas_ativas: 0,
         visitas_finalizadas_hoje: 0,
-        mesas_ocupadas: 0
+        mesas_ocupadas: 0,
       };
-    }
+    },
   });
 
-  // Buscar visitas ativas com filtros
-  const { data: visitasAtivas = [], isLoading: visitasLoading, refetch: refetchVisitas } = useQuery({
-    queryKey: ['visitas-ativas-dashboard', startDate, endDate, selectedSuperintendente],
+  const { data: visits } = useQuery({
+    queryKey: ["visits"],
     queryFn: async () => {
-      let query = supabase
-        .from('visits')
-        .select(`
-          *,
-          users!inner(superintendente)
-        `)
-        .eq('status', 'ativo')
-        .order('horario_entrada', { ascending: false });
-
-      // Aplicar filtro de data se definido
-      if (startDate) {
-        query = query.gte('horario_entrada', format(startDate, 'yyyy-MM-dd'));
-      }
-      if (endDate) {
-        query = query.lte('horario_entrada', format(endDate, 'yyyy-MM-dd 23:59:59'));
-      }
-
-      // Aplicar filtro de superintendente se definido
-      if (selectedSuperintendente !== "todos") {
-        query = query.eq('users.superintendente', selectedSuperintendente);
-      }
+      const { data, error } = await supabase
+        .from("visits")
+        .select("*")
+        .order("created_at", { ascending: false });
       
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Erro ao buscar visitas ativas:', error);
-        return [];
-      }
-      
-      return data || [];
-    }
+      if (error) throw error;
+      return data;
+    },
   });
 
-  // Configurar tempo real para visitas
-  useEffect(() => {
-    const channel = supabase
-      .channel('visits-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'visits'
-        },
-        () => {
-          refetchStats();
-          refetchVisitas();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [refetchStats, refetchVisitas]);
-
-  // Função para finalizar visita
-  const handleFinalizarVisita = async (visitId: string) => {
-    try {
-      const { error } = await supabase.rpc('finalizar_visita', { visit_id: visitId });
+  const { data: superintendentes } = useQuery({
+    queryKey: ["superintendentes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("superintendente")
+        .not("superintendente", "is", null);
       
-      if (error) {
-        console.error('Erro ao finalizar visita:', error);
-        toast({
-          title: "Erro ao finalizar visita",
-          description: "Ocorreu um erro ao finalizar a visita. Tente novamente.",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (error) throw error;
+      
+      const uniqueSuperintendentes = [...new Set(data.map(u => u.superintendente))];
+      return uniqueSuperintendentes;
+    },
+  });
 
-      toast({
-        title: "Visita finalizada!",
-        description: "A visita foi finalizada com sucesso.",
-      });
-
-      refetchStats();
-      refetchVisitas();
-    } catch (error) {
-      console.error('Erro ao finalizar visita:', error);
-      toast({
-        title: "Erro ao finalizar visita",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Função para exportar CSV
   const exportToCSV = () => {
-    const csvData = visitasAtivas.map(visita => ({
-      'Cliente': visita.cliente_nome,
-      'CPF': visita.cliente_cpf,
-      'Corretor': visita.corretor_nome,
-      'Empreendimento': visita.empreendimento,
-      'Loja': visita.loja,
-      'Mesa': visita.mesa,
-      'Entrada': format(new Date(visita.horario_entrada), 'dd/MM/yyyy HH:mm'),
-      'Status': visita.status
-    }));
+    if (!visits) return;
+    
+    const headers = ["Data", "Cliente", "CPF", "Corretor", "Loja", "Mesa", "Status"];
+    const csvContent = [
+      headers.join(","),
+      ...visits.map(visit => [
+        format(new Date(visit.created_at), "dd/MM/yyyy"),
+        visit.cliente_nome,
+        visit.cliente_cpf,
+        visit.corretor_nome,
+        `${visit.loja} - ${visit.andar}`,
+        visit.mesa,
+        visit.status
+      ].join(","))
+    ].join("\n");
 
-    const csvString = [
-      Object.keys(csvData[0] || {}).join(','),
-      ...csvData.map(row => Object.values(row).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvString], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `dashboard-${format(new Date(), 'dd-MM-yyyy')}.csv`;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `relatorio-visitas-${format(new Date(), "dd-MM-yyyy")}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
     link.click();
-    window.URL.revokeObjectURL(url);
-
-    toast({
-      title: "CSV Exportado!",
-      description: "O arquivo foi baixado com sucesso.",
-    });
+    document.body.removeChild(link);
   };
 
-  // Função para imprimir
-  const handlePrint = () => {
-    window.print();
+  const printReport = () => {
+    if (!visits) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Relatório de Visitas - ${format(new Date(), "dd/MM/yyyy")}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .stats { display: flex; justify-content: space-around; margin-bottom: 20px; }
+            .stat-card { text-align: center; padding: 10px; border: 1px solid #ddd; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Front Desk - Relatório de Visitas</h1>
+            <p>Data: ${format(new Date(), "dd/MM/yyyy HH:mm")}</p>
+          </div>
+          
+          <div class="stats">
+            <div class="stat-card">
+              <h3>${stats?.total_visitas_hoje || 0}</h3>
+              <p>Total de Visitas</p>
+            </div>
+            <div class="stat-card">
+              <h3>${stats?.visitas_ativas || 0}</h3>
+              <p>Visitas Ativas</p>
+            </div>
+            <div class="stat-card">
+              <h3>${stats?.visitas_finalizadas_hoje || 0}</h3>
+              <p>Visitas Finalizadas</p>
+            </div>
+            <div class="stat-card">
+              <h3>${stats?.mesas_ocupadas || 0}</h3>
+              <p>Mesas Ocupadas</p>
+            </div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>CPF</th>
+                <th>Corretor</th>
+                <th>Local</th>
+                <th>Mesa</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${visits.map(visit => `
+                <tr>
+                  <td>${format(new Date(visit.created_at), "dd/MM/yyyy HH:mm")}</td>
+                  <td>${visit.cliente_nome}</td>
+                  <td>${visit.cliente_cpf}</td>
+                  <td>${visit.corretor_nome}</td>
+                  <td>${visit.loja} - ${visit.andar}</td>
+                  <td>${visit.mesa}</td>
+                  <td>${visit.status}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   };
 
-  const dashboardData = [
-    {
-      title: "Visitas Hoje",
-      value: stats?.total_visitas_hoje?.toString() || "0",
-      icon: Users,
-      trend: "stable" as const
-    },
-    {
-      title: "Atendimentos Ativos",
-      value: stats?.visitas_ativas?.toString() || "0",
-      icon: Clock,
-      trend: "stable" as const
-    },
-    {
-      title: "Finalizadas Hoje",
-      value: stats?.visitas_finalizadas_hoje?.toString() || "0",
-      icon: CheckCircle,
-      trend: "stable" as const
-    },
-    {
-      title: "Mesas Ocupadas",
-      value: stats?.mesas_ocupadas?.toString() || "0",
-      icon: MapPin,
-      trend: "stable" as const
-    }
-  ];
-
-  if (statsLoading || visitasLoading) {
+  if (!user) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Carregando dados...</div>
-        </div>
-      </Layout>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Building className="w-8 h-8 text-white" />
+            </div>
+            <CardTitle className="text-2xl">Front Desk System</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-gray-600 mb-6">Faça login para acessar o sistema</p>
+            <Button asChild className="w-full">
+              <a href="/auth">Fazer Login</a>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
     <Layout>
-      <div className="space-y-8 print:space-y-4">
-        {/* Header */}
-        <div className="flex justify-between items-start print:mb-4">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 print:text-2xl">Dashboard</h1>
-            <p className="text-slate-600 print:text-sm">Visão geral do sistema de recepção</p>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+            <p className="text-slate-600">Visão geral do sistema de recepção</p>
           </div>
           
-          {/* Botões de ação - ocultos na impressão */}
-          <div className="flex gap-2 print:hidden">
+          <div className="flex gap-2">
             <Button onClick={exportToCSV} variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="w-4 h-4 mr-2" />
               Exportar CSV
             </Button>
-            <Button onClick={handlePrint} variant="outline" size="sm">
-              <Printer className="h-4 w-4 mr-2" />
+            <Button onClick={printReport} variant="outline" size="sm">
+              <Printer className="w-4 h-4 mr-2" />
               Imprimir
             </Button>
           </div>
         </div>
 
-        {/* Filtros - ocultos na impressão */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print:hidden">
-          {/* Filtro Data Início */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Data Início</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !startDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "dd/MM/yyyy") : "Selecionar data"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Filtro Data Fim */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Data Fim</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !endDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "dd/MM/yyyy") : "Selecionar data"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Filtro Superintendente */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Superintendente</label>
-            <Select value={selectedSuperintendente} onValueChange={setSelectedSuperintendente}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar superintendente" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {superintendentes.map((superintendente) => (
-                  <SelectItem key={superintendente} value={superintendente}>
-                    {superintendente}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Cards de estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:gap-4">
-          {dashboardData.map((item, index) => (
-            <DashboardCard key={index} {...item} />
-          ))}
-        </div>
-
-        {/* Visitas Ativas */}
-        <Card className="print:break-inside-avoid">
+        {/* Filtros */}
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 print:text-lg">
-              <Clock className="h-5 w-5" />
-              Atendimentos em Andamento
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Filtros
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {visitasAtivas.length === 0 ? (
-              <p className="text-slate-500 text-center py-8 print:py-4">
-                Nenhum atendimento em andamento no momento.
-              </p>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 print:grid-cols-2 print:gap-2">
-                {visitasAtivas.map((visita) => (
-                  <VisitCard
-                    key={visita.id}
-                    visit={visita}
-                    onFinalize={handleFinalizarVisita}
-                  />
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start-date">Data Início</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
               </div>
-            )}
+              <div className="space-y-2">
+                <Label htmlFor="end-date">Data Fim</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="superintendente">Superintendente</Label>
+                <Select value={superintendente} onValueChange={setSuperintendente}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos</SelectItem>
+                    {superintendentes?.map((sup) => (
+                      <SelectItem key={sup} value={sup}>
+                        {sup}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Cards de estatísticas */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <DashboardCard
+            title="Total de Visitas"
+            value={stats?.total_visitas_hoje?.toString() || "0"}
+            description="Visitas registradas no período"
+            icon={<Users className="h-4 w-4 text-blue-600" />}
+          />
+          <DashboardCard
+            title="Visitas Ativas"
+            value={stats?.visitas_ativas?.toString() || "0"}
+            description="Atendimentos em andamento"
+            icon={<UserCheck className="h-4 w-4 text-green-600" />}
+          />
+          <DashboardCard
+            title="Visitas Finalizadas"
+            value={stats?.visitas_finalizadas_hoje?.toString() || "0"}
+            description="Finalizadas no período"
+            icon={<ClipboardList className="h-4 w-4 text-purple-600" />}
+          />
+          <DashboardCard
+            title="Mesas Ocupadas"
+            value={stats?.mesas_ocupadas?.toString() || "0"}
+            description="Mesas em uso no momento"
+            icon={<Building className="h-4 w-4 text-orange-600" />}
+          />
+        </div>
+
+        {/* Lista de visitas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">Visitas Recentes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {visits?.slice(0, 10).map((visit) => (
+                <VisitCard 
+                  key={visit.id} 
+                  visit={visit} 
+                  canFinalize={profile?.role === 'recepcao'}
+                />
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Estilos de impressão */}
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print\\:block, .print\\:block * {
-            visibility: visible;
-          }
-          .print\\:hidden {
-            display: none !important;
-          }
-          .print\\:break-inside-avoid {
-            break-inside: avoid;
-          }
-          @page {
-            margin: 1cm;
-            size: A4;
-          }
-        }
-      `}</style>
     </Layout>
   );
 };

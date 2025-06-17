@@ -11,39 +11,51 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Calendar, Users, UserCheck, BarChart3, Settings } from "lucide-react";
+import { Calendar, Users, UserCheck, BarChart3, Settings, LogOut } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const menuItems = [
   {
     title: "Dashboard",
     url: "/",
     icon: BarChart3,
+    roles: ["corretor", "recepcao"]
   },
   {
     title: "Recepção",
     url: "/recepcao",
     icon: UserCheck,
+    roles: ["recepcao"]
   },
   {
     title: "Corretor",
     url: "/corretor",
     icon: Users,
+    roles: ["corretor", "recepcao"]
   },
   {
     title: "Agendamentos",
     url: "/agendamentos",
     icon: Calendar,
+    roles: ["recepcao"]
   },
   {
     title: "Configurações",
     url: "/configuracoes",
     icon: Settings,
+    roles: ["recepcao"]
   },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
+  const { profile, signOut } = useAuthContext();
+
+  const filteredMenuItems = menuItems.filter(item => 
+    profile?.role && item.roles.includes(profile.role)
+  );
 
   return (
     <Sidebar className="border-r border-slate-200">
@@ -57,6 +69,13 @@ export function AppSidebar() {
             <p className="text-sm text-slate-500">Sistema de Recepção</p>
           </div>
         </div>
+        
+        {profile && (
+          <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+            <p className="text-sm font-medium text-slate-900">{profile.name}</p>
+            <p className="text-xs text-slate-500 capitalize">{profile.role}</p>
+          </div>
+        )}
       </SidebarHeader>
       
       <SidebarContent>
@@ -66,7 +85,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {filteredMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild
@@ -85,7 +104,11 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-6 border-t border-slate-200">
-        <div className="text-xs text-slate-500 text-center">
+        <Button variant="outline" size="sm" onClick={signOut} className="w-full">
+          <LogOut className="w-4 h-4 mr-2" />
+          Sair
+        </Button>
+        <div className="text-xs text-slate-500 text-center mt-2">
           © 2024 Front Desk System
         </div>
       </SidebarFooter>
