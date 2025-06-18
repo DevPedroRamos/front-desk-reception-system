@@ -11,8 +11,9 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Calendar, Users, UserCheck, BarChart3, Settings } from "lucide-react";
+import { Calendar, Users, UserCheck, BarChart3, Settings, LogOut } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const menuItems = [
   {
@@ -44,6 +45,11 @@ const menuItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const { signOut, user } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+  };
 
   return (
     <Sidebar className="border-r border-slate-200">
@@ -85,6 +91,20 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-6 border-t border-slate-200">
+        {user && (
+          <div className="mb-4">
+            <div className="text-sm font-medium text-slate-900 mb-1">
+              {user.email}
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              <LogOut className="h-3 w-3" />
+              Sair
+            </button>
+          </div>
+        )}
         <div className="text-xs text-slate-500 text-center">
           © 2024 Front Desk System
         </div>
