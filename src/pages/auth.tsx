@@ -12,6 +12,7 @@ export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [cpf, setCpf] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
@@ -26,7 +27,8 @@ export default function Auth() {
       if (isLogin) {
         result = await signIn(email, password);
       } else {
-        result = await signUp(email, password);
+        // Para cadastro, passamos o CPF nos metadados
+        result = await signUp(email, password, cpf || '00000000000');
       }
 
       if (result.error) {
@@ -82,6 +84,21 @@ export default function Auth() {
                 required
               />
             </div>
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="cpf">CPF (opcional)</Label>
+                <Input
+                  id="cpf"
+                  type="text"
+                  placeholder="000.000.000-00"
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
+                />
+                <p className="text-sm text-gray-500">
+                  Se não preenchido, será usado 00000000000
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
               <Input
