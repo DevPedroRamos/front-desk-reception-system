@@ -343,7 +343,7 @@ const Recepcao = () => {
                       placeholder="000.000.000-00"
                       value={formData.cliente_cpf}
                       onChange={(e) => setFormData(prev => ({ ...prev, cliente_cpf: e.target.value }))}
-                      required
+                      value="000.000.000-00"
                     />
                   </div>
                   
