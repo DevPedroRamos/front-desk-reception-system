@@ -308,58 +308,7 @@ const Recepcao = () => {
           </div>
         </div>
 
-        {/* Status das Mesas */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Status das Mesas
-              {formData.loja && (
-                <span className="text-sm font-normal text-slate-600">
-                  - {formData.loja}
-                  {formData.loja === "Loja 2" && formData.andar && `, ${formData.andar}`}
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!formData.loja ? (
-              <p className="text-slate-500">Selecione a loja para ver o status das mesas.</p>
-            ) : (
-              <>
-                <div className="grid grid-cols-5 md:grid-cols-10 gap-3">
-                  {Array.from({ length: getMaxMesas() }, (_, i) => i + 1).map((mesa) => {
-                    const isOcupada = mesasOcupadas.includes(mesa);
-                    return (
-                      <div
-                        key={mesa}
-                        className={`
-                          w-12 h-12 rounded-lg border-2 flex items-center justify-center text-sm font-semibold
-                          ${isOcupada 
-                            ? 'bg-red-100 border-red-300 text-red-700' 
-                            : 'bg-green-100 border-green-300 text-green-700'
-                          }
-                        `}
-                      >
-                        {mesa}
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center gap-6 mt-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-100 border-2 border-green-300 rounded"></div>
-                    <span className="text-slate-600">Disponível</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded"></div>
-                    <span className="text-slate-600">Ocupada</span>
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+
 
         {/* Formulário de Registro */}
         <Card>
@@ -511,6 +460,59 @@ const Recepcao = () => {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+
+                {/* Status das Mesas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Status das Mesas
+              {formData.loja && (
+                <span className="text-sm font-normal text-slate-600">
+                  - {formData.loja}
+                  {formData.loja === "Loja 2" && formData.andar && `, ${formData.andar}`}
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!formData.loja ? (
+              <p className="text-slate-500">Selecione a loja para ver o status das mesas.</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-5 md:grid-cols-10 gap-3">
+                  {Array.from({ length: getMaxMesas() }, (_, i) => i + 1).map((mesa) => {
+                    const isOcupada = mesasOcupadas.includes(mesa);
+                    return (
+                      <div
+                        key={mesa}
+                        className={`
+                          w-12 h-12 rounded-lg border-2 flex items-center justify-center text-sm font-semibold
+                          ${isOcupada 
+                            ? 'bg-red-100 border-red-300 text-red-700' 
+                            : 'bg-green-100 border-green-300 text-green-700'
+                          }
+                        `}
+                      >
+                        {mesa}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-6 mt-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-100 border-2 border-green-300 rounded"></div>
+                    <span className="text-slate-600">Disponível</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded"></div>
+                    <span className="text-slate-600">Ocupada</span>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
