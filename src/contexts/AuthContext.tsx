@@ -2,14 +2,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface Profile {
   id: string;
   cpf: string;
   name: string;
   role: string;
-  created_at: string;
 }
 
 interface AuthContextType {
@@ -17,66 +15,49 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, cpf: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  isRecepcao: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Erro ao buscar perfil:', error);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Erro ao buscar perfil:', error);
-      return null;
-    }
-  };
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // Fetch user profile
           setTimeout(async () => {
-            const userProfile = await fetchProfile(session.user.id);
-            setProfile(userProfile);
-            setLoading(false);
+            try {
+              const { data: profileData, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (error) {
+                console.error('Error fetching profile:', error);
+              } else {
+                setProfile(profileData);
+              }
+            } catch (error) {
+              console.error('Error fetching profile:', error);
+            }
           }, 0);
         } else {
           setProfile(null);
-          setLoading(false);
         }
+        
+        setLoading(false);
       }
     );
 
@@ -86,10 +67,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchProfile(session.user.id).then(userProfile => {
-          setProfile(userProfile);
+        // Fetch user profile
+        setTimeout(async () => {
+          try {
+            const { data: profileData, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (error) {
+              console.error('Error fetching profile:', error);
+            } else {
+              setProfile(profileData);
+            }
+          } catch (error) {
+            console.error('Error fetching profile:', error);
+          }
           setLoading(false);
-        });
+        }, 0);
       } else {
         setLoading(false);
       }
@@ -98,117 +94,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast({
-          title: "Erro ao fazer login",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-
-      return { error };
-    } catch (error: any) {
-      toast({
-        title: "Erro ao fazer login",
-        description: "Ocorreu um erro inesperado",
-        variant: "destructive",
-      });
-      return { error };
-    }
-  };
-
-  const signUp = async (email: string, password: string, cpf: string) => {
-    try {
-      // Validar CPF primeiro
-      const { data: isValid, error: validationError } = await supabase
-        .rpc('validate_cpf_and_create_profile', { user_cpf: cpf });
-
-      if (validationError) {
-        toast({
-          title: "Erro de validação",
-          description: "Erro ao validar CPF. Tente novamente.",
-          variant: "destructive",
-        });
-        return { error: validationError };
-      }
-
-      if (!isValid) {
-        toast({
-          title: "CPF não encontrado",
-          description: "Seu CPF não consta na base de usuários. Entre em contato com o administrador.",
-          variant: "destructive",
-        });
-        return { error: { message: "CPF não encontrado na base de usuários" } };
-      }
-
-      // Se CPF é válido, criar conta
-      const redirectUrl = `${window.location.origin}/auth`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            cpf: cpf
-          }
-        }
-      });
-
-      if (error) {
-        toast({
-          title: "Erro ao criar conta",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Conta criada com sucesso!",
-          description: "Você será redirecionado para o login.",
-        });
-      }
-
-      return { error };
-    } catch (error: any) {
-      toast({
-        title: "Erro ao criar conta",
-        description: "Ocorreu um erro inesperado",
-        variant: "destructive",
-      });
-      return { error };
-    }
-  };
-
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Erro ao sair",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    await supabase.auth.signOut();
   };
 
-  const isRecepcao = profile?.role === 'recepcionista';
+  return (
+    <AuthContext.Provider value={{ user, session, profile, loading, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
 
-  const value = {
-    user,
-    session,
-    profile,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-    isRecepcao,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+export function useAuthContext() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuthContext must be used within an AuthProvider');
+  }
+  return context;
+}

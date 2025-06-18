@@ -1,279 +1,315 @@
-
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { DashboardCard } from "@/components/DashboardCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Users, UserCheck, Clock, Building2, LogOut } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { VisitCard } from "@/components/VisitCard";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import type { DateRange } from "react-day-picker";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, Download, Printer, Users, UserCheck, ClipboardList, Building } from "lucide-react";
+import { format } from "date-fns";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 const Index = () => {
-  const navigate = useNavigate();
-  const { user, profile, loading, signOut } = useAuth();
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(),
-    to: new Date(),
-  });
-  const [selectedSuperintendente, setSelectedSuperintendente] = useState<string>("all");
+  const { user, profile } = useAuthContext();
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [superintendente, setSuperintendente] = useState("");
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate]);
-
-  const handleLogout = async () => {
-    await signOut();
-    navigate("/auth");
-  };
-
-  // Para corretores, buscar apenas dados básicos do dia atual
-  const { data: corretorStats, isLoading: corretorLoading } = useQuery({
-    queryKey: ['corretor-stats'],
+  const { data: stats } = useQuery({
+    queryKey: ["dashboard-stats", startDate, endDate, superintendente],
     queryFn: async () => {
-      const hoje = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase.rpc("get_dashboard_stats_filtered", {
+        start_date: startDate || null,
+        end_date: endDate || null,
+        superintendente: superintendente || null,
+      });
       
-      // Buscar agendamentos de hoje
-      const { data: agendamentos, error: agendamentosError } = await supabase
-        .from('agendamentos')
-        .select('*')
-        .eq('data', hoje);
-
-      if (agendamentosError) {
-        console.error('Erro ao buscar agendamentos:', agendamentosError);
-      }
-
-      // Buscar visitas ativas
-      const { data: visitasAtivas, error: visitasError } = await supabase
-        .from('visits')
-        .select('*')
-        .eq('status', 'ativo');
-
-      if (visitasError) {
-        console.error('Erro ao buscar visitas ativas:', visitasError);
-      }
-
-      return {
-        agendamentos_hoje: agendamentos?.length || 0,
-        visitas_ativas: visitasAtivas?.length || 0,
+      if (error) throw error;
+      return data?.[0] || {
+        total_visitas_hoje: 0,
+        visitas_ativas: 0,
+        visitas_finalizadas_hoje: 0,
+        mesas_ocupadas: 0,
       };
     },
-    enabled: profile?.role === 'corretor',
   });
 
-  // Para recepcionistas, manter a funcionalidade completa com filtros
-  const { data: dashboardStats, isLoading: dashboardLoading } = useQuery({
-    queryKey: ['dashboard-stats', dateRange, selectedSuperintendente],
-    queryFn: async () => {
-      const startDate = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined;
-      const endDate = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined;
-
-      const { data, error } = await supabase.rpc('get_dashboard_stats_filtered', {
-        start_date: startDate,
-        end_date: endDate,
-        superintendente: selectedSuperintendente === "all" ? undefined : selectedSuperintendente,
-      });
-
-      if (error) {
-        console.error('Erro ao buscar dados do dashboard:', error);
-        return null;
-      }
-
-      return data ? data[0] : null;
-    },
-    enabled: profile?.role === 'recepcionista',
-  });
-
-  const { data: superintendentes = [], isLoading: superLoading } = useQuery({
-    queryKey: ['superintendentes'],
+  const { data: visits } = useQuery({
+    queryKey: ["visits"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('users')
-        .select('superintendente')
-        .not('superintendente', 'is', null);
-
-      if (error) {
-        console.error('Erro ao buscar superintendentes:', error);
-        return [];
-      }
-
-      // Extrair valores únicos manualmente
-      const uniqueSuperintendentes = Array.from(
-        new Set(data?.map(item => item.superintendente) || [])
-      );
-
-      return uniqueSuperintendentes;
+        .from("visits")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      return data;
     },
-    enabled: profile?.role === 'recepcionista',
   });
 
-  if (loading) {
+  const { data: superintendentes } = useQuery({
+    queryKey: ["superintendentes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("superintendente")
+        .not("superintendente", "is", null);
+      
+      if (error) throw error;
+      
+      const uniqueSuperintendentes = [...new Set(data.map(u => u.superintendente))];
+      return uniqueSuperintendentes;
+    },
+  });
+
+  const exportToCSV = () => {
+    if (!visits) return;
+    
+    const headers = ["Data", "Cliente", "CPF", "Corretor", "Loja", "Mesa", "Status"];
+    const csvContent = [
+      headers.join(","),
+      ...visits.map(visit => [
+        format(new Date(visit.created_at), "dd/MM/yyyy"),
+        visit.cliente_nome,
+        visit.cliente_cpf,
+        visit.corretor_nome,
+        `${visit.loja} - ${visit.andar}`,
+        visit.mesa,
+        visit.status
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `relatorio-visitas-${format(new Date(), "dd-MM-yyyy")}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const printReport = () => {
+    if (!visits) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Relatório de Visitas - ${format(new Date(), "dd/MM/yyyy")}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .stats { display: flex; justify-content: space-around; margin-bottom: 20px; }
+            .stat-card { text-align: center; padding: 10px; border: 1px solid #ddd; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Front Desk - Relatório de Visitas</h1>
+            <p>Data: ${format(new Date(), "dd/MM/yyyy HH:mm")}</p>
+          </div>
+          
+          <div class="stats">
+            <div class="stat-card">
+              <h3>${stats?.total_visitas_hoje || 0}</h3>
+              <p>Total de Visitas</p>
+            </div>
+            <div class="stat-card">
+              <h3>${stats?.visitas_ativas || 0}</h3>
+              <p>Visitas Ativas</p>
+            </div>
+            <div class="stat-card">
+              <h3>${stats?.visitas_finalizadas_hoje || 0}</h3>
+              <p>Visitas Finalizadas</p>
+            </div>
+            <div class="stat-card">
+              <h3>${stats?.mesas_ocupadas || 0}</h3>
+              <p>Mesas Ocupadas</p>
+            </div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>CPF</th>
+                <th>Corretor</th>
+                <th>Local</th>
+                <th>Mesa</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${visits.map(visit => `
+                <tr>
+                  <td>${format(new Date(visit.created_at), "dd/MM/yyyy HH:mm")}</td>
+                  <td>${visit.cliente_nome}</td>
+                  <td>${visit.cliente_cpf}</td>
+                  <td>${visit.corretor_nome}</td>
+                  <td>${visit.loja} - ${visit.andar}</td>
+                  <td>${visit.mesa}</td>
+                  <td>${visit.status}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Carregando...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Building className="w-8 h-8 text-white" />
+            </div>
+            <CardTitle className="text-2xl">Front Desk System</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-gray-600 mb-6">Faça login para acessar o sistema</p>
+            <Button asChild className="w-full">
+              <a href="/auth">Fazer Login</a>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (!user || !profile) {
-    return null;
-  }
-
-  const isRecepcao = profile.role === 'recepcionista';
-
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header with logout */}
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-              <p className="text-slate-600">
-                Bem-vindo, {profile.name} ({profile.role})
-              </p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+            <p className="text-slate-600">Visão geral do sistema de recepção</p>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={handleLogout}
-            className="flex items-center gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Sair
-          </Button>
+          
+          <div className="flex gap-2">
+            <Button onClick={exportToCSV} variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              Exportar CSV
+            </Button>
+            <Button onClick={printReport} variant="outline" size="sm">
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimir
+            </Button>
+          </div>
         </div>
 
-        {/* Date Range Picker and Filter - apenas para recepcionistas */}
-        {isRecepcao && (
-          <div className="flex items-center justify-between">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[300px] justify-start text-left font-normal",
-                    !dateRange.from && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.from ? (
-                    format(dateRange.from, "dd/MM/yyyy", { locale: ptBR }) + 
-                    " - " + 
-                    format(dateRange.to || dateRange.from, "dd/MM/yyyy", { locale: ptBR })
-                  ) : (
-                    <span>Selecionar data</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="center" side="bottom">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={(range) => {
-                    if (range) {
-                      setDateRange({
-                        from: range.from || new Date(),
-                        to: range.to || range.from || new Date(),
-                      });
-                    }
-                  }}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
-
-            <Select onValueChange={(value) => setSelectedSuperintendente(value)}>
-              <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="Filtrar por Superintendente" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Superintendentes</SelectItem>
-                {superintendentes.map((superintendente) => (
-                  <SelectItem key={superintendente} value={superintendente}>
-                    {superintendente}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {/* Dashboard Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {isRecepcao ? (
-            <>
-              <DashboardCard
-                title="Visitas Hoje"
-                value={dashboardLoading ? "Carregando..." : dashboardStats?.total_visitas_hoje?.toString() || "0"}
-                icon={Users}
-                description="Total de visitas agendadas para hoje"
-              />
-              <DashboardCard
-                title="Atendimentos Ativos"
-                value={dashboardLoading ? "Carregando..." : dashboardStats?.visitas_ativas?.toString() || "0"}
-                icon={UserCheck}
-                description="Número de atendimentos em andamento"
-              />
-              <DashboardCard
-                title="Visitas Finalizadas"
-                value={dashboardLoading ? "Carregando..." : dashboardStats?.visitas_finalizadas_hoje?.toString() || "0"}
-                icon={Clock}
-                description="Total de visitas finalizadas hoje"
-              />
-              <DashboardCard
-                title="Mesas Ocupadas"
-                value={dashboardLoading ? "Carregando..." : dashboardStats?.mesas_ocupadas?.toString() || "0"}
-                icon={Building2}
-                description="Número de mesas atualmente em uso"
-              />
-            </>
-          ) : (
-            <>
-              <DashboardCard
-                title="Agendamentos Hoje"
-                value={corretorLoading ? "Carregando..." : corretorStats?.agendamentos_hoje?.toString() || "0"}
-                icon={Calendar}
-                description="Seus agendamentos para hoje"
-              />
-              <DashboardCard
-                title="Atendimentos Ativos"
-                value={corretorLoading ? "Carregando..." : corretorStats?.visitas_ativas?.toString() || "0"}
-                icon={UserCheck}
-                description="Atendimentos em andamento"
-              />
-            </>
-          )}
-        </div>
-
-        {/* Additional Information */}
+        {/* Filtros */}
         <Card>
           <CardHeader>
-            <CardTitle>Informações</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Filtros
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-500">
-              {isRecepcao 
-                ? "Este dashboard fornece uma visão geral do sistema de recepção. Use os filtros acima para refinar os dados exibidos."
-                : "Visualize seus agendamentos e atendimentos do dia. Para funcionalidades completas, entre em contato com a recepção."
-              }
-            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start-date">Data Início</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end-date">Data Fim</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="superintendente">Superintendente</Label>
+                <Select value={superintendente} onValueChange={setSuperintendente}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos</SelectItem>
+                    {superintendentes?.map((sup) => (
+                      <SelectItem key={sup} value={sup}>
+                        {sup}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Cards de estatísticas */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <DashboardCard
+            title="Total de Visitas"
+            value={stats?.total_visitas_hoje?.toString() || "0"}
+            description="Visitas registradas no período"
+            icon={<Users className="h-4 w-4 text-blue-600" />}
+          />
+          <DashboardCard
+            title="Visitas Ativas"
+            value={stats?.visitas_ativas?.toString() || "0"}
+            description="Atendimentos em andamento"
+            icon={<UserCheck className="h-4 w-4 text-green-600" />}
+          />
+          <DashboardCard
+            title="Visitas Finalizadas"
+            value={stats?.visitas_finalizadas_hoje?.toString() || "0"}
+            description="Finalizadas no período"
+            icon={<ClipboardList className="h-4 w-4 text-purple-600" />}
+          />
+          <DashboardCard
+            title="Mesas Ocupadas"
+            value={stats?.mesas_ocupadas?.toString() || "0"}
+            description="Mesas em uso no momento"
+            icon={<Building className="h-4 w-4 text-orange-600" />}
+          />
+        </div>
+
+        {/* Lista de visitas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">Visitas Recentes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {visits?.slice(0, 10).map((visit) => (
+                <VisitCard 
+                  key={visit.id} 
+                  visit={visit} 
+                  canFinalize={profile?.role === 'recepcao'}
+                />
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
