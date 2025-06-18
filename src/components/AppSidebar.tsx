@@ -11,7 +11,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Calendar, Users, UserCheck, BarChart3, Settings, LogOut } from "lucide-react";
+import { BarChart3, UserCheck, LogOut } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -25,21 +25,6 @@ const menuItems = [
     title: "Recepção",
     url: "/recepcao",
     icon: UserCheck,
-  },
-  {
-    title: "Corretor",
-    url: "/corretor",
-    icon: Users,
-  },
-  {
-    title: "Agendamentos",
-    url: "/agendamentos",
-    icon: Calendar,
-  },
-  {
-    title: "Configurações",
-    url: "/configuracoes",
-    icon: Settings,
   },
 ];
 

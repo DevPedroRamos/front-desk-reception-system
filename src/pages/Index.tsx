@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, User, Users, CheckCheck, Download, X } from "lucide-react";
+import { Calendar, User, Users, CheckCheck, Download, X, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -47,8 +48,10 @@ export default function Index() {
     mesas_ocupadas: 0,
   });
   const [activeVisits, setActiveVisits] = useState<Visit[]>([]);
+  const [filteredActiveVisits, setFilteredActiveVisits] = useState<Visit[]>([]);
   const [finishedVisits, setFinishedVisits] = useState<Visit[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
     startDate: format(new Date(), 'yyyy-MM-dd'),
     endDate: format(new Date(), 'yyyy-MM-dd'),
@@ -64,6 +67,18 @@ export default function Index() {
     fetchFinishedVisits();
   }, [filters]);
 
+  // Filter active visits based on search term
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredActiveVisits(activeVisits);
+    } else {
+      const filtered = activeVisits.filter(visit => 
+        visit.corretor_nome.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredActiveVisits(filtered);
+    }
+  }, [activeVisits, searchTerm]);
+
   const fetchUsers = async () => {
     const { data, error } = await supabase
       .from("users")
@@ -78,22 +93,62 @@ export default function Index() {
 
   const fetchStats = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_dashboard_stats_filtered', {
-        start_date: filters.startDate || null,
-        end_date: filters.endDate || null,
-        superintendente: filters.superintendente === 'all' ? null : filters.superintendente || null,
+      // Get today's date in ISO format
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Total visits today
+      let totalQuery = supabase
+        .from("visits")
+        .select("id", { count: 'exact' })
+        .gte("horario_entrada", `${today}T00:00:00`)
+        .lte("horario_entrada", `${today}T23:59:59`);
+      
+      if (filters.superintendente !== 'all') {
+        totalQuery = totalQuery
+          .select("*, users!visits_corretor_id_fkey(superintendente)", { count: 'exact' })
+          .eq("users.superintendente", filters.superintendente);
+      }
+
+      // Active visits
+      let activeQuery = supabase
+        .from("visits")
+        .select("id", { count: 'exact' })
+        .eq("status", "ativo");
+      
+      if (filters.superintendente !== 'all') {
+        activeQuery = activeQuery
+          .select("*, users!visits_corretor_id_fkey(superintendente)", { count: 'exact' })
+          .eq("users.superintendente", filters.superintendente);
+      }
+
+      // Finished visits today
+      let finishedQuery = supabase
+        .from("visits")
+        .select("id", { count: 'exact' })
+        .eq("status", "finalizado")
+        .gte("horario_entrada", `${today}T00:00:00`)
+        .lte("horario_entrada", `${today}T23:59:59`);
+      
+      if (filters.superintendente !== 'all') {
+        finishedQuery = finishedQuery
+          .select("*, users!visits_corretor_id_fkey(superintendente)", { count: 'exact' })
+          .eq("users.superintendente", filters.superintendente);
+      }
+
+      // Occupied tables (active visits count as occupied tables)
+      const [totalResult, activeResult, finishedResult] = await Promise.all([
+        totalQuery,
+        activeQuery,
+        finishedQuery
+      ]);
+
+      setStats({
+        total_visitas_hoje: totalResult.count || 0,
+        visitas_ativas: activeResult.count || 0,
+        visitas_finalizadas_hoje: finishedResult.count || 0,
+        mesas_ocupadas: activeResult.count || 0, // Each active visit = 1 occupied table
       });
 
-      if (error) {
-        console.error("Erro ao buscar estatísticas:", error);
-      } else if (data && data.length > 0) {
-        setStats({
-          total_visitas_hoje: data[0].total_visitas_hoje || 0,
-          visitas_ativas: data[0].visitas_ativas || 0,
-          visitas_finalizadas_hoje: data[0].visitas_finalizadas_hoje || 0,
-          mesas_ocupadas: data[0].mesas_ocupadas || 0,
-        });
-      }
     } catch (error) {
       console.error("Erro ao buscar estatísticas:", error);
     }
@@ -248,6 +303,7 @@ export default function Index() {
       endDate: format(new Date(), 'yyyy-MM-dd'),
       superintendente: 'all',
     });
+    setSearchTerm("");
   };
 
   const formatTime = (timestamp: string) => {
@@ -388,13 +444,24 @@ export default function Index() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="border-slate-200">
             <CardHeader>
-              <CardTitle className="text-lg font-semibold text-slate-900">
-                Atendimentos Ativos ({activeVisits.length})
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-semibold text-slate-900">
+                  Atendimentos Ativos ({filteredActiveVisits.length})
+                </CardTitle>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                <Input
+                  placeholder="Pesquisar corretor..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4 max-h-96 overflow-y-auto">
-                {activeVisits.map((visit) => (
+                {filteredActiveVisits.map((visit) => (
                   <div key={visit.id} className="border border-slate-200 rounded-lg p-4 bg-green-50">
                     <div className="flex justify-between items-start mb-3">
                       <div>
@@ -450,7 +517,13 @@ export default function Index() {
                   </div>
                 ))}
                 
-                {activeVisits.length === 0 && (
+                {filteredActiveVisits.length === 0 && searchTerm && (
+                  <div className="text-center text-slate-500 py-8">
+                    Nenhum corretor encontrado com o termo "{searchTerm}"
+                  </div>
+                )}
+                
+                {filteredActiveVisits.length === 0 && !searchTerm && (
                   <div className="text-center text-slate-500 py-8">
                     Nenhum atendimento ativo no momento
                   </div>
