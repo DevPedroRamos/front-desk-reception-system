@@ -1,4 +1,3 @@
-
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -159,11 +158,14 @@ const Recepcao = () => {
         corretor_id = corretorData?.id || null;
       }
 
+      // Usar CPF padrão se não foi preenchido
+      const cpfFinal = visitData.cliente_cpf.trim() || "00000000000";
+
       const { data, error } = await supabase
         .from('visits')
         .insert({
           cliente_nome: visitData.cliente_nome,
-          cliente_cpf: visitData.cliente_cpf,
+          cliente_cpf: cpfFinal,
           cliente_whatsapp: visitData.cliente_whatsapp || null,
           corretor_nome: visitData.corretor_nome || '',
           corretor_id: corretor_id || '00000000-0000-0000-0000-000000000000',
@@ -233,8 +235,8 @@ const Recepcao = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação básica
-    if (!formData.cliente_nome || !formData.cliente_cpf || !formData.mesa || !formData.loja) {
+    // Validação básica (CPF não é mais obrigatório)
+    if (!formData.cliente_nome || !formData.mesa || !formData.loja) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -388,13 +390,12 @@ const Recepcao = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="cliente_cpf">CPF *</Label>
+                    <Label htmlFor="cliente_cpf">CPF</Label>
                     <Input
                       id="cliente_cpf"
-                      placeholder="000.000.000-00"
+                      placeholder="000.000.000-00 (opcional - padrão: 00000000000)"
                       value={formData.cliente_cpf}
                       onChange={(e) => setFormData(prev => ({ ...prev, cliente_cpf: e.target.value }))}
-                      required
                     />
                   </div>
                   
