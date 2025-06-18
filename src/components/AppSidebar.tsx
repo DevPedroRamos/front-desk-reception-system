@@ -41,7 +41,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">🛎️</span>
+            <span className="text-white font-bold text-lg">📊</span>
           </div>
           <div>
             <h1 className="font-bold text-lg text-slate-900">Front Desk</h1>
@@ -91,7 +91,7 @@ export function AppSidebar() {
           </div>
         )}
         <div className="text-xs text-slate-500 text-center">
-          © 2024 Front Desk System
+          © 2025 Front Desk System | Metro Lab🧪
         </div>
       </SidebarFooter>
     </Sidebar>
