@@ -71,30 +71,6 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
-        Row: {
-          cpf: string
-          created_at: string | null
-          id: string
-          name: string
-          role: string
-        }
-        Insert: {
-          cpf: string
-          created_at?: string | null
-          id: string
-          name: string
-          role?: string
-        }
-        Update: {
-          cpf?: string
-          created_at?: string | null
-          id?: string
-          name?: string
-          role?: string
-        }
-        Relationships: []
-      }
       users: {
         Row: {
           apelido: string
@@ -231,10 +207,6 @@ export type Database = {
           visitas_finalizadas_hoje: number
           mesas_ocupadas: number
         }[]
-      }
-      validate_cpf_and_create_profile: {
-        Args: { user_cpf: string }
-        Returns: boolean
       }
     }
     Enums: {
