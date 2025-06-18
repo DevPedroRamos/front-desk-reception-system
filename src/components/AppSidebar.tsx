@@ -13,37 +13,49 @@ import {
 } from "@/components/ui/sidebar";
 import { Calendar, Users, UserCheck, BarChart3, Settings } from "lucide-react";
 import { useLocation } from "react-router-dom";
-
-const menuItems = [
-  {
-    title: "Dashboard",
-    url: "/",
-    icon: BarChart3,
-  },
-  {
-    title: "Recepção",
-    url: "/recepcao",
-    icon: UserCheck,
-  },
-  {
-    title: "Corretor",
-    url: "/corretor",
-    icon: Users,
-  },
-  {
-    title: "Agendamentos",
-    url: "/agendamentos",
-    icon: Calendar,
-  },
-  {
-    title: "Configurações",
-    url: "/configuracoes",
-    icon: Settings,
-  },
-];
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AppSidebar() {
   const location = useLocation();
+  const { profile } = useAuth();
+
+  const allMenuItems = [
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: BarChart3,
+      roles: ["corretor", "recepcionista"], // Ambos podem ver
+    },
+    {
+      title: "Recepção",
+      url: "/recepcao",
+      icon: UserCheck,
+      roles: ["recepcionista"], // Apenas recepcionista
+    },
+    {
+      title: "Corretor",
+      url: "/corretor",
+      icon: Users,
+      roles: ["corretor", "recepcionista"], // Ambos podem ver
+    },
+    {
+      title: "Agendamentos",
+      url: "/agendamentos",
+      icon: Calendar,
+      roles: ["recepcionista"], // Apenas recepcionista
+    },
+    {
+      title: "Configurações",
+      url: "/configuracoes",
+      icon: Settings,
+      roles: ["recepcionista"], // Apenas recepcionista
+    },
+  ];
+
+  // Filtrar itens do menu baseado na role do usuário
+  const menuItems = allMenuItems.filter(item => 
+    profile?.role && item.roles.includes(profile.role)
+  );
 
   return (
     <Sidebar className="border-r border-slate-200">

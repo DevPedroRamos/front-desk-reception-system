@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, MapPin, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Visit {
   id: string;
@@ -21,6 +22,8 @@ interface VisitCardProps {
 }
 
 export function VisitCard({ visit, onFinalize }: VisitCardProps) {
+  const { profile } = useAuth();
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case "ativo": return "bg-green-100 text-green-800 border-green-200";
@@ -35,6 +38,9 @@ export function VisitCard({ visit, onFinalize }: VisitCardProps) {
       minute: '2-digit'
     });
   };
+
+  // Verificar se o usuário pode finalizar atendimentos
+  const canFinalize = profile?.role === 'recepcionista';
 
   return (
     <Card className="hover:shadow-md transition-all duration-300 border-slate-200">
@@ -81,7 +87,7 @@ export function VisitCard({ visit, onFinalize }: VisitCardProps) {
           <div className="font-medium text-slate-900">{visit.empreendimento}</div>
         </div>
 
-        {visit.status === "ativo" && onFinalize && (
+        {visit.status === "ativo" && onFinalize && canFinalize && (
           <div className="pt-3 border-t border-slate-100">
             <Button 
               size="sm" 
@@ -90,6 +96,14 @@ export function VisitCard({ visit, onFinalize }: VisitCardProps) {
             >
               Finalizar Atendimento
             </Button>
+          </div>
+        )}
+
+        {visit.status === "ativo" && !canFinalize && (
+          <div className="pt-3 border-t border-slate-100">
+            <p className="text-sm text-slate-500 text-center">
+              Apenas recepcionistas podem finalizar atendimentos
+            </p>
           </div>
         )}
       </CardContent>
