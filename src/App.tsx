@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Recepcao from "./pages/recepcao";
-import Corretor from "./pages/corretor";
+import Podio from "./pages/Podio";
 import Cliente from "./pages/cliente";
 import Auth from "./pages/auth";
 import NotFound from "./pages/NotFound";
@@ -79,9 +79,9 @@ const App = () => (
                 <Recepcao />
               </ProtectedRoute>
             } />
-            <Route path="/corretor" element={
+            <Route path="/podio" element={
               <ProtectedRoute>
-                <Corretor />
+                <Podio />
               </ProtectedRoute>
             } />
             <Route path="/cliente" element={

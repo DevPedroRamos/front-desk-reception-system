@@ -11,7 +11,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { BarChart3, UserCheck, LogOut } from "lucide-react";
+import { BarChart3, UserCheck, LogOut, Trophy } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -25,6 +25,11 @@ const menuItems = [
     title: "Recepção",
     url: "/recepcao",
     icon: UserCheck,
+  },
+  {
+    title: "Pódio",
+    url: "/podio",
+    icon: Trophy,
   },
 ];
 
