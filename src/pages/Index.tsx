@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,7 +52,7 @@ export default function Index() {
   const [filters, setFilters] = useState({
     startDate: format(new Date(), 'yyyy-MM-dd'),
     endDate: format(new Date(), 'yyyy-MM-dd'),
-    superintendente: '',
+    superintendente: 'all',
   });
   
   const { toast } = useToast();
@@ -82,7 +81,7 @@ export default function Index() {
       const { data, error } = await supabase.rpc('get_dashboard_stats_filtered', {
         start_date: filters.startDate || null,
         end_date: filters.endDate || null,
-        superintendente: filters.superintendente || null,
+        superintendente: filters.superintendente === 'all' ? null : filters.superintendente || null,
       });
 
       if (error) {
@@ -110,7 +109,7 @@ export default function Index() {
       .eq("status", "ativo")
       .order("horario_entrada", { ascending: false });
 
-    if (filters.superintendente) {
+    if (filters.superintendente && filters.superintendente !== 'all') {
       query = query.eq("users.superintendente", filters.superintendente);
     }
 
@@ -139,7 +138,7 @@ export default function Index() {
     if (filters.endDate) {
       query = query.lte("horario_entrada", `${filters.endDate}T23:59:59`);
     }
-    if (filters.superintendente) {
+    if (filters.superintendente && filters.superintendente !== 'all') {
       query = query.eq("users.superintendente", filters.superintendente);
     }
 
@@ -247,7 +246,7 @@ export default function Index() {
     setFilters({
       startDate: format(new Date(), 'yyyy-MM-dd'),
       endDate: format(new Date(), 'yyyy-MM-dd'),
-      superintendente: '',
+      superintendente: 'all',
     });
   };
 
@@ -310,7 +309,7 @@ export default function Index() {
                     <SelectValue placeholder="Todos os superintendentes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os superintendentes</SelectItem>
+                    <SelectItem value="all">Todos os superintendentes</SelectItem>
                     {uniqueSuperintendentes.map((superintendente) => (
                       <SelectItem key={superintendente} value={superintendente}>
                         {superintendente}
