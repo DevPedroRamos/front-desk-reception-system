@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,11 +33,6 @@ interface Visit {
   status: string;
 }
 
-interface User {
-  id: string;
-  superintendente: string;
-}
-
 export default function Index() {
   const [stats, setStats] = useState<DashboardStats>({
     total_visitas_hoje: 0,
@@ -72,6 +66,7 @@ export default function Index() {
 
   const loadDashboardStats = async () => {
     try {
+      // Primeiro, tentar usar a função RPC
       const params: any = {};
       
       if (startDate) params.start_date = startDate;
@@ -80,12 +75,114 @@ export default function Index() {
 
       const { data, error } = await supabase.rpc('get_dashboard_stats_filtered', params);
       
-      if (error) throw error;
+      if (error) {
+        console.log('RPC error, fallback to manual calculation:', error);
+        // Fallback para cálculo manual se a função RPC falhar
+        await loadDashboardStatsManual();
+        return;
+      }
+      
       if (data && data.length > 0) {
         setStats(data[0]);
       }
     } catch (error) {
       console.error('Error loading dashboard stats:', error);
+      // Fallback para cálculo manual
+      await loadDashboardStatsManual();
+    }
+  };
+
+  const loadDashboardStatsManual = async () => {
+    try {
+      // Cálculo manual das estatísticas
+      let baseQuery = supabase.from('visits').select('*', { count: 'exact' });
+      
+      // Total de visitas no período
+      let totalQuery = baseQuery;
+      if (startDate) {
+        totalQuery = totalQuery.gte('horario_entrada', startDate);
+      }
+      if (endDate) {
+        totalQuery = totalQuery.lte('horario_entrada', endDate + 'T23:59:59');
+      }
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          totalQuery = totalQuery.in('corretor_id', userIds);
+        }
+      }
+      
+      const { count: totalVisitas } = await totalQuery;
+
+      // Visitas ativas
+      let activeQuery = supabase.from('visits').select('*', { count: 'exact' }).eq('status', 'ativo');
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          activeQuery = activeQuery.in('corretor_id', userIds);
+        }
+      }
+      
+      const { count: visitasAtivas } = await activeQuery;
+
+      // Visitas finalizadas no período
+      let finishedQuery = supabase.from('visits').select('*', { count: 'exact' }).eq('status', 'finalizado');
+      if (startDate) {
+        finishedQuery = finishedQuery.gte('horario_entrada', startDate);
+      }
+      if (endDate) {
+        finishedQuery = finishedQuery.lte('horario_entrada', endDate + 'T23:59:59');
+      }
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          finishedQuery = finishedQuery.in('corretor_id', userIds);
+        }
+      }
+      
+      const { count: visitasFinalizadas } = await finishedQuery;
+
+      // Mesas ocupadas
+      let mesasQuery = supabase.from('visits').select('mesa').eq('status', 'ativo');
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          mesasQuery = mesasQuery.in('corretor_id', userIds);
+        }
+      }
+      
+      const { data: mesasData } = await mesasQuery;
+      const mesasOcupadas = mesasData ? new Set(mesasData.map(v => v.mesa)).size : 0;
+
+      setStats({
+        total_visitas_hoje: totalVisitas || 0,
+        visitas_ativas: visitasAtivas || 0,
+        visitas_finalizadas_hoje: visitasFinalizadas || 0,
+        mesas_ocupadas: mesasOcupadas
+      });
+
+    } catch (error) {
+      console.error('Error in manual stats calculation:', error);
       toast.error('Erro ao carregar estatísticas do dashboard');
     }
   };
