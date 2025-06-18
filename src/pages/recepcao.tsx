@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, MapPin, Clock } from "lucide-react";
+import { UserPlus, MapPin, Clock, Copy } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -95,6 +95,54 @@ const Recepcao = () => {
     }
   });
 
+  // Função para copiar mensagem para clipboard
+  const copyMessageToClipboard = async (visitData: typeof formData) => {
+    try {
+      // Buscar apelido do corretor
+      let apelidoCorretor = visitData.corretor_nome;
+      if (visitData.corretor_nome) {
+        const { data: corretorData } = await supabase
+          .from('users')
+          .select('apelido')
+          .or(`name.ilike.%${visitData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${visitData.corretor_nome}%`)
+          .limit(1)
+          .single();
+        
+        apelidoCorretor = corretorData?.apelido || visitData.corretor_nome;
+      }
+
+      // Extrair primeiro nome do cliente
+      const primeiroNome = visitData.cliente_nome.split(' ')[0];
+      
+      // Criar mensagem
+      const mensagem = `Corretor ${apelidoCorretor} - Cliente ${primeiroNome} - ${visitData.loja} - Mesa ${visitData.mesa}`;
+      
+      // Copiar para clipboard
+      await navigator.clipboard.writeText(mensagem);
+      
+      // Mostrar notificação de sucesso
+      toast({
+        title: "Mensagem copiada!",
+        description: "A mensagem foi copiada para a área de transferência.",
+        action: (
+          <div className="flex items-center gap-1">
+            <Copy className="h-3 w-3" />
+            <span className="text-xs">Copiado</span>
+          </div>
+        ),
+      });
+
+      console.log('Mensagem copiada:', mensagem);
+    } catch (error) {
+      console.error('Erro ao copiar mensagem:', error);
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar a mensagem.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Mutation para criar nova visita
   const createVisitMutation = useMutation({
     mutationFn: async (visitData: typeof formData) => {
@@ -135,11 +183,14 @@ const Recepcao = () => {
 
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast({
         title: "Visita registrada!",
         description: `Cliente ${data.cliente_nome} foi registrado na mesa ${data.mesa}.`,
       });
+
+      // Copiar mensagem automaticamente
+      await copyMessageToClipboard(formData);
 
       // Limpar formulário
       setFormData({
@@ -343,7 +394,7 @@ const Recepcao = () => {
                       placeholder="000.000.000-00"
                       value={formData.cliente_cpf}
                       onChange={(e) => setFormData(prev => ({ ...prev, cliente_cpf: e.target.value }))}
-                      value="000.000.000-00"
+                      required
                     />
                   </div>
                   
