@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -8,18 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Users, UserCheck, Clock, Building2, LogOut } from "lucide-react";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import type { DateRange } from "react-day-picker";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(),
     to: new Date(),
   });
@@ -36,6 +38,41 @@ const Index = () => {
     navigate("/auth");
   };
 
+  // Para corretores, buscar apenas dados básicos do dia atual
+  const { data: corretorStats, isLoading: corretorLoading } = useQuery({
+    queryKey: ['corretor-stats'],
+    queryFn: async () => {
+      const hoje = new Date().toISOString().split('T')[0];
+      
+      // Buscar agendamentos de hoje
+      const { data: agendamentos, error: agendamentosError } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .eq('data', hoje);
+
+      if (agendamentosError) {
+        console.error('Erro ao buscar agendamentos:', agendamentosError);
+      }
+
+      // Buscar visitas ativas
+      const { data: visitasAtivas, error: visitasError } = await supabase
+        .from('visits')
+        .select('*')
+        .eq('status', 'ativo');
+
+      if (visitasError) {
+        console.error('Erro ao buscar visitas ativas:', visitasError);
+      }
+
+      return {
+        agendamentos_hoje: agendamentos?.length || 0,
+        visitas_ativas: visitasAtivas?.length || 0,
+      };
+    },
+    enabled: profile?.role === 'corretor',
+  });
+
+  // Para recepcionistas, manter a funcionalidade completa com filtros
   const { data: dashboardStats, isLoading: dashboardLoading } = useQuery({
     queryKey: ['dashboard-stats', dateRange, selectedSuperintendente],
     queryFn: async () => {
@@ -55,6 +92,7 @@ const Index = () => {
 
       return data ? data[0] : null;
     },
+    enabled: profile?.role === 'recepcionista',
   });
 
   const { data: superintendentes = [], isLoading: superLoading } = useQuery({
@@ -63,7 +101,6 @@ const Index = () => {
       const { data, error } = await supabase
         .from('users')
         .select('superintendente')
-        .distinct()
         .not('superintendente', 'is', null);
 
       if (error) {
@@ -71,13 +108,15 @@ const Index = () => {
         return [];
       }
 
-      return data?.map(item => item.superintendente) || [];
-    },
-  });
+      // Extrair valores únicos manualmente
+      const uniqueSuperintendentes = Array.from(
+        new Set(data?.map(item => item.superintendente) || [])
+      );
 
-  const formatDate = (date: Date | undefined) => {
-    return date ? format(date, 'dd/MM/yyyy', { locale: ptBR }) : 'Data não selecionada';
-  };
+      return uniqueSuperintendentes;
+    },
+    enabled: profile?.role === 'recepcionista',
+  });
 
   if (loading) {
     return (
@@ -90,6 +129,8 @@ const Index = () => {
   if (!user || !profile) {
     return null;
   }
+
+  const isRecepcao = profile.role === 'recepcionista';
 
   return (
     <Layout>
@@ -117,89 +158,121 @@ const Index = () => {
           </Button>
         </div>
 
-        {/* Date Range Picker and Filter */}
-        <div className="flex items-center justify-between">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-[300px] justify-start text-left font-normal",
-                  !dateRange.from && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange.from ? (
-                  format(dateRange.from, "dd/MM/yyyy", { locale: ptBR }) + " - " + format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })
-                ) : (
-                  <span>Pick a date</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="center" side="bottom">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange}
-                onSelect={setDateRange}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
+        {/* Date Range Picker and Filter - apenas para recepcionistas */}
+        {isRecepcao && (
+          <div className="flex items-center justify-between">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-[300px] justify-start text-left font-normal",
+                    !dateRange.from && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange.from ? (
+                    format(dateRange.from, "dd/MM/yyyy", { locale: ptBR }) + 
+                    " - " + 
+                    format(dateRange.to || dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                  ) : (
+                    <span>Selecionar data</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="center" side="bottom">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={(range) => {
+                    if (range) {
+                      setDateRange({
+                        from: range.from || new Date(),
+                        to: range.to || range.from || new Date(),
+                      });
+                    }
+                  }}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
 
-          <Select onValueChange={(value) => setSelectedSuperintendente(value)}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Filtrar por Superintendente" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Superintendentes</SelectItem>
-              {superintendentes.map((superintendente) => (
-                <SelectItem key={superintendente} value={superintendente}>
-                  {superintendente}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <Select onValueChange={(value) => setSelectedSuperintendente(value)}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Filtrar por Superintendente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Superintendentes</SelectItem>
+                {superintendentes.map((superintendente) => (
+                  <SelectItem key={superintendente} value={superintendente}>
+                    {superintendente}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Dashboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DashboardCard
-            title="Visitas Hoje"
-            value={dashboardLoading ? "Carregando..." : dashboardStats?.total_visitas_hoje?.toString() || "0"}
-            icon={Users}
-            description="Total de visitas agendadas para hoje"
-          />
-          <DashboardCard
-            title="Atendimentos Ativos"
-            value={dashboardLoading ? "Carregando..." : dashboardStats?.visitas_ativas?.toString() || "0"}
-            icon={UserCheck}
-            description="Número de atendimentos em andamento"
-          />
-          <DashboardCard
-            title="Visitas Finalizadas"
-            value={dashboardLoading ? "Carregando..." : dashboardStats?.visitas_finalizadas_hoje?.toString() || "0"}
-            icon={Clock}
-            description="Total de visitas finalizadas hoje"
-          />
-          <DashboardCard
-            title="Mesas Ocupadas"
-            value={dashboardLoading ? "Carregando..." : dashboardStats?.mesas_ocupadas?.toString() || "0"}
-            icon={Building2}
-            description="Número de mesas atualmente em uso"
-          />
+          {isRecepcao ? (
+            <>
+              <DashboardCard
+                title="Visitas Hoje"
+                value={dashboardLoading ? "Carregando..." : dashboardStats?.total_visitas_hoje?.toString() || "0"}
+                icon={Users}
+                description="Total de visitas agendadas para hoje"
+              />
+              <DashboardCard
+                title="Atendimentos Ativos"
+                value={dashboardLoading ? "Carregando..." : dashboardStats?.visitas_ativas?.toString() || "0"}
+                icon={UserCheck}
+                description="Número de atendimentos em andamento"
+              />
+              <DashboardCard
+                title="Visitas Finalizadas"
+                value={dashboardLoading ? "Carregando..." : dashboardStats?.visitas_finalizadas_hoje?.toString() || "0"}
+                icon={Clock}
+                description="Total de visitas finalizadas hoje"
+              />
+              <DashboardCard
+                title="Mesas Ocupadas"
+                value={dashboardLoading ? "Carregando..." : dashboardStats?.mesas_ocupadas?.toString() || "0"}
+                icon={Building2}
+                description="Número de mesas atualmente em uso"
+              />
+            </>
+          ) : (
+            <>
+              <DashboardCard
+                title="Agendamentos Hoje"
+                value={corretorLoading ? "Carregando..." : corretorStats?.agendamentos_hoje?.toString() || "0"}
+                icon={Calendar}
+                description="Seus agendamentos para hoje"
+              />
+              <DashboardCard
+                title="Atendimentos Ativos"
+                value={corretorLoading ? "Carregando..." : corretorStats?.visitas_ativas?.toString() || "0"}
+                icon={UserCheck}
+                description="Atendimentos em andamento"
+              />
+            </>
+          )}
         </div>
 
         {/* Additional Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Informações Adicionais</CardTitle>
+            <CardTitle>Informações</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-slate-500">
-              Este dashboard fornece uma visão geral do sistema de recepção.
-              Use os filtros acima para refinar os dados exibidos.
+              {isRecepcao 
+                ? "Este dashboard fornece uma visão geral do sistema de recepção. Use os filtros acima para refinar os dados exibidos."
+                : "Visualize seus agendamentos e atendimentos do dia. Para funcionalidades completas, entre em contato com a recepção."
+              }
             </p>
           </CardContent>
         </Card>
