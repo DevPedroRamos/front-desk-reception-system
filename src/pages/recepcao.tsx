@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation } from "@tanstack/react-query";
-import { AppSidebar } from "@/components/AppSidebar";
+import { Layout } from "@/components/Layout";
 
 const Recepcao = () => {
   const { toast } = useToast();
@@ -23,7 +24,6 @@ const Recepcao = () => {
     andar: "",
     mesa: "",
   });
-  const [copied, setCopied] = useState(false);
 
   const lojas = [
     "Loja 1",
@@ -62,7 +62,7 @@ const Recepcao = () => {
   const createVisitMutation = useMutation({
     mutationFn: async (visitData: typeof formData) => {
       const { data, error } = await supabase
-        .from('visitas')
+        .from('visits')
         .insert([visitData])
         .select()
         .single();
@@ -75,9 +75,20 @@ const Recepcao = () => {
       return data;
     },
     onSuccess: () => {
-      toast({
-        title: "Visita registrada!",
-        description: "Visita registrada com sucesso.",
+      // Copiar mensagem automaticamente
+      const primeiroNome = formData.cliente_nome.split(' ')[0];
+      const message = `Corretor ${formData.corretor_nome} - Cliente ${primeiroNome} - ${formData.loja} - Mesa ${formData.mesa}`;
+      
+      navigator.clipboard.writeText(message).then(() => {
+        toast({
+          title: "Visita registrada!",
+          description: "Visita registrada com sucesso e mensagem copiada para a área de transferência.",
+        });
+      }).catch(() => {
+        toast({
+          title: "Visita registrada!",
+          description: "Visita registrada com sucesso.",
+        });
       });
 
       // Limpar formulário
@@ -122,23 +133,22 @@ const Recepcao = () => {
   };
 
   const generateMessage = () => {
-    return `Novo cliente na loja!\n\nNome: ${formData.cliente_nome}\nCPF: ${formData.cliente_cpf}\nCorretor: ${formData.corretor_nome}\nLoja: ${formData.loja}\nAndar: ${formData.andar}\nMesa: ${formData.mesa}`;
+    const primeiroNome = formData.cliente_nome.split(' ')[0];
+    return `Corretor ${formData.corretor_nome} - Cliente ${primeiroNome} - ${formData.loja} - Mesa ${formData.mesa}`;
   };
 
   const handleCopyToClipboard = () => {
     const message = generateMessage();
     navigator.clipboard.writeText(message);
-    setCopied(true);
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
+    toast({
+      title: "Mensagem copiada!",
+      description: "A mensagem foi copiada para a área de transferência.",
+    });
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <AppSidebar />
-
-      <div className="flex-1 p-4">
+    <Layout>
+      <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white text-2xl">👋</span>
@@ -287,15 +297,15 @@ const Recepcao = () => {
             <Button
               onClick={handleCopyToClipboard}
               className="w-full h-12 mt-4 bg-green-600 hover:bg-green-700 text-lg font-semibold"
-              disabled={createVisitMutation.isPending}
+              disabled={!formData.cliente_nome || !formData.corretor_nome || !formData.loja || !formData.mesa}
             >
-              {copied ? "Copiado!" : "Copiar Mensagem"}
+              Copiar Mensagem
               <Copy className="ml-2 h-4 w-4" />
             </Button>
           </CardContent>
         </Card>
       </div>
-    </div>
+    </Layout>
   );
 };
 
