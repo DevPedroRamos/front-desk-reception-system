@@ -60,6 +60,30 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
     }
   });
 
+  // Buscar corretor pela ID para obter o apelido
+  const { data: corretorData } = useQuery({
+    queryKey: ['corretor', cliente.corretor_id],
+    queryFn: async () => {
+      if (!cliente.corretor_id || cliente.corretor_id === '00000000-0000-0000-0000-000000000000') {
+        return null;
+      }
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('apelido')
+        .eq('id', cliente.corretor_id)
+        .single();
+      
+      if (error) {
+        console.error('Erro ao buscar corretor:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!cliente.corretor_id && cliente.corretor_id !== '00000000-0000-0000-0000-000000000000'
+  });
+
   // Calcular mesas ocupadas
   const mesasOcupadas = visitasAtivas
     .filter(visita => visita.loja === cliente.loja && 
@@ -73,9 +97,35 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
     }
   }, [cliente.loja]);
 
+  // Função para copiar texto para clipboard
+  const copiarParaClipboard = async (texto: string) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast({
+        title: "Copiado!",
+        description: "Texto copiado para a área de transferência.",
+      });
+    } catch (error) {
+      console.error('Erro ao copiar:', error);
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o texto.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Mutation para iniciar visita
   const iniciarVisitaMutation = useMutation({
     mutationFn: async (visitaData: typeof formData) => {
+      // Verificar se mesa está válida antes de inserir
+      const mesaNum = parseInt(visitaData.mesa);
+      const maxMesas = getMaxMesas();
+      
+      if (mesaNum < 1 || mesaNum > maxMesas) {
+        throw new Error(`Mesa deve estar entre 1 e ${maxMesas}`);
+      }
+
       const { data, error } = await supabase
         .from('visits')
         .insert({
@@ -87,7 +137,7 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
           empreendimento: cliente.empreendimento,
           loja: cliente.loja,
           andar: visitaData.andar || 'N/A',
-          mesa: parseInt(visitaData.mesa),
+          mesa: mesaNum,
           status: 'ativo'
         })
         .select()
@@ -101,6 +151,14 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
       return data;
     },
     onSuccess: (data) => {
+      // Criar mensagem para copiar
+      const primeiroNome = cliente.cliente_nome.split(' ')[0];
+      const apelidoCorretor = corretorData?.apelido || cliente.corretor_nome || 'Não definido';
+      const mensagem = `Cliente: ${primeiroNome} - Corretor: ${apelidoCorretor} - em espera na ${cliente.loja}`;
+      
+      // Copiar automaticamente
+      copiarParaClipboard(mensagem);
+
       toast({
         title: "Visita iniciada!",
         description: `${data.cliente_nome} foi alocado na mesa ${data.mesa}.`,
