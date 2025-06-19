@@ -34,12 +34,12 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
     mesa: "",
   });
 
-  // Configuração das lojas
+  // Configuração das lojas - ajustada para corresponder ao constraint do banco
   const lojasConfig = {
     "Loja 1": { mesas: 22, temAndar: false },
-    "Loja 2": { mesas: 29, temAndar: true },
+    "Loja 2": { mesas: 20, temAndar: true }, // Reduzindo para 20 para cada andar
     "Loja 3": { mesas: 10, temAndar: false },
-    "Loja Superior 37 andar": { mesas: 29, temAndar: false }
+    "Loja Superior 37 andar": { mesas: 20, temAndar: false }
   };
 
   // Buscar visitas ativas para verificar mesas ocupadas
@@ -97,33 +97,16 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
     }
   }, [cliente.loja]);
 
-  // Função para copiar texto para clipboard
-  const copiarParaClipboard = async (texto: string) => {
-    try {
-      await navigator.clipboard.writeText(texto);
-      toast({
-        title: "Copiado!",
-        description: "Texto copiado para a área de transferência.",
-      });
-    } catch (error) {
-      console.error('Erro ao copiar:', error);
-      toast({
-        title: "Erro ao copiar",
-        description: "Não foi possível copiar o texto.",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Mutation para iniciar visita
   const iniciarVisitaMutation = useMutation({
     mutationFn: async (visitaData: typeof formData) => {
-      // Verificar se mesa está válida antes de inserir
       const mesaNum = parseInt(visitaData.mesa);
       const maxMesas = getMaxMesas();
       
+      console.log('Validando mesa:', { mesaNum, maxMesas, loja: cliente.loja, andar: visitaData.andar });
+      
       if (mesaNum < 1 || mesaNum > maxMesas) {
-        throw new Error(`Mesa deve estar entre 1 e ${maxMesas}`);
+        throw new Error(`Mesa deve estar entre 1 e ${maxMesas} para ${cliente.loja}`);
       }
 
       const { data, error } = await supabase
@@ -144,21 +127,13 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
         .single();
 
       if (error) {
-        console.error('Erro ao iniciar visita:', error);
+        console.error('Erro detalhado ao iniciar visita:', error);
         throw error;
       }
 
       return data;
     },
     onSuccess: (data) => {
-      // Criar mensagem para copiar
-      const primeiroNome = cliente.cliente_nome.split(' ')[0];
-      const apelidoCorretor = corretorData?.apelido || cliente.corretor_nome || 'Não definido';
-      const mensagem = `Cliente: ${primeiroNome} - Corretor: ${apelidoCorretor} - em espera na ${cliente.loja}`;
-      
-      // Copiar automaticamente
-      copiarParaClipboard(mensagem);
-
       toast({
         title: "Visita iniciada!",
         description: `${data.cliente_nome} foi alocado na mesa ${data.mesa}.`,

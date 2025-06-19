@@ -69,20 +69,40 @@ export function AddClienteDialog({ open, onOpenChange, onClienteAdicionado }: Ad
     }
   });
 
+  // Função para copiar texto para clipboard
+  const copiarParaClipboard = async (texto: string) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast({
+        title: "Copiado!",
+        description: "Texto copiado para a área de transferência.",
+      });
+    } catch (error) {
+      console.error('Erro ao copiar:', error);
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o texto.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Mutation para adicionar à lista de espera
   const addToListaMutation = useMutation({
     mutationFn: async (clienteData: typeof formData) => {
       // Buscar ID do corretor se foi informado
       let corretor_id = null;
+      let apelidoCorretor = null;
       if (clienteData.corretor_nome) {
         const { data: corretorData } = await supabase
           .from('users')
-          .select('id')
+          .select('id, apelido')
           .or(`name.ilike.%${clienteData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${clienteData.corretor_nome}%`)
           .limit(1)
           .single();
         
         corretor_id = corretorData?.id || null;
+        apelidoCorretor = corretorData?.apelido || null;
       }
 
       // Usar CPF padrão se não foi preenchido
@@ -108,9 +128,17 @@ export function AddClienteDialog({ open, onOpenChange, onClienteAdicionado }: Ad
         throw error;
       }
 
-      return data;
+      return { data, apelidoCorretor };
     },
-    onSuccess: (data) => {
+    onSuccess: ({ data, apelidoCorretor }) => {
+      // Criar mensagem para copiar
+      const primeiroNome = data.cliente_nome.split(' ')[0];
+      const apelido = apelidoCorretor || 'Não definido';
+      const mensagem = `Cliente: ${primeiroNome} - Corretor: ${apelido} - em espera na ${data.loja}`;
+      
+      // Copiar automaticamente
+      copiarParaClipboard(mensagem);
+
       toast({
         title: "Cliente adicionado à lista de espera!",
         description: `${data.cliente_nome} foi adicionado à lista de espera da ${data.loja}.`,
