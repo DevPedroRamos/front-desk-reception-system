@@ -10,6 +10,7 @@ import Recepcao from "./pages/recepcao";
 import Podio from "./pages/Podio";
 import Cliente from "./pages/cliente";
 import Auth from "./pages/auth";
+import ListaEspera from "./pages/ListaEspera";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -77,6 +78,11 @@ const App = () => (
             <Route path="/recepcao" element={
               <ProtectedRoute>
                 <Recepcao />
+              </ProtectedRoute>
+            } />
+            <Route path="/lista-espera" element={
+              <ProtectedRoute>
+                <ListaEspera />
               </ProtectedRoute>
             } />
             <Route path="/podio" element={

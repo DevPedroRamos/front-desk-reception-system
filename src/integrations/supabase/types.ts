@@ -71,6 +71,48 @@ export type Database = {
         }
         Relationships: []
       }
+      lista_espera: {
+        Row: {
+          cliente_cpf: string
+          cliente_nome: string
+          cliente_whatsapp: string | null
+          corretor_id: string | null
+          corretor_nome: string | null
+          created_at: string
+          empreendimento: string | null
+          id: string
+          loja: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_cpf?: string
+          cliente_nome: string
+          cliente_whatsapp?: string | null
+          corretor_id?: string | null
+          corretor_nome?: string | null
+          created_at?: string
+          empreendimento?: string | null
+          id?: string
+          loja: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_cpf?: string
+          cliente_nome?: string
+          cliente_whatsapp?: string | null
+          corretor_id?: string | null
+          corretor_nome?: string | null
+          created_at?: string
+          empreendimento?: string | null
+          id?: string
+          loja?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           cpf: string
@@ -204,6 +246,10 @@ export type Database = {
       }
       check_mesa_disponivel: {
         Args: { p_loja: string; p_andar: string; p_mesa: number }
+        Returns: boolean
+      }
+      check_tempo_espera: {
+        Args: { created_time: string }
         Returns: boolean
       }
       finalizar_visita: {
