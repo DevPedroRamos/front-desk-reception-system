@@ -34,6 +34,7 @@ const ListaEspera = () => {
   const [showIniciarVisitaDialog, setShowIniciarVisitaDialog] = useState(false);
   const [showTrocarCorretorDialog, setShowTrocarCorretorDialog] = useState(false);
   const [clienteSelecionado, setClienteSelecionado] = useState<ClienteListaEspera | null>(null);
+  const [temposEspera, setTemposEspera] = useState<{[key: string]: number}>({});
 
   const lojas = ["Loja 1", "Loja 2", "Loja 3", "Loja Superior 37 andar"];
 
@@ -62,12 +63,33 @@ const ListaEspera = () => {
     }
   });
 
+  // Atualizar tempos de espera a cada minuto
+  useEffect(() => {
+    const calcularTemposEspera = () => {
+      const agora = new Date();
+      const novosTempos: {[key: string]: number} = {};
+      
+      listaEspera.forEach((cliente) => {
+        const criacao = new Date(cliente.created_at);
+        const diffMinutos = Math.floor((agora.getTime() - criacao.getTime()) / (1000 * 60));
+        novosTempos[cliente.id] = Math.max(0, diffMinutos);
+      });
+      
+      setTemposEspera(novosTempos);
+    };
+
+    // Calcular imediatamente
+    calcularTemposEspera();
+
+    // Atualizar a cada minuto
+    const interval = setInterval(calcularTemposEspera, 60000);
+
+    return () => clearInterval(interval);
+  }, [listaEspera]);
+
   // Verificar se cliente excedeu tempo
-  const verificarTempoExcedido = (createdAt: string) => {
-    const agora = new Date();
-    const criacao = new Date(createdAt);
-    const diffMinutos = (agora.getTime() - criacao.getTime()) / (1000 * 60);
-    return diffMinutos > 20;
+  const verificarTempoExcedido = (clienteId: string) => {
+    return (temposEspera[clienteId] || 0) >= 20;
   };
 
   // Mutation para remover da lista de espera
@@ -182,8 +204,8 @@ const ListaEspera = () => {
             ) : (
               <div className="space-y-4">
                 {listaEspera.map((cliente) => {
-                  const tempoExcedido = verificarTempoExcedido(cliente.created_at);
-                  const tempoEspera = Math.floor((new Date().getTime() - new Date(cliente.created_at).getTime()) / (1000 * 60));
+                  const tempoExcedido = verificarTempoExcedido(cliente.id);
+                  const tempoEspera = temposEspera[cliente.id] || 0;
 
                   return (
                     <div key={cliente.id} className="border rounded-lg p-4 space-y-3">
