@@ -10,6 +10,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Calendar, Users, Clock, MapPin, FileDown, X } from 'lucide-react';
+import { BrindeDialog } from '@/components/BrindeDialog';
 
 interface DashboardStats {
   total_visitas_hoje: number;
