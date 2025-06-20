@@ -16,8 +16,10 @@ AS $$
 DECLARE
   novo_token TEXT;
 BEGIN
-  -- Gerar token único
-  novo_token := encode(gen_random_bytes(32), 'base64url');
+  -- Gerar token único usando base64 padrão
+  novo_token := encode(gen_random_bytes(32), 'base64');
+  -- Remover caracteres problemáticos para URL
+  novo_token := replace(replace(replace(novo_token, '+', '-'), '/', '_'), '=', '');
   
   -- Inserir na tabela de links do corretor
   INSERT INTO public.corretor_links (corretor_id, token, titulo, ativo)
