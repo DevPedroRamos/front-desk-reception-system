@@ -8,6 +8,8 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { Users, Clock, MapPin, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useState } from 'react';
+import { BrindeDialog } from '@/components/BrindeDialog';
 
 interface Visita {
   id: string;
@@ -20,12 +22,15 @@ interface Visita {
   empreendimento: string | null;
   horario_entrada: string;
   status: string;
+  corretor_nome: string;
 }
 
 export function VisitasAtivas() {
   const { userProfile } = useUserRole();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [brindeDialogOpen, setBrindeDialogOpen] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState<Visita | null>(null);
 
   const { data: visitasAtivas = [], isLoading } = useQuery({
     queryKey: ['visitas-ativas-corretor', userProfile?.cpf],
@@ -87,6 +92,7 @@ export function VisitasAtivas() {
         title: "Visita finalizada!",
         description: "A visita foi finalizada com sucesso.",
       });
+      setSelectedVisit(null);
     },
     onError: (error) => {
       console.error('Erro ao finalizar visita:', error);
@@ -97,6 +103,17 @@ export function VisitasAtivas() {
       });
     }
   });
+
+  const handleFinalizarClick = (visita: Visita) => {
+    setSelectedVisit(visita);
+    setBrindeDialogOpen(true);
+  };
+
+  const handleFinalizarVisita = () => {
+    if (selectedVisit) {
+      finalizarVisitaMutation.mutate(selectedVisit.id);
+    }
+  };
 
   const calcularTempoAtendimento = (horarioEntrada: string) => {
     const entrada = new Date(horarioEntrada);
@@ -127,73 +144,90 @@ export function VisitasAtivas() {
   console.log('Renderizando VisitasAtivas com', visitasAtivas.length, 'visitas');
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Visitas Ativas ({visitasAtivas.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {visitasAtivas.length === 0 ? (
-          <div className="text-center py-8">
-            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">Nenhuma visita ativa no momento</p>
-            <p className="text-sm text-gray-400 mt-2">CPF: {userProfile?.cpf}</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {visitasAtivas.map((visita) => (
-              <Card key={visita.id} className="p-4 border-l-4 border-l-blue-500">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-lg">{visita.cliente_nome}</h3>
-                    <Badge className="bg-green-100 text-green-800">
-                      Ativo
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-gray-500" />
-                      <span>{visita.loja} - Mesa {visita.mesa}</span>
-                      {visita.andar !== 'N/A' && <span>({visita.andar})</span>}
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Visitas Ativas ({visitasAtivas.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {visitasAtivas.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Nenhuma visita ativa no momento</p>
+              <p className="text-sm text-gray-400 mt-2">CPF: {userProfile?.cpf}</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {visitasAtivas.map((visita) => (
+                <Card key={visita.id} className="p-4 border-l-4 border-l-blue-500">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-lg">{visita.cliente_nome}</h3>
+                      <Badge className="bg-green-100 text-green-800">
+                        Ativo
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-gray-500" />
-                      <span>{format(new Date(visita.horario_entrada), 'HH:mm', { locale: ptBR })}</span>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <span>{visita.loja} - Mesa {visita.mesa}</span>
+                        {visita.andar !== 'N/A' && <span>({visita.andar})</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gray-500" />
+                        <span>{format(new Date(visita.horario_entrada), 'HH:mm', { locale: ptBR })}</span>
+                      </div>
+                      <div className="text-blue-600 font-semibold">
+                        Tempo: {calcularTempoAtendimento(visita.horario_entrada)}
+                      </div>
                     </div>
-                    <div className="text-blue-600 font-semibold">
-                      Tempo: {calcularTempoAtendimento(visita.horario_entrada)}
-                    </div>
-                  </div>
 
-                  <div className="text-sm text-gray-600">
-                    <p><strong>CPF:</strong> {visita.cliente_cpf}</p>
-                    {visita.cliente_whatsapp && (
-                      <p><strong>WhatsApp:</strong> {visita.cliente_whatsapp}</p>
-                    )}
-                    {visita.empreendimento && (
-                      <p><strong>Empreendimento:</strong> {visita.empreendimento}</p>
-                    )}
-                  </div>
+                    <div className="text-sm text-gray-600">
+                      <p><strong>CPF:</strong> {visita.cliente_cpf}</p>
+                      {visita.cliente_whatsapp && (
+                        <p><strong>WhatsApp:</strong> {visita.cliente_whatsapp}</p>
+                      )}
+                      {visita.empreendimento && (
+                        <p><strong>Empreendimento:</strong> {visita.empreendimento}</p>
+                      )}
+                    </div>
 
-                  <div className="pt-3">
-                    <Button
-                      onClick={() => finalizarVisitaMutation.mutate(visita.id)}
-                      disabled={finalizarVisitaMutation.isPending}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      {finalizarVisitaMutation.isPending ? 'Finalizando...' : 'Finalizar Atendimento'}
-                    </Button>
+                    <div className="pt-3">
+                      <Button
+                        onClick={() => handleFinalizarClick(visita)}
+                        disabled={finalizarVisitaMutation.isPending}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        {finalizarVisitaMutation.isPending ? 'Finalizando...' : 'Finalizar Atendimento'}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dialog de Brinde */}
+      {selectedVisit && (
+        <BrindeDialog
+          open={brindeDialogOpen}
+          onOpenChange={setBrindeDialogOpen}
+          visitData={{
+            id: selectedVisit.id,
+            cliente_nome: selectedVisit.cliente_nome,
+            cliente_cpf: selectedVisit.cliente_cpf,
+            corretor_nome: selectedVisit.corretor_nome
+          }}
+          onFinalize={handleFinalizarVisita}
+        />
+      )}
+    </>
   );
 }

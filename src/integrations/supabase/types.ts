@@ -9,6 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      brindes: {
+        Row: {
+          cliente_cpf: string
+          cliente_nome: string
+          corretor_nome: string
+          created_at: string
+          id: string
+          tipo_brinde: string
+          visit_id: string
+        }
+        Insert: {
+          cliente_cpf: string
+          cliente_nome: string
+          corretor_nome: string
+          created_at?: string
+          id?: string
+          tipo_brinde: string
+          visit_id: string
+        }
+        Update: {
+          cliente_cpf?: string
+          cliente_nome?: string
+          corretor_nome?: string
+          created_at?: string
+          id?: string
+          tipo_brinde?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brindes_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       corretor_links: {
         Row: {
           ativo: boolean
