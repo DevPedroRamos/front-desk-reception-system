@@ -51,6 +51,7 @@ export type Database = {
           corretor_id: string
           created_at: string | null
           data: string
+          email: string | null
           empreendimento: string
           hora: string
           id: string
@@ -65,6 +66,7 @@ export type Database = {
           corretor_id: string
           created_at?: string | null
           data: string
+          email?: string | null
           empreendimento: string
           hora: string
           id?: string
@@ -79,6 +81,7 @@ export type Database = {
           corretor_id?: string
           created_at?: string | null
           data?: string
+          email?: string | null
           empreendimento?: string
           hora?: string
           id?: string
@@ -346,6 +349,14 @@ export type Database = {
       fix_user_relations: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      gerar_link_agendamento_direto: {
+        Args: {
+          corretor_uuid: string
+          corretor_nome_param: string
+          corretor_apelido_param: string
+        }
+        Returns: string
       }
       gerar_link_corretor: {
         Args: { corretor_uuid: string; link_titulo?: string }

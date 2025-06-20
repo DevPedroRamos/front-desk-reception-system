@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation } from '@tanstack/react-query';
 import { Link2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface CriarLinkDialogProps {
   onLinkCreated: () => void;
@@ -16,26 +16,42 @@ interface CriarLinkDialogProps {
 
 export function CriarLinkDialog({ onLinkCreated }: CriarLinkDialogProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { userProfile } = useUserRole();
   const [isOpen, setIsOpen] = useState(false);
   const [titulo, setTitulo] = useState('');
 
   const criarLinkMutation = useMutation({
     mutationFn: async (linkTitulo: string) => {
-      const { data, error } = await supabase.rpc('gerar_link_corretor', {
-        corretor_uuid: user?.id,
-        link_titulo: linkTitulo || 'Link de Agendamento'
+      if (!userProfile?.cpf) {
+        throw new Error('CPF do corretor não encontrado');
+      }
+
+      // Buscar dados do corretor na tabela users
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, name, apelido')
+        .eq('cpf', userProfile.cpf)
+        .single();
+
+      if (userError || !userData) {
+        throw new Error('Dados do corretor não encontrados');
+      }
+
+      const { data: token, error } = await supabase.rpc('gerar_link_agendamento_direto', {
+        corretor_uuid: userData.id,
+        corretor_nome_param: userData.name,
+        corretor_apelido_param: userData.apelido
       });
 
       if (error) {
         throw error;
       }
 
-      return data;
+      return { token, corretor: userData };
     },
-    onSuccess: (token) => {
+    onSuccess: ({ token, corretor }) => {
       const baseUrl = window.location.origin;
-      const link = `${baseUrl}/agendar/${token}`;
+      const link = `${baseUrl}/agendar/${token}?nome=${encodeURIComponent(corretor.name)}&apelido=${encodeURIComponent(corretor.apelido)}&corretor_id=${corretor.id}`;
       
       // Copiar para área de transferência
       navigator.clipboard.writeText(link).then(() => {
@@ -65,7 +81,7 @@ export function CriarLinkDialog({ onLinkCreated }: CriarLinkDialogProps) {
   });
 
   const handleCriarLink = () => {
-    criarLinkMutation.mutate(titulo);
+    criarLinkMutation.mutate(titulo || 'Link de Agendamento');
   };
 
   return (

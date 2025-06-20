@@ -7,24 +7,36 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Copy, Eye, EyeOff, Trash2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function GerenciarLinks() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { userProfile } = useUserRole();
 
   // Buscar links do corretor
   const { data: links = [], refetch } = useQuery({
-    queryKey: ['corretor-links', user?.id],
+    queryKey: ['corretor-links', userProfile?.cpf],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!userProfile?.cpf) return [];
       
+      // Buscar o ID do usuário
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, name, apelido')
+        .eq('cpf', userProfile.cpf)
+        .single();
+
+      if (userError || !userData) {
+        console.error('Erro ao buscar usuário:', userError);
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('corretor_links')
         .select('*')
-        .eq('corretor_id', user.id)
+        .eq('corretor_id', userData.id)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -32,9 +44,9 @@ export function GerenciarLinks() {
         return [];
       }
       
-      return data || [];
+      return data?.map(link => ({ ...link, corretor: userData })) || [];
     },
-    enabled: !!user?.id
+    enabled: !!userProfile?.cpf
   });
 
   const toggleLinkMutation = useMutation({
@@ -93,9 +105,9 @@ export function GerenciarLinks() {
     }
   });
 
-  const copiarLink = (token: string) => {
+  const copiarLink = (token: string, corretor: any) => {
     const baseUrl = window.location.origin;
-    const link = `${baseUrl}/agendar/${token}`;
+    const link = `${baseUrl}/agendar/${token}?nome=${encodeURIComponent(corretor.name)}&apelido=${encodeURIComponent(corretor.apelido)}&corretor_id=${corretor.id}`;
     
     navigator.clipboard.writeText(link).then(() => {
       toast({
@@ -136,7 +148,7 @@ export function GerenciarLinks() {
                   Criado em {format(new Date(link.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                 </p>
                 <p className="text-xs text-gray-500 font-mono">
-                  {window.location.origin}/agendar/{link.token}
+                  {window.location.origin}/agendar/{link.token}?nome={link.corretor?.name}&apelido={link.corretor?.apelido}
                 </p>
               </div>
               
@@ -144,7 +156,7 @@ export function GerenciarLinks() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => copiarLink(link.token)}
+                  onClick={() => copiarLink(link.token, link.corretor)}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>

@@ -1,218 +1,150 @@
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Clock, User, Phone, Hash } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-
-interface CorretorData {
-  id: string;
-  name: string;
-  apelido: string;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { useMutation } from '@tanstack/react-query';
+import { CheckCircle, Calendar, User } from 'lucide-react';
 
 const AgendarPage = () => {
-  const { token } = useParams();
+  const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  
-  const [corretorData, setCorretorData] = useState<CorretorData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  
-  // Form data
-  const [clienteNome, setClienteNome] = useState('');
-  const [clienteCpf, setClienteCpf] = useState('');
-  const [clienteWhatsapp, setClienteWhatsapp] = useState('');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [selectedTime, setSelectedTime] = useState('');
-  const [empreendimento, setEmpreendimento] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+  const [formData, setFormData] = useState({
+    nome: '',
+    cpf: '',
+    email: '',
+    data: '',
+    hora: ''
+  });
 
-  useEffect(() => {
-    const buscarCorretor = async () => {
-      if (!token) return;
+  // Dados do corretor vindos da URL
+  const corretorNome = searchParams.get('nome') || '';
+  const corretorApelido = searchParams.get('apelido') || '';
+  const corretorId = searchParams.get('corretor_id') || '';
 
-      try {
-        console.log('Buscando corretor para token:', token);
-        
-        const { data: linkData, error: linkError } = await supabase
-          .from('corretor_links')
-          .select(`
-            corretor_id,
-            users!corretor_links_corretor_id_fkey (
-              id,
-              name,
-              apelido
-            )
-          `)
-          .eq('token', token)
-          .eq('ativo', true)
-          .single();
+  // Mutation para confirmar agendamento
+  const confirmarMutation = useMutation({
+    mutationFn: async (dadosAgendamento: typeof formData) => {
+      if (!token || !corretorId) throw new Error('Dados inválidos');
 
-        if (linkError) {
-          console.error('Erro ao buscar link:', linkError);
-          toast({
-            title: "Link inválido",
-            description: "O link de agendamento não foi encontrado ou expirou.",
-            variant: "destructive",
-          });
-          return;
-        }
+      // Verificar se o link ainda está ativo
+      const { data: linkData, error: linkError } = await supabase
+        .from('corretor_links')
+        .select('ativo')
+        .eq('token', token)
+        .eq('corretor_id', corretorId)
+        .single();
 
-        if (linkData && linkData.users) {
-          const corretor = Array.isArray(linkData.users) ? linkData.users[0] : linkData.users;
-          setCorretorData({
-            id: corretor.id,
-            name: corretor.name,
-            apelido: corretor.apelido
-          });
-        }
-
-      } catch (error) {
-        console.error('Erro ao buscar corretor:', error);
-        toast({
-          title: "Erro",
-          description: "Ocorreu um erro ao carregar os dados do corretor.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+      if (linkError || !linkData?.ativo) {
+        throw new Error('Link inválido ou inativo');
       }
-    };
 
-    buscarCorretor();
-  }, [token, toast]);
-
-  const horarios = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-    '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'
-  ];
-
-  const empreendimentos = [
-    'Residencial Jardim das Flores',
-    'Condomínio Vila Verde',
-    'Edifício Metropolitan',
-    'Residencial Park View',
-    'Condomínio Bella Vista'
-  ];
-
-  const formatarCPF = (valor: string) => {
-    const numbers = valor.replace(/\D/g, '');
-    if (numbers.length <= 11) {
-      return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    }
-    return valor;
-  };
-
-  const formatarWhatsApp = (valor: string) => {
-    const numbers = valor.replace(/\D/g, '');
-    if (numbers.length <= 11) {
-      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-    }
-    return valor;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!clienteNome || !clienteCpf || !clienteWhatsapp || !selectedDate || !selectedTime) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!corretorData) {
-      toast({
-        title: "Erro",
-        description: "Dados do corretor não encontrados.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      const { error } = await supabase
+      // Criar o agendamento
+      const { error: agendamentoError } = await supabase
         .from('agendamentos')
         .insert({
-          cliente_nome: clienteNome,
-          cliente_cpf: clienteCpf.replace(/\D/g, ''),
-          whatsapp: clienteWhatsapp.replace(/\D/g, ''),
-          data: format(selectedDate, 'yyyy-MM-dd'),
-          hora: selectedTime,
-          corretor_id: corretorData.id,
-          empreendimento: empreendimento || null,
+          cliente_nome: dadosAgendamento.nome,
+          cliente_cpf: dadosAgendamento.cpf,
+          email: dadosAgendamento.email,
+          whatsapp: '', // Pode ser adicionado depois se necessário
+          data: dadosAgendamento.data,
+          hora: dadosAgendamento.hora,
+          empreendimento: 'A definir',
+          corretor_id: corretorId,
           status: 'confirmado',
           origem: 'link_agendamento',
           link_token: token
         });
 
-      if (error) {
-        console.error('Erro ao criar agendamento:', error);
-        toast({
-          title: "Erro ao agendar",
-          description: "Ocorreu um erro ao criar o agendamento. Tente novamente.",
-          variant: "destructive",
-        });
-        return;
-      }
-
+      if (agendamentoError) throw agendamentoError;
+    },
+    onSuccess: () => {
+      setConfirmed(true);
       toast({
         title: "Agendamento confirmado!",
-        description: `Seu agendamento foi confirmado para ${format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })} às ${selectedTime} com ${corretorData.apelido || corretorData.name}.`,
+        description: "Seu agendamento foi criado com sucesso.",
       });
-
-      // Reset form
-      setClienteNome('');
-      setClienteCpf('');
-      setClienteWhatsapp('');
-      setSelectedDate(undefined);
-      setSelectedTime('');
-      setEmpreendimento('');
-
-    } catch (error) {
-      console.error('Erro inesperado:', error);
+    },
+    onError: (error) => {
+      console.error('Erro ao confirmar agendamento:', error);
       toast({
-        title: "Erro inesperado",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
+        title: "Erro ao agendar",
+        description: "Não foi possível confirmar o agendamento. Tente novamente.",
         variant: "destructive",
       });
-    } finally {
-      setSubmitting(false);
     }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.nome || !formData.cpf || !formData.email || !formData.data || !formData.hora) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    confirmarMutation.mutate(formData);
   };
 
-  if (loading) {
+  if (!corretorNome || !corretorId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Carregando...</p>
-        </div>
+        <Card className="max-w-md w-full mx-4">
+          <CardHeader>
+            <CardTitle className="text-center text-red-600">Link Inválido</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-gray-600 mb-4">
+              Este link não é válido ou está incompleto.
+            </p>
+            <p className="text-sm text-gray-500">
+              Entre em contato com seu corretor para obter um novo link.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (!corretorData) {
+  if (confirmed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-red-600">Link Inválido</CardTitle>
+        <Card className="max-w-md w-full mx-4">
+          <CardHeader>
+            <CardTitle className="text-center text-green-600 flex items-center justify-center gap-2">
+              <CheckCircle className="h-6 w-6" />
+              Agendamento Confirmado!
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-center">
-            <p>O link de agendamento não foi encontrado ou expirou.</p>
+          <CardContent className="text-center space-y-4">
+            <p className="text-gray-600">
+              Seu agendamento foi confirmado com sucesso!
+            </p>
+            <div className="bg-green-50 p-4 rounded-lg text-left">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span>Corretor: {corretorNome} ({corretorApelido})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>{formData.data} às {formData.hora}</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500">
+              Você receberá uma confirmação no seu email e o corretor entrará em contato.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -223,128 +155,93 @@ const AgendarPage = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
         <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2 text-2xl">
-              <CalendarIcon className="h-6 w-6 text-blue-600" />
-              Agendar Visita
-            </CardTitle>
-            <p className="text-gray-600 mt-2">
-              Agende sua visita com {corretorData.apelido || corretorData.name}
+          <CardHeader>
+            <CardTitle className="text-center">Agendar Visita</CardTitle>
+            <p className="text-center text-gray-600">
+              Complete seus dados para agendar uma visita
             </p>
           </CardHeader>
-          
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Dados pessoais */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Seus Dados
-                </h3>
-                
+            {/* Informações do Corretor */}
+            <div className="bg-blue-50 p-4 rounded-lg mb-6">
+              <h3 className="font-semibold mb-3">Seu Corretor</h3>
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-blue-600" />
+                <span className="font-medium">{corretorNome}</span>
+                <span className="text-gray-600">({corretorApelido})</span>
+              </div>
+            </div>
+
+            {/* Formulário */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="nome">Nome Completo *</Label>
                   <Input
                     id="nome"
-                    value={clienteNome}
-                    onChange={(e) => setClienteNome(e.target.value)}
+                    value={formData.nome}
+                    onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
                     placeholder="Seu nome completo"
+                    required
                   />
                 </div>
-
+                
                 <div>
                   <Label htmlFor="cpf">CPF *</Label>
                   <Input
                     id="cpf"
-                    value={clienteCpf}
-                    onChange={(e) => setClienteCpf(formatarCPF(e.target.value))}
+                    value={formData.cpf}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cpf: e.target.value }))}
                     placeholder="000.000.000-00"
-                    maxLength={14}
+                    required
                   />
                 </div>
-
-                <div>
-                  <Label htmlFor="whatsapp">WhatsApp *</Label>
+                
+                <div className="md:col-span-2">
+                  <Label htmlFor="email">Email *</Label>
                   <Input
-                    id="whatsapp"
-                    value={clienteWhatsapp}
-                    onChange={(e) => setClienteWhatsapp(formatarWhatsApp(e.target.value))}
-                    placeholder="(11) 99999-9999"
-                    maxLength={15}
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="seu@email.com"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="data">Data Preferida *</Label>
+                  <Input
+                    id="data"
+                    type="date"
+                    value={formData.data}
+                    onChange={(e) => setFormData(prev => ({ ...prev, data: e.target.value }))}
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="hora">Horário Preferido *</Label>
+                  <Input
+                    id="hora"
+                    type="time"
+                    value={formData.hora}
+                    onChange={(e) => setFormData(prev => ({ ...prev, hora: e.target.value }))}
+                    required
                   />
                 </div>
               </div>
 
-              {/* Data e horário */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Data e Horário
-                </h3>
-                
-                <div>
-                  <Label>Data *</Label>
-                  <div className="mt-2">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      disabled={(date) => date < new Date() || date.getDay() === 0}
-                      locale={ptBR}
-                      className="rounded-md border w-fit"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="horario">Horário *</Label>
-                  <Select value={selectedTime} onValueChange={setSelectedTime}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um horário" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {horarios.map((horario) => (
-                        <SelectItem key={horario} value={horario}>
-                          {horario}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="pt-4">
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={confirmarMutation.isPending}
+                >
+                  {confirmarMutation.isPending ? "Confirmando..." : "Confirmar Agendamento"}
+                </Button>
               </div>
-
-              {/* Empreendimento */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Hash className="h-5 w-5" />
-                  Interesse
-                </h3>
-                
-                <div>
-                  <Label htmlFor="empreendimento">Empreendimento de Interesse</Label>
-                  <Select value={empreendimento} onValueChange={setEmpreendimento}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um empreendimento (opcional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Não especificado</SelectItem>
-                      {empreendimentos.map((emp) => (
-                        <SelectItem key={emp} value={emp}>
-                          {emp}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700 py-3 text-lg"
-                disabled={submitting}
-              >
-                {submitting ? 'Confirmando...' : 'Confirmar Agendamento'}
-              </Button>
             </form>
           </CardContent>
         </Card>
