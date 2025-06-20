@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,9 +31,10 @@ export default function ListaEspera() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('clientes')
+        .from('lista_espera')
         .select('*')
-        .order('createdAt', { ascending: false });
+        .eq('status', 'aguardando')
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Erro ao buscar clientes:', error);
@@ -44,7 +46,16 @@ export default function ListaEspera() {
         return;
       }
 
-      setClientes(data || []);
+      // Mapear os dados para o formato esperado
+      const clientesFormatados = (data || []).map(item => ({
+        id: item.id,
+        nome: item.cliente_nome,
+        cpf: item.cliente_cpf,
+        whatsapp: item.cliente_whatsapp || undefined,
+        createdAt: item.created_at
+      }));
+
+      setClientes(clientesFormatados);
     } catch (error) {
       console.error('Erro inesperado:', error);
       toast({
@@ -152,7 +163,6 @@ export default function ListaEspera() {
         </Card>
       </div>
       
-      {/* Correção na chamada do IniciarVisitaDialog */}
       {selectedCliente && (
         <IniciarVisitaDialog
           isOpen={!!selectedCliente}

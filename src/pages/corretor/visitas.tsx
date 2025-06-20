@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Users, History, Clock, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,17 +25,19 @@ interface VisitaHistorico {
 }
 
 const VisitasCorretor = () => {
-  const { user } = useAuth();
+  const { userProfile } = useUserRole();
 
   const { data: visitasHistorico = [], isLoading } = useQuery({
-    queryKey: ['visitas-historico-corretor', user?.id],
+    queryKey: ['visitas-historico-corretor', userProfile?.cpf],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!userProfile?.cpf) return [];
+
+      console.log('Buscando histórico de visitas para CPF:', userProfile.cpf);
 
       const { data, error } = await supabase
         .from('visits')
         .select('*')
-        .eq('corretor_id', user.id)
+        .eq('corretor_id', userProfile.cpf)
         .eq('status', 'finalizado')
         .order('horario_entrada', { ascending: false })
         .limit(20);
@@ -45,9 +47,10 @@ const VisitasCorretor = () => {
         throw error;
       }
 
+      console.log('Histórico de visitas encontrado:', data);
       return data || [];
     },
-    enabled: !!user?.id
+    enabled: !!userProfile?.cpf
   });
 
   const calcularDuracaoVisita = (entrada: string, saida: string | null) => {
@@ -105,6 +108,7 @@ const VisitasCorretor = () => {
                 <div className="text-center py-8">
                   <History className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500">Nenhuma visita finalizada ainda</p>
+                  <p className="text-sm text-gray-400 mt-2">CPF: {userProfile?.cpf}</p>
                 </div>
               ) : (
                 <div className="space-y-4">

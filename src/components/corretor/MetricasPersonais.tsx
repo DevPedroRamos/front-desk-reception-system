@@ -1,12 +1,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCorretorStats } from '@/hooks/useCorretorStats';
-import { useAuth } from '@/contexts/AuthContext';
 import { BarChart3, Clock, Users, TrendingUp, Calendar } from 'lucide-react';
 
 export function MetricasPersonais() {
-  const { user } = useAuth();
-  const { data: stats, isLoading } = useCorretorStats(user?.id || null);
+  const { data: stats, isLoading } = useCorretorStats();
 
   if (isLoading) {
     return (

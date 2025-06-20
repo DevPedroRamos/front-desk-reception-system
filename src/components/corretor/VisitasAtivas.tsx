@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Users, Clock, MapPin, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,24 +24,24 @@ interface Visita {
 }
 
 export function VisitasAtivas() {
-  const { user } = useAuth();
+  const { userProfile } = useUserRole();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: visitasAtivas = [], isLoading } = useQuery({
-    queryKey: ['visitas-ativas-corretor', user?.id],
+    queryKey: ['visitas-ativas-corretor', userProfile?.cpf],
     queryFn: async () => {
-      if (!user?.id) {
-        console.log('User ID não encontrado');
+      if (!userProfile?.cpf) {
+        console.log('CPF do corretor não encontrado');
         return [];
       }
 
-      console.log('Buscando visitas ativas para corretor:', user.id);
+      console.log('Buscando visitas ativas para corretor CPF:', userProfile.cpf);
 
       const { data, error } = await supabase
         .from('visits')
         .select('*')
-        .eq('corretor_id', user.id)
+        .eq('corretor_id', userProfile.cpf)
         .eq('status', 'ativo')
         .order('horario_entrada', { ascending: false });
 
@@ -53,7 +53,7 @@ export function VisitasAtivas() {
       console.log('Visitas ativas encontradas:', data);
       return data || [];
     },
-    enabled: !!user?.id
+    enabled: !!userProfile?.cpf
   });
 
   const finalizarVisitaMutation = useMutation({
@@ -125,7 +125,7 @@ export function VisitasAtivas() {
           <div className="text-center py-8">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500">Nenhuma visita ativa no momento</p>
-            <p className="text-sm text-gray-400 mt-2">User ID: {user?.id}</p>
+            <p className="text-sm text-gray-400 mt-2">CPF: {userProfile?.cpf}</p>
           </div>
         ) : (
           <div className="space-y-4">

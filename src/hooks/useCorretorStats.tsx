@@ -1,6 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface CorretorStats {
   total_visitas: number;
@@ -10,12 +11,14 @@ interface CorretorStats {
   agendamentos_confirmados: number;
 }
 
-export function useCorretorStats(corretorId: string | null) {
+export function useCorretorStats() {
+  const { userProfile } = useUserRole();
+
   return useQuery({
-    queryKey: ['corretor-stats', corretorId],
+    queryKey: ['corretor-stats', userProfile?.cpf],
     queryFn: async (): Promise<CorretorStats> => {
-      if (!corretorId) {
-        console.log('Corretor ID não fornecido para stats');
+      if (!userProfile?.cpf) {
+        console.log('CPF do corretor não encontrado');
         return {
           total_visitas: 0,
           visitas_ativas: 0,
@@ -25,28 +28,100 @@ export function useCorretorStats(corretorId: string | null) {
         };
       }
 
-      console.log('Buscando stats para corretor:', corretorId);
+      console.log('Buscando stats para corretor CPF:', userProfile.cpf);
 
-      const { data, error } = await supabase.rpc('get_corretor_stats', {
-        corretor_uuid: corretorId
-      });
+      try {
+        // Buscar dados diretamente das tabelas usando o CPF
+        const hoje = new Date().toISOString().split('T')[0];
 
-      if (error) {
-        console.error('Erro ao buscar stats do corretor:', error);
-        throw error;
+        // Total de visitas
+        const { data: totalVisitas, error: totalError } = await supabase
+          .from('visits')
+          .select('*', { count: 'exact', head: true })
+          .eq('corretor_id', userProfile.cpf);
+
+        if (totalError) {
+          console.error('Erro ao buscar total de visitas:', totalError);
+        }
+
+        // Visitas ativas
+        const { data: visitasAtivas, error: ativasError } = await supabase
+          .from('visits')
+          .select('*', { count: 'exact', head: true })
+          .eq('corretor_id', userProfile.cpf)
+          .eq('status', 'ativo');
+
+        if (ativasError) {
+          console.error('Erro ao buscar visitas ativas:', ativasError);
+        }
+
+        // Visitas hoje
+        const { data: visitasHoje, error: hojeError } = await supabase
+          .from('visits')
+          .select('*', { count: 'exact', head: true })
+          .eq('corretor_id', userProfile.cpf)
+          .gte('horario_entrada', `${hoje}T00:00:00`)
+          .lt('horario_entrada', `${hoje}T23:59:59`);
+
+        if (hojeError) {
+          console.error('Erro ao buscar visitas hoje:', hojeError);
+        }
+
+        // Tempo médio (somente visitas finalizadas)
+        const { data: visitasFinalizadas, error: tempoError } = await supabase
+          .from('visits')
+          .select('horario_entrada, horario_saida')
+          .eq('corretor_id', userProfile.cpf)
+          .eq('status', 'finalizado')
+          .not('horario_saida', 'is', null);
+
+        if (tempoError) {
+          console.error('Erro ao buscar tempo médio:', tempoError);
+        }
+
+        let tempoMedio = null;
+        if (visitasFinalizadas && visitasFinalizadas.length > 0) {
+          const tempos = visitasFinalizadas.map(v => {
+            const entrada = new Date(v.horario_entrada);
+            const saida = new Date(v.horario_saida);
+            return (saida.getTime() - entrada.getTime()) / (1000 * 60); // em minutos
+          });
+          tempoMedio = tempos.reduce((a, b) => a + b, 0) / tempos.length;
+        }
+
+        // Agendamentos confirmados
+        const { data: agendamentos, error: agendError } = await supabase
+          .from('agendamentos')
+          .select('*', { count: 'exact', head: true })
+          .eq('corretor_id', userProfile.cpf)
+          .eq('status', 'confirmado');
+
+        if (agendError) {
+          console.error('Erro ao buscar agendamentos:', agendError);
+        }
+
+        const stats = {
+          total_visitas: totalVisitas?.length || 0,
+          visitas_ativas: visitasAtivas?.length || 0,
+          visitas_hoje: visitasHoje?.length || 0,
+          tempo_medio_minutos: tempoMedio,
+          agendamentos_confirmados: agendamentos?.length || 0
+        };
+
+        console.log('Stats do corretor calculadas:', stats);
+        return stats;
+
+      } catch (error) {
+        console.error('Erro ao calcular stats:', error);
+        return {
+          total_visitas: 0,
+          visitas_ativas: 0,
+          visitas_hoje: 0,
+          tempo_medio_minutos: null,
+          agendamentos_confirmados: 0
+        };
       }
-
-      const stats = data?.[0] || {
-        total_visitas: 0,
-        visitas_ativas: 0,
-        visitas_hoje: 0,
-        tempo_medio_minutos: null,
-        agendamentos_confirmados: 0
-      };
-
-      console.log('Stats do corretor:', stats);
-      return stats;
     },
-    enabled: !!corretorId
+    enabled: !!userProfile?.cpf
   });
 }
