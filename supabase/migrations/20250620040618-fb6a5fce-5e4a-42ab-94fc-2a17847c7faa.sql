@@ -1,5 +1,6 @@
 
 
+
 -- Ajustar a tabela agendamentos para incluir email
 ALTER TABLE public.agendamentos 
 ADD COLUMN IF NOT EXISTS email character varying;
@@ -29,4 +30,5 @@ BEGIN
   RETURN novo_token;
 END;
 $$;
+
 
