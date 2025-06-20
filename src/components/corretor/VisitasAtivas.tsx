@@ -31,7 +31,12 @@ export function VisitasAtivas() {
   const { data: visitasAtivas = [], isLoading } = useQuery({
     queryKey: ['visitas-ativas-corretor', user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) {
+        console.log('User ID não encontrado');
+        return [];
+      }
+
+      console.log('Buscando visitas ativas para corretor:', user.id);
 
       const { data, error } = await supabase
         .from('visits')
@@ -45,6 +50,7 @@ export function VisitasAtivas() {
         throw error;
       }
 
+      console.log('Visitas ativas encontradas:', data);
       return data || [];
     },
     enabled: !!user?.id
@@ -52,6 +58,7 @@ export function VisitasAtivas() {
 
   const finalizarVisitaMutation = useMutation({
     mutationFn: async (visitaId: string) => {
+      console.log('Finalizando visita:', visitaId);
       const { error } = await supabase.rpc('finalizar_visita', {
         visit_id: visitaId
       });
@@ -61,6 +68,7 @@ export function VisitasAtivas() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['visitas-ativas-corretor'] });
       queryClient.invalidateQueries({ queryKey: ['corretor-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['visitas-historico-corretor'] });
       toast({
         title: "Visita finalizada!",
         description: "A visita foi finalizada com sucesso.",
@@ -102,6 +110,8 @@ export function VisitasAtivas() {
     );
   }
 
+  console.log('Renderizando VisitasAtivas com', visitasAtivas.length, 'visitas');
+
   return (
     <Card>
       <CardHeader>
@@ -115,6 +125,7 @@ export function VisitasAtivas() {
           <div className="text-center py-8">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500">Nenhuma visita ativa no momento</p>
+            <p className="text-sm text-gray-400 mt-2">User ID: {user?.id}</p>
           </div>
         ) : (
           <div className="space-y-4">

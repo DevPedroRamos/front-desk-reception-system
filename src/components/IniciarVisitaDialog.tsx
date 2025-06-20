@@ -1,42 +1,35 @@
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { AutoSuggest } from '@/components/AutoSuggest';
+import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+
+interface Cliente {
+  nome: string;
+  cpf: string;
+  whatsapp?: string;
+}
 
 interface IniciarVisitaDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  cliente: Cliente;
   onVisitaIniciada: () => void;
 }
 
-export function IniciarVisitaDialog({ onVisitaIniciada }: IniciarVisitaDialogProps) {
+export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada }: IniciarVisitaDialogProps) {
+  const [corretor, setCorretor] = useState('');
+  const [loja, setLoja] = useState('');
+  const [andar, setAndar] = useState('');
+  const [mesa, setMesa] = useState('');
+  const [empreendimento, setEmpreendimento] = useState('');
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    cliente_nome: "",
-    cliente_cpf: "",
-    cliente_whatsapp: "",
-    corretor_nome: "",
-    empreendimento: "",
-    loja: "",
-    andar: "",
-    mesa: "",
-  });
-
-  // Configuração das lojas
-  const lojasConfig = {
-    "Loja 1": { mesas: 22, temAndar: false },
-    "Loja 2": { mesas: 29, temAndar: true },
-    "Loja 3": { mesas: 10, temAndar: false },
-    "Loja Superior 37 andar": { mesas: 29, temAndar: false }
-  };
 
   // Buscar corretores
   const { data: corretores = [] } = useQuery({
@@ -44,18 +37,15 @@ export function IniciarVisitaDialog({ onVisitaIniciada }: IniciarVisitaDialogPro
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, apelido')
-        .eq('role', 'corretor');
+        .select('id, name, apelido, cpf')
+        .eq('role', 'corretor')
+        .order('name');
       
       if (error) {
         console.error('Erro ao buscar corretores:', error);
         return [];
       }
-      
-      return data?.map(corretor => ({
-        id: corretor.id,
-        name: `${corretor.name} (${corretor.apelido})`
-      })) || [];
+      return data || [];
     }
   });
 
@@ -65,124 +55,21 @@ export function IniciarVisitaDialog({ onVisitaIniciada }: IniciarVisitaDialogPro
     queryFn: async () => {
       const { data, error } = await supabase
         .from('empreendimentos')
-        .select('id, nome')
+        .select('*')
         .order('nome');
       
       if (error) {
         console.error('Erro ao buscar empreendimentos:', error);
         return [];
       }
-      
-      return data?.map(emp => ({
-        id: emp.id,
-        name: emp.nome
-      })) || [];
-    }
-  });
-
-  // Buscar visitas ativas para verificar mesas ocupadas
-  const { data: visitasAtivas = [] } = useQuery({
-    queryKey: ['visitas-ativas'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('visits')
-        .select('mesa, loja, andar')
-        .eq('status', 'ativo');
-      
-      if (error) {
-        console.error('Erro ao buscar visitas ativas:', error);
-        return [];
-      }
-      
       return data || [];
     }
   });
 
-  // Mutation para criar nova visita
-  const createVisitMutation = useMutation({
-    mutationFn: async (visitData: typeof formData) => {
-      // Buscar ID do corretor se foi informado
-      let corretor_id = null;
-      if (visitData.corretor_nome) {
-        const { data: corretorData } = await supabase
-          .from('users')
-          .select('id')
-          .or(`name.ilike.%${visitData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${visitData.corretor_nome}%`)
-          .limit(1)
-          .single();
-        
-        corretor_id = corretorData?.id || null;
-      }
-
-      // Usar CPF padrão se não foi preenchido
-      const cpfFinal = visitData.cliente_cpf.trim() || "00000000000";
-
-      const { data, error } = await supabase
-        .from('visits')
-        .insert({
-          cliente_nome: visitData.cliente_nome,
-          cliente_cpf: cpfFinal,
-          cliente_whatsapp: visitData.cliente_whatsapp || null,
-          corretor_nome: visitData.corretor_nome || '',
-          corretor_id: corretor_id || '00000000-0000-0000-0000-000000000000',
-          empreendimento: visitData.empreendimento || null,
-          loja: visitData.loja,
-          andar: visitData.andar || 'N/A',
-          mesa: parseInt(visitData.mesa),
-          status: 'ativo'
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Erro ao criar visita:', error);
-        throw error;
-      }
-
-      return data;
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Visita iniciada!",
-        description: `Cliente ${data.cliente_nome} foi registrado na mesa ${data.mesa}.`,
-      });
-
-      // Limpar formulário
-      setFormData({
-        cliente_nome: "",
-        cliente_cpf: "",
-        cliente_whatsapp: "",
-        corretor_nome: "",
-        empreendimento: "",
-        loja: "",
-        andar: "",
-        mesa: "",
-      });
-
-      setIsOpen(false);
-      onVisitaIniciada();
-      queryClient.invalidateQueries({ queryKey: ['visitas-ativas'] });
-    },
-    onError: (error) => {
-      console.error('Erro ao iniciar visita:', error);
-      toast({
-        title: "Erro ao iniciar visita",
-        description: "Ocorreu um erro ao salvar os dados. Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Calcular mesas ocupadas
-  const mesasOcupadas = visitasAtivas
-    .filter(visita => visita.loja === formData.loja && 
-      (formData.andar === '' || visita.andar === formData.andar || formData.andar === 'N/A'))
-    .map(visita => visita.mesa);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.cliente_nome || !formData.mesa || !formData.loja) {
+    if (!corretor || !loja || !andar || !mesa) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -191,182 +78,205 @@ export function IniciarVisitaDialog({ onVisitaIniciada }: IniciarVisitaDialogPro
       return;
     }
 
-    if (formData.loja === "Loja 2" && !formData.andar) {
+    setLoading(true);
+
+    try {
+      // Verificar se a mesa está disponível
+      const { data: mesaDisponivel } = await supabase.rpc('check_mesa_disponivel', {
+        p_loja: loja,
+        p_andar: andar,
+        p_mesa: parseInt(mesa)
+      });
+
+      if (!mesaDisponivel) {
+        toast({
+          title: "Mesa ocupada",
+          description: "Esta mesa já está sendo utilizada.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Buscar dados do corretor selecionado
+      const corretorSelecionado = corretores.find(c => c.id === corretor);
+      
+      if (!corretorSelecionado) {
+        toast({
+          title: "Erro",
+          description: "Corretor não encontrado.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Criar a visita
+      const { error } = await supabase
+        .from('visits')
+        .insert({
+          cliente_nome: cliente.nome,
+          cliente_cpf: cliente.cpf,
+          cliente_whatsapp: cliente.whatsapp,
+          corretor_id: corretor,
+          corretor_nome: corretorSelecionado.apelido || corretorSelecionado.name,
+          loja,
+          andar,
+          mesa: parseInt(mesa),
+          empreendimento: empreendimento || null,
+          status: 'ativo'
+        });
+
+      if (error) {
+        console.error('Erro ao iniciar visita:', error);
+        toast({
+          title: "Erro ao iniciar visita",
+          description: "Ocorreu um erro ao iniciar a visita. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
-        title: "Andar obrigatório",
-        description: "Para Loja 2, é necessário selecionar o andar.",
+        title: "Visita iniciada!",
+        description: `Visita iniciada para ${cliente.nome} com ${corretorSelecionado.apelido || corretorSelecionado.name}.`,
+      });
+
+      onVisitaIniciada();
+      onClose();
+      
+      // Reset form
+      setCorretor('');
+      setLoja('');
+      setAndar('');
+      setMesa('');
+      setEmpreendimento('');
+      
+    } catch (error) {
+      console.error('Erro inesperado:', error);
+      toast({
+        title: "Erro inesperado",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    if (mesasOcupadas.includes(parseInt(formData.mesa))) {
-      toast({
-        title: "Mesa ocupada",
-        description: "Esta mesa já está sendo utilizada. Escolha outra mesa.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    createVisitMutation.mutate(formData);
-  };
-
-  const renderMesaOption = (mesa: number) => {
-    const isOcupada = mesasOcupadas.includes(mesa);
-    return (
-      <SelectItem 
-        key={mesa} 
-        value={mesa.toString()} 
-        disabled={isOcupada}
-        className={isOcupada ? "opacity-50" : ""}
-      >
-        <div className="flex items-center gap-2">
-          <span>Mesa {mesa}</span>
-          {isOcupada && (
-            <Badge variant="secondary" className="text-xs">
-              Ocupada
-            </Badge>
-          )}
-        </div>
-      </SelectItem>
-    );
-  };
-
-  const getMaxMesas = () => {
-    if (!formData.loja) return 0;
-    return lojasConfig[formData.loja as keyof typeof lojasConfig]?.mesas || 0;
   };
 
   return (
-    <>
-      <Button onClick={() => setIsOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-        Iniciar Nova Visita
-      </Button>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Iniciar Visita</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Cliente</Label>
+            <Input 
+              value={`${cliente.nome} - ${cliente.cpf}`} 
+              disabled 
+              className="bg-gray-50"
+            />
+          </div>
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Iniciar Nova Visita</DialogTitle>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="cliente_nome">Nome do Cliente *</Label>
-                <Input
-                  id="cliente_nome"
-                  placeholder="Digite o nome do cliente"
-                  value={formData.cliente_nome}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_nome: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="cliente_cpf">CPF</Label>
-                <Input
-                  id="cliente_cpf"
-                  placeholder="000.000.000-00"
-                  value={formData.cliente_cpf}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_cpf: e.target.value }))}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="cliente_whatsapp">WhatsApp</Label>
-                <Input
-                  id="cliente_whatsapp"
-                  placeholder="(00) 00000-0000"
-                  value={formData.cliente_whatsapp}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_whatsapp: e.target.value }))}
-                />
-              </div>
+          <div>
+            <Label htmlFor="corretor">Corretor *</Label>
+            <Select value={corretor} onValueChange={setCorretor}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o corretor" />
+              </SelectTrigger>
+              <SelectContent>
+                {corretores.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.apelido || c.name} - CPF: {c.cpf}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              <AutoSuggest
-                label="Corretor"
-                placeholder="Digite o nome do corretor"
-                options={corretores}
-                value={formData.corretor_nome}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, corretor_nome: value }))}
-              />
-              
-              <AutoSuggest
-                label="Empreendimento de Interesse"
-                placeholder="Digite o nome do empreendimento"
-                options={empreendimentos}
-                value={formData.empreendimento}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, empreendimento: value }))}
-              />
-              
-              <div className="space-y-2">
-                <Label htmlFor="loja">Loja *</Label>
-                <Select onValueChange={(value) => setFormData(prev => ({ ...prev, loja: value, mesa: "" }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a loja" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(lojasConfig).map((loja) => (
-                      <SelectItem key={loja} value={loja}>
-                        {loja}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {formData.loja === "Loja 2" && (
-                <div className="space-y-2">
-                  <Label htmlFor="andar">Andar *</Label>
-                  <Select onValueChange={(value) => setFormData(prev => ({ ...prev, andar: value, mesa: "" }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o andar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Térreo">Térreo</SelectItem>
-                      <SelectItem value="Mezanino">Mezanino</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="mesa">Mesa *</Label>
-                <Select 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, mesa: value }))}
-                  disabled={!formData.loja || (formData.loja === "Loja 2" && !formData.andar)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a mesa" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: getMaxMesas() }, (_, i) => i + 1).map((mesa) => 
-                      renderMesaOption(mesa)
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="loja">Loja *</Label>
+              <Select value={loja} onValueChange={setLoja}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Loja" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Loja 1">Loja 1</SelectItem>
+                  <SelectItem value="Loja 2">Loja 2</SelectItem>
+                  <SelectItem value="Loja 3">Loja 3</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="flex gap-4 pt-6">
-              <Button 
-                type="submit" 
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-                disabled={createVisitMutation.isPending}
-              >
-                {createVisitMutation.isPending ? "Iniciando..." : "Iniciar Visita"}
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsOpen(false)}
-              >
-                Cancelar
-              </Button>
+            <div>
+              <Label htmlFor="andar">Andar *</Label>
+              <Select value={andar} onValueChange={setAndar}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Andar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Térreo">Térreo</SelectItem>
+                  <SelectItem value="1º Andar">1º Andar</SelectItem>
+                  <SelectItem value="2º Andar">2º Andar</SelectItem>
+                  <SelectItem value="3º Andar">3º Andar</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
+          </div>
+
+          <div>
+            <Label htmlFor="mesa">Número da Mesa *</Label>
+            <Input
+              id="mesa"
+              type="number"
+              min="1"
+              max="50"
+              value={mesa}
+              onChange={(e) => setMesa(e.target.value)}
+              placeholder="Ex: 1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="empreendimento">Empreendimento de Interesse</Label>
+            <Select value={empreendimento} onValueChange={setEmpreendimento}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um empreendimento (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhum empreendimento</SelectItem>
+                {empreendimentos.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.nome}>
+                    {emp.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {loading ? 'Iniciando...' : 'Iniciar Visita'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
