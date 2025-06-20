@@ -135,7 +135,7 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
       const dadosCliente = clienteSelecionado || {
         cliente_nome: cliente.cliente_nome,
         cliente_cpf: cliente.cliente_cpf,
-        cliente_whatsapp: cliente.cliente_whatsapp,
+        whatsapp: cliente.cliente_whatsapp,
         empreendimento: cliente.empreendimento
       };
 
@@ -144,7 +144,7 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
         .insert({
           cliente_nome: dadosCliente.cliente_nome || cliente.cliente_nome,
           cliente_cpf: dadosCliente.cliente_cpf || cliente.cliente_cpf,
-          cliente_whatsapp: dadosCliente.whatsapp || dadosCliente.cliente_whatsapp || cliente.cliente_whatsapp,
+          cliente_whatsapp: dadosCliente.whatsapp || cliente.cliente_whatsapp,
           corretor_nome: cliente.corretor_nome || '',
           corretor_id: cliente.corretor_id || '00000000-0000-0000-0000-000000000000',
           empreendimento: dadosCliente.empreendimento || cliente.empreendimento,

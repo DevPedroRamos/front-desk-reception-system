@@ -35,7 +35,7 @@ const AgendarPage = () => {
         .from('corretor_links')
         .select(`
           *,
-          users!corretor_links_corretor_id_fkey (
+          corretor:users!corretor_links_corretor_id_fkey (
             name,
             apelido
           )
@@ -184,8 +184,10 @@ const AgendarPage = () => {
   }
 
   if (error || !linkData) {
-    return <Navigate to="/not-found" replace />;
+    return <Navigate to="/" replace />;
   }
+
+  const nomeCorretor = linkData.corretor?.name || linkData.corretor?.apelido || 'Corretor';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -197,7 +199,7 @@ const AgendarPage = () => {
             </div>
             <CardTitle className="text-2xl">Agendar Visita</CardTitle>
             <p className="text-gray-600">
-              Agende sua visita com {linkData.users?.name || linkData.users?.apelido}
+              Agende sua visita com {nomeCorretor}
             </p>
           </CardHeader>
           
