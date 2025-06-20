@@ -343,6 +343,10 @@ export type Database = {
         Args: { visit_id: string }
         Returns: undefined
       }
+      fix_user_relations: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       gerar_link_corretor: {
         Args: { corretor_uuid: string; link_titulo?: string }
         Returns: string

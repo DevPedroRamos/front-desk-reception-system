@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,10 +37,25 @@ export function VisitasAtivas() {
 
       console.log('Buscando visitas ativas para corretor CPF:', userProfile.cpf);
 
+      // Primeiro, buscar o ID do usuário na tabela users
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('cpf', userProfile.cpf)
+        .single();
+
+      if (userError || !userData) {
+        console.error('Erro ao buscar usuário:', userError);
+        return [];
+      }
+
+      const userId = userData.id;
+      console.log('ID do usuário encontrado:', userId);
+
       const { data, error } = await supabase
         .from('visits')
         .select('*')
-        .eq('corretor_id', userProfile.cpf)
+        .eq('corretor_id', userId)
         .eq('status', 'ativo')
         .order('horario_entrada', { ascending: false });
 

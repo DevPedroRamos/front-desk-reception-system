@@ -31,14 +31,35 @@ export function useCorretorStats() {
       console.log('Buscando stats para corretor CPF:', userProfile.cpf);
 
       try {
-        // Buscar dados diretamente das tabelas usando o CPF
+        // Buscar o ID do usuário na tabela users usando o CPF do perfil
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('cpf', userProfile.cpf)
+          .single();
+
+        if (userError || !userData) {
+          console.error('Erro ao buscar usuário:', userError);
+          return {
+            total_visitas: 0,
+            visitas_ativas: 0,
+            visitas_hoje: 0,
+            tempo_medio_minutos: null,
+            agendamentos_confirmados: 0
+          };
+        }
+
+        const userId = userData.id;
+        console.log('ID do usuário encontrado:', userId);
+
+        // Buscar dados das visitas usando o ID do usuário
         const hoje = new Date().toISOString().split('T')[0];
 
         // Total de visitas
         const { data: totalVisitas, error: totalError } = await supabase
           .from('visits')
           .select('*', { count: 'exact', head: true })
-          .eq('corretor_id', userProfile.cpf);
+          .eq('corretor_id', userId);
 
         if (totalError) {
           console.error('Erro ao buscar total de visitas:', totalError);
@@ -48,7 +69,7 @@ export function useCorretorStats() {
         const { data: visitasAtivas, error: ativasError } = await supabase
           .from('visits')
           .select('*', { count: 'exact', head: true })
-          .eq('corretor_id', userProfile.cpf)
+          .eq('corretor_id', userId)
           .eq('status', 'ativo');
 
         if (ativasError) {
@@ -59,7 +80,7 @@ export function useCorretorStats() {
         const { data: visitasHoje, error: hojeError } = await supabase
           .from('visits')
           .select('*', { count: 'exact', head: true })
-          .eq('corretor_id', userProfile.cpf)
+          .eq('corretor_id', userId)
           .gte('horario_entrada', `${hoje}T00:00:00`)
           .lt('horario_entrada', `${hoje}T23:59:59`);
 
@@ -71,7 +92,7 @@ export function useCorretorStats() {
         const { data: visitasFinalizadas, error: tempoError } = await supabase
           .from('visits')
           .select('horario_entrada, horario_saida')
-          .eq('corretor_id', userProfile.cpf)
+          .eq('corretor_id', userId)
           .eq('status', 'finalizado')
           .not('horario_saida', 'is', null);
 
@@ -93,7 +114,7 @@ export function useCorretorStats() {
         const { data: agendamentos, error: agendError } = await supabase
           .from('agendamentos')
           .select('*', { count: 'exact', head: true })
-          .eq('corretor_id', userProfile.cpf)
+          .eq('corretor_id', userId)
           .eq('status', 'confirmado');
 
         if (agendError) {

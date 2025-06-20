@@ -34,10 +34,25 @@ const VisitasCorretor = () => {
 
       console.log('Buscando histórico de visitas para CPF:', userProfile.cpf);
 
+      // Primeiro, buscar o ID do usuário na tabela users
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('cpf', userProfile.cpf)
+        .single();
+
+      if (userError || !userData) {
+        console.error('Erro ao buscar usuário:', userError);
+        return [];
+      }
+
+      const userId = userData.id;
+      console.log('ID do usuário encontrado:', userId);
+
       const { data, error } = await supabase
         .from('visits')
         .select('*')
-        .eq('corretor_id', userProfile.cpf)
+        .eq('corretor_id', userId)
         .eq('status', 'finalizado')
         .order('horario_entrada', { ascending: false })
         .limit(20);
