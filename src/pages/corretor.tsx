@@ -3,15 +3,43 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, Clock, Building2, QrCode } from "lucide-react";
+import { UserCheck, Clock, Building2, Link } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { VisitCard } from "@/components/VisitCard";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { LinkGenerator } from "@/components/corretor/LinkGenerator";
 
 const Corretor = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Buscar agendamentos confirmados do corretor
+  const { data: agendamentosConfirmados = [], isLoading: agendamentosConfirmadosLoading, refetch: refetchAgendamentosConfirmados } = useQuery({
+    queryKey: ['agendamentos-confirmados-corretor', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .eq('corretor_id', user.id)
+        .eq('status', 'confirmado')
+        .gte('data', new Date().toISOString().split('T')[0]) // Apenas agendamentos futuros
+        .order('data', { ascending: true })
+        .order('hora', { ascending: true });
+      
+      if (error) {
+        console.error('Erro ao buscar agendamentos confirmados:', error);
+        return [];
+      }
+      
+      return data || [];
+    },
+    enabled: !!user?.id
+  });
 
   // Buscar agendamentos do dia
   const { data: agendamentos = [], isLoading: agendamentosLoading, refetch: refetchAgendamentos } = useQuery({
@@ -66,6 +94,7 @@ const Corretor = () => {
         },
         () => {
           refetchAgendamentos();
+          refetchAgendamentosConfirmados();
         }
       )
       .on(
@@ -84,7 +113,7 @@ const Corretor = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refetchAgendamentos, refetchVisitas]);
+  }, [refetchAgendamentos, refetchVisitas, refetchAgendamentosConfirmados]);
 
   // Função para finalizar visita
   const handleFinalizarVisita = async (visitId: string) => {
@@ -117,21 +146,7 @@ const Corretor = () => {
     }
   };
 
-  const gerarLinkIndicacao = (nomeCorretor: string) => {
-    const baseUrl = window.location.origin;
-    return `${baseUrl}/cliente?corretor=${encodeURIComponent(nomeCorretor)}`;
-  };
-
-  const copiarLink = (nomeCorretor: string) => {
-    const link = gerarLinkIndicacao(nomeCorretor);
-    navigator.clipboard.writeText(link);
-    toast({
-      title: "Link copiado!",
-      description: "O link de indicação foi copiado para a área de transferência.",
-    });
-  };
-
-  if (agendamentosLoading || visitasLoading) {
+  if (agendamentosLoading || visitasLoading || agendamentosConfirmadosLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -155,40 +170,46 @@ const Corretor = () => {
           </div>
         </div>
 
-        {/* Links de Indicação */}
+        {/* Links de Confirmação */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <QrCode className="h-5 w-5" />
-              Links de Indicação
+              <Link className="h-5 w-5" />
+              Links de Confirmação
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-slate-600 mb-4">
-              Gere links personalizados para seus clientes agendarem visitas:
+              Gere links de confirmação para seus agendamentos confirmados:
             </p>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                <span className="text-sm font-medium">João Silva:</span>
-                <Button 
-                  size="sm" 
-                  onClick={() => copiarLink("João Silva")}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Copiar Link
-                </Button>
+            {agendamentosConfirmados.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-slate-500">Nenhum agendamento confirmado encontrado.</p>
               </div>
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                <span className="text-sm font-medium">Maria Santos:</span>
-                <Button 
-                  size="sm" 
-                  onClick={() => copiarLink("Maria Santos")}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Copiar Link
-                </Button>
+            ) : (
+              <div className="space-y-3">
+                {agendamentosConfirmados.map((agendamento) => (
+                  <div key={agendamento.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{agendamento.cliente_nome}</span>
+                        <Badge variant="outline">{agendamento.data} - {agendamento.hora}</Badge>
+                      </div>
+                      <div className="text-sm text-slate-600">
+                        <span>CPF: {agendamento.cliente_cpf}</span>
+                        {agendamento.empreendimento && (
+                          <span className="ml-4">Empreendimento: {agendamento.empreendimento}</span>
+                        )}
+                      </div>
+                    </div>
+                    <LinkGenerator 
+                      agendamentoId={agendamento.id}
+                      onTokenGenerated={() => refetchAgendamentosConfirmados()}
+                    />
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
