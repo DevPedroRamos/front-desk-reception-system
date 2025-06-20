@@ -35,7 +35,7 @@ const AgendarPage = () => {
         .from('corretor_links')
         .select(`
           *,
-          corretor:users!corretor_links_corretor_id_fkey (
+          corretor:users (
             name,
             apelido
           )

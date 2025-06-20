@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { Link2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface CriarLinkDialogProps {
@@ -72,8 +72,8 @@ export function CriarLinkDialog({ onLinkCreated }: CriarLinkDialogProps) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Criar Link de Agendamento
+          <Link2 className="h-4 w-4 mr-2" />
+          Copiar Link de Agendamento
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
@@ -103,7 +103,7 @@ export function CriarLinkDialog({ onLinkCreated }: CriarLinkDialogProps) {
             disabled={criarLinkMutation.isPending}
             className="w-full"
           >
-            {criarLinkMutation.isPending ? "Criando..." : "Criar Link"}
+            {criarLinkMutation.isPending ? "Criando..." : "Criar e Copiar Link"}
           </Button>
         </div>
       </DialogContent>
