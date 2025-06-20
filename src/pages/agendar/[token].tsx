@@ -24,7 +24,6 @@ const AgendarPage = () => {
   });
 
   // Dados do corretor vindos da URL
-  const corretorNome = searchParams.get('nome') || '';
   const corretorApelido = searchParams.get('apelido') || '';
   const corretorId = searchParams.get('corretor_id') || '';
 
@@ -96,7 +95,7 @@ const AgendarPage = () => {
     confirmarMutation.mutate(formData);
   };
 
-  if (!corretorNome || !corretorId) {
+  if (!corretorApelido || !corretorId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="max-w-md w-full mx-4">
@@ -134,7 +133,7 @@ const AgendarPage = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  <span>Corretor: {corretorNome} ({corretorApelido})</span>
+                  <span>Corretor: {corretorApelido}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
@@ -167,8 +166,7 @@ const AgendarPage = () => {
               <h3 className="font-semibold mb-3">Seu Corretor</h3>
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-blue-600" />
-                <span className="font-medium">{corretorNome}</span>
-                <span className="text-gray-600">({corretorApelido})</span>
+                <span className="font-medium">{corretorApelido}</span>
               </div>
             </div>
 

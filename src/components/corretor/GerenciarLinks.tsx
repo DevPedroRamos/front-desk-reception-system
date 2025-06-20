@@ -24,7 +24,7 @@ export function GerenciarLinks() {
       // Buscar o ID do usuário
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('id, name, apelido')
+        .select('id, apelido')
         .eq('cpf', userProfile.cpf)
         .single();
 
@@ -107,7 +107,7 @@ export function GerenciarLinks() {
 
   const copiarLink = (token: string, corretor: any) => {
     const baseUrl = window.location.origin;
-    const link = `${baseUrl}/agendar/${token}?nome=${encodeURIComponent(corretor.name)}&apelido=${encodeURIComponent(corretor.apelido)}&corretor_id=${corretor.id}`;
+    const link = `${baseUrl}/agendar/${token}?apelido=${encodeURIComponent(corretor.apelido)}&corretor_id=${corretor.id}`;
     
     navigator.clipboard.writeText(link).then(() => {
       toast({
@@ -148,7 +148,7 @@ export function GerenciarLinks() {
                   Criado em {format(new Date(link.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                 </p>
                 <p className="text-xs text-gray-500 font-mono">
-                  {window.location.origin}/agendar/{link.token}?nome={link.corretor?.name}&apelido={link.corretor?.apelido}
+                  {window.location.origin}/agendar/{link.token}?apelido={link.corretor?.apelido}&corretor_id={link.corretor?.id}
                 </p>
               </div>
               

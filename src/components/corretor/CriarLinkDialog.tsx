@@ -24,7 +24,7 @@ export function CriarLinkDialog({ onLinkCreated }: CriarLinkDialogProps) {
       // Buscar dados do corretor na tabela users
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('id, name, apelido')
+        .select('id, apelido')
         .eq('cpf', userProfile.cpf)
         .single();
 
@@ -34,7 +34,7 @@ export function CriarLinkDialog({ onLinkCreated }: CriarLinkDialogProps) {
 
       const { data: token, error } = await supabase.rpc('gerar_link_agendamento_direto', {
         corretor_uuid: userData.id,
-        corretor_nome_param: userData.name,
+        corretor_nome_param: userData.apelido,
         corretor_apelido_param: userData.apelido
       });
 
@@ -46,7 +46,7 @@ export function CriarLinkDialog({ onLinkCreated }: CriarLinkDialogProps) {
     },
     onSuccess: ({ token, corretor }) => {
       const baseUrl = window.location.origin;
-      const link = `${baseUrl}/agendar/${token}?nome=${encodeURIComponent(corretor.name)}&apelido=${encodeURIComponent(corretor.apelido)}&corretor_id=${corretor.id}`;
+      const link = `${baseUrl}/agendar/${token}?apelido=${encodeURIComponent(corretor.apelido)}&corretor_id=${corretor.id}`;
       
       // Copiar para área de transferência
       navigator.clipboard.writeText(link).then(() => {
