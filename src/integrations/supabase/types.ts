@@ -9,97 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      agendamento_tokens: {
-        Row: {
-          agendamento_id: string | null
-          created_at: string | null
-          expires_at: string
-          id: string
-          token: string
-          used: boolean | null
-        }
-        Insert: {
-          agendamento_id?: string | null
-          created_at?: string | null
-          expires_at: string
-          id?: string
-          token: string
-          used?: boolean | null
-        }
-        Update: {
-          agendamento_id?: string | null
-          created_at?: string | null
-          expires_at?: string
-          id?: string
-          token?: string
-          used?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agendamento_tokens_agendamento_id_fkey"
-            columns: ["agendamento_id"]
-            isOneToOne: false
-            referencedRelation: "agendamentos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      agendamentos: {
-        Row: {
-          cliente_cpf: string
-          cliente_nome: string
-          corretor_id: string
-          created_at: string | null
-          data: string
-          email: string | null
-          empreendimento: string
-          hora: string
-          id: string
-          link_token: string | null
-          origem: string | null
-          status: string | null
-          whatsapp: string
-        }
-        Insert: {
-          cliente_cpf: string
-          cliente_nome: string
-          corretor_id: string
-          created_at?: string | null
-          data: string
-          email?: string | null
-          empreendimento: string
-          hora: string
-          id?: string
-          link_token?: string | null
-          origem?: string | null
-          status?: string | null
-          whatsapp: string
-        }
-        Update: {
-          cliente_cpf?: string
-          cliente_nome?: string
-          corretor_id?: string
-          created_at?: string | null
-          data?: string
-          email?: string | null
-          empreendimento?: string
-          hora?: string
-          id?: string
-          link_token?: string | null
-          origem?: string | null
-          status?: string | null
-          whatsapp?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agendamentos_corretor_id_fkey"
-            columns: ["corretor_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       corretor_links: {
         Row: {
           ativo: boolean
@@ -311,19 +220,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      buscar_agendamentos_corretor: {
-        Args: { corretor_uuid: string }
-        Returns: {
-          id: string
-          cliente_nome: string
-          cliente_cpf: string
-          cliente_whatsapp: string
-          data: string
-          hora: string
-          empreendimento: string
-          status: string
-        }[]
-      }
       buscar_cliente_por_cpf: {
         Args: { p_cpf: string }
         Returns: {
@@ -350,20 +246,8 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      gerar_link_agendamento_direto: {
-        Args: {
-          corretor_uuid: string
-          corretor_nome_param: string
-          corretor_apelido_param: string
-        }
-        Returns: string
-      }
       gerar_link_corretor: {
         Args: { corretor_uuid: string; link_titulo?: string }
-        Returns: string
-      }
-      gerar_token_agendamento: {
-        Args: { agendamento_uuid: string }
         Returns: string
       }
       get_corretor_stats: {

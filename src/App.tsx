@@ -11,10 +11,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import Corretor from '@/pages/corretor';
 import PerfilCorretor from '@/pages/corretor/perfil';
-import AgendamentosCorretor from '@/pages/corretor/agendamentos';
 import VisitasCorretor from '@/pages/corretor/visitas';
-import ConfirmarAgendamento from '@/pages/confirmar-agendamento/[token]';
-import AgendarPage from '@/pages/agendar/[token]';
 
 const queryClient = new QueryClient();
 
@@ -45,7 +42,6 @@ function ProtectedRoutes() {
       <Route path="/podio" element={<Podio />} />
       <Route path="/corretor" element={<Corretor />} />
       <Route path="/corretor/perfil" element={<PerfilCorretor />} />
-      <Route path="/corretor/agendamentos" element={<AgendamentosCorretor />} />
       <Route path="/corretor/visitas" element={<VisitasCorretor />} />
       <Route path="*" element={<div>404 - Página não encontrada</div>} />
     </Routes>
@@ -60,8 +56,6 @@ function App() {
           <div className="min-h-screen bg-background font-sans antialiased">
             <Routes>
               <Route path="/auth" element={<Auth />} />
-              <Route path="/confirmar-agendamento/:token" element={<ConfirmarAgendamento />} />
-              <Route path="/agendar/:token" element={<AgendarPage />} />
               <Route path="/*" element={<ProtectedRoutes />} />
             </Routes>
             <Toaster />
