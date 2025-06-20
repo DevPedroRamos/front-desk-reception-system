@@ -56,7 +56,7 @@ export function useCorretorStats() {
         const hoje = new Date().toISOString().split('T')[0];
 
         // Total de visitas
-        const { data: totalVisitas, error: totalError } = await supabase
+        const { count: totalVisitas, error: totalError } = await supabase
           .from('visits')
           .select('*', { count: 'exact', head: true })
           .eq('corretor_id', userId);
@@ -66,7 +66,7 @@ export function useCorretorStats() {
         }
 
         // Visitas ativas
-        const { data: visitasAtivas, error: ativasError } = await supabase
+        const { count: visitasAtivas, error: ativasError } = await supabase
           .from('visits')
           .select('*', { count: 'exact', head: true })
           .eq('corretor_id', userId)
@@ -77,7 +77,7 @@ export function useCorretorStats() {
         }
 
         // Visitas hoje
-        const { data: visitasHoje, error: hojeError } = await supabase
+        const { count: visitasHoje, error: hojeError } = await supabase
           .from('visits')
           .select('*', { count: 'exact', head: true })
           .eq('corretor_id', userId)
@@ -111,7 +111,7 @@ export function useCorretorStats() {
         }
 
         // Agendamentos confirmados
-        const { data: agendamentos, error: agendError } = await supabase
+        const { count: agendamentos, error: agendError } = await supabase
           .from('agendamentos')
           .select('*', { count: 'exact', head: true })
           .eq('corretor_id', userId)
@@ -122,11 +122,11 @@ export function useCorretorStats() {
         }
 
         const stats = {
-          total_visitas: totalVisitas?.length || 0,
-          visitas_ativas: visitasAtivas?.length || 0,
-          visitas_hoje: visitasHoje?.length || 0,
+          total_visitas: totalVisitas || 0,
+          visitas_ativas: visitasAtivas || 0,
+          visitas_hoje: visitasHoje || 0,
           tempo_medio_minutos: tempoMedio,
-          agendamentos_confirmados: agendamentos?.length || 0
+          agendamentos_confirmados: agendamentos || 0
         };
 
         console.log('Stats do corretor calculadas:', stats);
