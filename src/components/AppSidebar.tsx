@@ -42,11 +42,6 @@ export function AppSidebar() {
           icon: BarChart3,
         },
         {
-          title: "Meus Agendamentos",
-          url: "/corretor/agendamentos",
-          icon: Calendar,
-        },
-        {
           title: "Minhas Visitas",
           url: "/corretor/visitas",
           icon: Users,
