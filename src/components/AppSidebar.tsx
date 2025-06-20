@@ -37,11 +37,6 @@ export function AppSidebar() {
     if (userProfile.role === 'corretor') {
       return [
         {
-          title: "Dashboard",
-          url: "/corretor",
-          icon: BarChart3,
-        },
-        {
           title: "Minhas Visitas",
           url: "/corretor/visitas",
           icon: Users,
