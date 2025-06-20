@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Calendar, Users, Clock, MapPin, FileDown, X } from 'lucide-react';
@@ -46,9 +46,10 @@ export default function Index() {
   const [superintendentes, setSuperintendentes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Filtros
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Inicializar filtros com data atual
+  const hoje = new Date();
+  const [startDate, setStartDate] = useState(format(hoje, 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(hoje, 'yyyy-MM-dd'));
   const [selectedSuperintendente, setSelectedSuperintendente] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -61,6 +62,22 @@ export default function Index() {
     if (data) {
       const uniqueSuperintendentes = [...new Set(data.map(u => u.superintendente))];
       setSuperintendentes(uniqueSuperintendentes);
+    }
+  };
+
+  // Função para filtros rápidos
+  const setFiltroRapido = (tipo: 'hoje' | 'mes') => {
+    const hoje = new Date();
+    
+    if (tipo === 'hoje') {
+      const dataHoje = format(hoje, 'yyyy-MM-dd');
+      setStartDate(dataHoje);
+      setEndDate(dataHoje);
+    } else if (tipo === 'mes') {
+      const inicioMes = format(startOfMonth(hoje), 'yyyy-MM-dd');
+      const fimMes = format(endOfMonth(hoje), 'yyyy-MM-dd');
+      setStartDate(inicioMes);
+      setEndDate(fimMes);
     }
   };
 
@@ -330,8 +347,9 @@ export default function Index() {
   };
 
   const clearFilters = () => {
-    setStartDate('');
-    setEndDate('');
+    const hoje = format(new Date(), 'yyyy-MM-dd');
+    setStartDate(hoje);
+    setEndDate(hoje);
     setSelectedSuperintendente('all');
     setSearchTerm('');
   };
@@ -382,6 +400,24 @@ export default function Index() {
             <CardTitle className="text-lg">Filtros</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Botões de Filtros Rápidos */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={startDate === format(new Date(), 'yyyy-MM-dd') && endDate === format(new Date(), 'yyyy-MM-dd') ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFiltroRapido('hoje')}
+              >
+                Hoje
+              </Button>
+              <Button
+                variant={startDate === format(startOfMonth(new Date()), 'yyyy-MM-dd') && endDate === format(endOfMonth(new Date()), 'yyyy-MM-dd') ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFiltroRapido('mes')}
+              >
+                Mês Atual
+              </Button>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">Data Inicial</label>

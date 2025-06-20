@@ -1,3 +1,4 @@
+
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,6 @@ const Recepcao = () => {
     andar: "",
     mesa: "",
   });
-  const [selectedAgendamento, setSelectedAgendamento] = useState<string | null>(null);
 
   // Definir configuração das lojas
   const lojasConfig = {
@@ -75,41 +75,6 @@ const Recepcao = () => {
         name: emp.nome
       })) || [];
     }
-  });
-
-  // Buscar agendamentos confirmados do corretor selecionado
-  const { data: agendamentosCorretor = [] } = useQuery({
-    queryKey: ['agendamentos-corretor-recepcao', formData.corretor_nome],
-    queryFn: async () => {
-      if (!formData.corretor_nome) return [];
-
-      // Buscar ID do corretor
-      const { data: corretorData } = await supabase
-        .from('users')
-        .select('id')
-        .or(`name.ilike.%${formData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${formData.corretor_nome}%`)
-        .limit(1)
-        .single();
-
-      if (!corretorData) return [];
-
-      const { data, error } = await supabase
-        .from('agendamentos')
-        .select('*')
-        .eq('corretor_id', corretorData.id)
-        .eq('status', 'confirmado')
-        .gte('data', new Date().toISOString().split('T')[0]) // Apenas agendamentos de hoje em diante
-        .order('data', { ascending: true })
-        .order('hora', { ascending: true });
-
-      if (error) {
-        console.error('Erro ao buscar agendamentos:', error);
-        return [];
-      }
-
-      return data || [];
-    },
-    enabled: !!formData.corretor_nome
   });
 
   // Buscar visitas ativas para verificar mesas ocupadas
@@ -178,22 +143,7 @@ const Recepcao = () => {
     }
   };
 
-  // Função para preencher dados do agendamento selecionado
-  const preencherDadosAgendamento = (agendamentoId: string) => {
-    const agendamento = agendamentosCorretor.find(ag => ag.id === agendamentoId);
-    if (agendamento) {
-      setFormData(prev => ({
-        ...prev,
-        cliente_nome: agendamento.cliente_nome,
-        cliente_cpf: agendamento.cliente_cpf,
-        cliente_whatsapp: agendamento.whatsapp,
-        empreendimento: agendamento.empreendimento || ""
-      }));
-      setSelectedAgendamento(agendamentoId);
-    }
-  };
-
-  // Mutation para criar nova visita (atualizada para marcar agendamento como finalizado)
+  // Mutation para criar nova visita
   const createVisitMutation = useMutation({
     mutationFn: async (visitData: typeof formData) => {
       // Buscar ID do corretor se foi informado
@@ -234,19 +184,6 @@ const Recepcao = () => {
         throw error;
       }
 
-      // Se há um agendamento selecionado, marcar como finalizado
-      if (selectedAgendamento) {
-        const { error: agendamentoError } = await supabase
-          .from('agendamentos')
-          .update({ status: 'finalizado' })
-          .eq('id', selectedAgendamento);
-
-        if (agendamentoError) {
-          console.error('Erro ao finalizar agendamento:', agendamentoError);
-          // Não falhar a operação por causa disso
-        }
-      }
-
       return data;
     },
     onSuccess: async (data) => {
@@ -269,11 +206,9 @@ const Recepcao = () => {
         andar: "",
         mesa: "",
       });
-      setSelectedAgendamento(null);
 
       // Atualizar dados
       queryClient.invalidateQueries({ queryKey: ['visitas-ativas'] });
-      queryClient.invalidateQueries({ queryKey: ['agendamentos-corretor-recepcao'] });
     },
     onError: (error) => {
       console.error('Erro ao registrar visita:', error);
@@ -398,39 +333,8 @@ const Recepcao = () => {
                     value={formData.corretor_nome}
                     onValueChange={(value) => {
                       setFormData(prev => ({ ...prev, corretor_nome: value }));
-                      setSelectedAgendamento(null);
-                      // Limpar outros campos quando trocar de corretor
-                      if (value !== formData.corretor_nome) {
-                        setFormData(prev => ({
-                          ...prev,
-                          corretor_nome: value,
-                          cliente_nome: "",
-                          cliente_cpf: "",
-                          cliente_whatsapp: "",
-                          empreendimento: ""
-                        }));
-                      }
                     }}
                   />
-
-                  {/* Seleção de Agendamento */}
-                  {formData.corretor_nome && agendamentosCorretor.length > 0 && (
-                    <div className="space-y-2">
-                      <Label>Agendamento Confirmado (Opcional)</Label>
-                      <Select onValueChange={preencherDadosAgendamento}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um agendamento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {agendamentosCorretor.map((agendamento) => (
-                            <SelectItem key={agendamento.id} value={agendamento.id}>
-                              {agendamento.cliente_nome} - {agendamento.data} às {agendamento.hora}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
                   
                   <div className="space-y-2">
                     <Label htmlFor="cliente_nome">Nome Completo *</Label>
@@ -553,7 +457,6 @@ const Recepcao = () => {
                       andar: "",
                       mesa: "",
                     });
-                    setSelectedAgendamento(null);
                   }}
                 >
                   Limpar
