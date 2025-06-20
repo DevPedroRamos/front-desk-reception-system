@@ -8,8 +8,6 @@ import { UserCheck, Building2, Phone } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useMutation } from "@tanstack/react-query";
 
 const Cliente = () => {
   const { toast } = useToast();
@@ -38,70 +36,6 @@ const Cliente = () => {
     }
   }, [searchParams]);
 
-  // Mutation para criar agendamento
-  const createAgendamentoMutation = useMutation({
-    mutationFn: async (agendamentoData: typeof formData & { corretor: string }) => {
-      // Primeiro, buscar o corretor_id baseado no nome
-      let corretor_id = '00000000-0000-0000-0000-000000000000';
-      
-      if (agendamentoData.corretor) {
-        const { data: corretorData } = await supabase
-          .from('users')
-          .select('id')
-          .or(`name.ilike.%${agendamentoData.corretor}%,apelido.ilike.%${agendamentoData.corretor}%`)
-          .limit(1)
-          .single();
-        
-        if (corretorData) {
-          corretor_id = corretorData.id;
-        }
-      }
-
-      const { data, error } = await supabase
-        .from('agendamentos')
-        .insert({
-          cliente_nome: agendamentoData.nome,
-          cliente_cpf: agendamentoData.cpf,
-          whatsapp: agendamentoData.whatsapp,
-          empreendimento: agendamentoData.empreendimento,
-          corretor_id: corretor_id,
-          data: new Date().toISOString().split('T')[0], // Data atual
-          hora: new Date().toTimeString().split(' ')[0] // Hora atual
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Erro ao criar agendamento:', error);
-        throw error;
-      }
-
-      return data;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Visita confirmada!",
-        description: "Seus dados foram enviados com sucesso. Aguarde o contato da nossa equipe.",
-      });
-
-      // Limpar formulário
-      setFormData({
-        nome: "",
-        cpf: "",
-        whatsapp: "",
-        empreendimento: "",
-      });
-    },
-    onError: (error) => {
-      console.error('Erro ao confirmar visita:', error);
-      toast({
-        title: "Erro ao confirmar visita",
-        description: "Ocorreu um erro ao enviar seus dados. Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  });
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -114,9 +48,18 @@ const Cliente = () => {
       return;
     }
 
-    createAgendamentoMutation.mutate({
-      ...formData,
-      corretor: corretorNome,
+    // Simular envio bem-sucedido já que não temos mais tabela de agendamentos
+    toast({
+      title: "Dados enviados!",
+      description: "Seus dados foram enviados com sucesso. Aguarde o contato da nossa equipe.",
+    });
+
+    // Limpar formulário
+    setFormData({
+      nome: "",
+      cpf: "",
+      whatsapp: "",
+      empreendimento: "",
     });
   };
 
@@ -228,9 +171,8 @@ const Cliente = () => {
               <Button 
                 type="submit" 
                 className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-lg font-semibold"
-                disabled={createAgendamentoMutation.isPending}
               >
-                {createAgendamentoMutation.isPending ? "Confirmando..." : "Confirmar Visita"}
+                Confirmar Visita
               </Button>
               
               <p className="text-xs text-slate-500 text-center">

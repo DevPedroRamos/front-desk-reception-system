@@ -8,7 +8,6 @@ interface CorretorStats {
   visitas_ativas: number;
   visitas_hoje: number;
   tempo_medio_minutos: number | null;
-  agendamentos_confirmados: number;
 }
 
 export function useCorretorStats() {
@@ -23,8 +22,7 @@ export function useCorretorStats() {
           total_visitas: 0,
           visitas_ativas: 0,
           visitas_hoje: 0,
-          tempo_medio_minutos: null,
-          agendamentos_confirmados: 0
+          tempo_medio_minutos: null
         };
       }
 
@@ -44,8 +42,7 @@ export function useCorretorStats() {
             total_visitas: 0,
             visitas_ativas: 0,
             visitas_hoje: 0,
-            tempo_medio_minutos: null,
-            agendamentos_confirmados: 0
+            tempo_medio_minutos: null
           };
         }
 
@@ -110,23 +107,11 @@ export function useCorretorStats() {
           tempoMedio = tempos.reduce((a, b) => a + b, 0) / tempos.length;
         }
 
-        // Agendamentos confirmados
-        const { count: agendamentos, error: agendError } = await supabase
-          .from('agendamentos')
-          .select('*', { count: 'exact', head: true })
-          .eq('corretor_id', userId)
-          .eq('status', 'confirmado');
-
-        if (agendError) {
-          console.error('Erro ao buscar agendamentos:', agendError);
-        }
-
         const stats = {
           total_visitas: totalVisitas || 0,
           visitas_ativas: visitasAtivas || 0,
           visitas_hoje: visitasHoje || 0,
-          tempo_medio_minutos: tempoMedio,
-          agendamentos_confirmados: agendamentos || 0
+          tempo_medio_minutos: tempoMedio
         };
 
         console.log('Stats do corretor calculadas:', stats);
@@ -138,8 +123,7 @@ export function useCorretorStats() {
           total_visitas: 0,
           visitas_ativas: 0,
           visitas_hoje: 0,
-          tempo_medio_minutos: null,
-          agendamentos_confirmados: 0
+          tempo_medio_minutos: null
         };
       }
     },
