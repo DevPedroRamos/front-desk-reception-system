@@ -7,18 +7,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useCpfValidation } from '@/hooks/useCpfValidation';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [cpfValid, setCpfValid] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { validateCpf, formatCpf, isValidating } = useCpfValidation();
+
+  const handleCpfChange = async (value: string) => {
+    const formattedCpf = formatCpf(value);
+    setCpf(formattedCpf);
+    
+    // Se tem 14 caracteres (XXX.XXX.XXX-XX), validar
+    if (formattedCpf.length === 14) {
+      const result = await validateCpf(formattedCpf);
+      setCpfValid(result.isValid);
+    } else {
+      setCpfValid(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isLogin && cpfValid !== true) {
+      toast({
+        title: "Erro",
+        description: "Por favor, insira um CPF válido cadastrado no sistema.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -26,7 +54,7 @@ export default function Auth() {
       if (isLogin) {
         result = await signIn(email, password);
       } else {
-        result = await signUp(email, password);
+        result = await signUp(email, password, cpf);
       }
 
       if (result.error) {
@@ -82,6 +110,52 @@ export default function Auth() {
                 required
               />
             </div>
+            
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="cpf">CPF</Label>
+                <div className="relative">
+                  <Input
+                    id="cpf"
+                    type="text"
+                    placeholder="000.000.000-00"
+                    value={cpf}
+                    onChange={(e) => handleCpfChange(e.target.value)}
+                    maxLength={14}
+                    required
+                    className={
+                      cpf.length === 14 
+                        ? cpfValid === true 
+                          ? 'border-green-500 pr-10' 
+                          : cpfValid === false 
+                          ? 'border-red-500 pr-10' 
+                          : 'pr-10'
+                        : ''
+                    }
+                  />
+                  {cpf.length === 14 && !isValidating && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      {cpfValid === true ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-red-500" />
+                      )}
+                    </div>
+                  )}
+                </div>
+                {cpf.length === 14 && cpfValid === false && (
+                  <p className="text-sm text-red-600">
+                    CPF não encontrado no sistema. Entre em contato com o administrador.
+                  </p>
+                )}
+                {cpf.length === 14 && cpfValid === true && (
+                  <p className="text-sm text-green-600">
+                    CPF válido e autorizado para cadastro.
+                  </p>
+                )}
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
               <Input
@@ -93,17 +167,27 @@ export default function Auth() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading || (!isLogin && cpfValid !== true)}
+            >
               {loading ? 'Processando...' : (isLogin ? 'Entrar' : 'Cadastrar')}
             </Button>
           </form>
+          
           <div className="mt-4 text-center">
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setCpf('');
+                setCpfValid(null);
+              }}
               className="text-sm text-blue-600 hover:underline"
             >
-              /* {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre'} */
+              {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre'}
             </button>
           </div>
         </CardContent>

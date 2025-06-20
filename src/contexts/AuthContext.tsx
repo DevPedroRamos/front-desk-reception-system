@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, cpf?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, cpf: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
@@ -39,7 +39,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, cpf: string = '00000000000') => {
+  const signUp = async (email: string, password: string, cpf: string) => {
+    // Primeiro, validar se o CPF existe na tabela users
+    const cleanCpf = cpf.replace(/[.-]/g, '');
+    
+    const { data: userData, error: cpfError } = await supabase
+      .from('users')
+      .select('id, name, role')
+      .eq('cpf', cleanCpf)
+      .single();
+
+    if (cpfError || !userData) {
+      return { 
+        error: { 
+          message: 'CPF não encontrado no sistema. Entre em contato com o administrador.' 
+        } 
+      };
+    }
+
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -48,10 +65,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          cpf: cpf
+          cpf: cleanCpf,
+          name: userData.name,
+          role: userData.role
         }
       }
     });
+    
     return { error };
   };
 

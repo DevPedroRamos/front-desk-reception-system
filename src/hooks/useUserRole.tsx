@@ -35,7 +35,11 @@ export function useUserRole() {
           console.error('Erro ao buscar perfil do usuário:', error);
           setUserProfile(null);
         } else {
-          setUserProfile(data);
+          setUserProfile({
+            role: data.role as UserRole,
+            name: data.name,
+            cpf: data.cpf
+          });
         }
       } catch (error) {
         console.error('Erro ao buscar perfil:', error);
