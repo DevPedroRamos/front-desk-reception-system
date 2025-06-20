@@ -1,3 +1,4 @@
+
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,16 +9,16 @@ import { useEffect } from "react";
 import { VisitCard } from "@/components/VisitCard";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { LinkGenerator } from "@/components/corretor/LinkGenerator";
 import { CriarLinkDialog } from "@/components/corretor/CriarLinkDialog";
+import { GerenciarLinks } from "@/components/corretor/GerenciarLinks";
 
 const Corretor = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Buscar agendamentos confirmados do corretor
-  const { data: agendamentosConfirmados = [], isLoading: agendamentosConfirmadosLoading, refetch: refetchAgendamentosConfirmados } = useQuery({
-    queryKey: ['agendamentos-confirmados-corretor', user?.id],
+  // Buscar agendamentos do corretor (incluindo os criados via link)
+  const { data: agendamentos = [], isLoading: agendamentosLoading, refetch: refetchAgendamentos } = useQuery({
+    queryKey: ['agendamentos-corretor', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
@@ -26,12 +27,12 @@ const Corretor = () => {
         .select('*')
         .eq('corretor_id', user.id)
         .eq('status', 'confirmado')
-        .gte('data', new Date().toISOString().split('T')[0]) // Apenas agendamentos futuros
+        .gte('data', new Date().toISOString().split('T')[0])
         .order('data', { ascending: true })
         .order('hora', { ascending: true });
       
       if (error) {
-        console.error('Erro ao buscar agendamentos confirmados:', error);
+        console.error('Erro ao buscar agendamentos:', error);
         return [];
       }
       
@@ -40,8 +41,8 @@ const Corretor = () => {
     enabled: !!user?.id
   });
 
-  // Buscar agendamentos do dia
-  const { data: agendamentos = [], isLoading: agendamentosLoading, refetch: refetchAgendamentos } = useQuery({
+  // Buscar agendamentos de hoje
+  const { data: agendamentosHoje = [], isLoading: agendamentosHojeLoading, refetch: refetchAgendamentosHoje } = useQuery({
     queryKey: ['agendamentos-hoje'],
     queryFn: async () => {
       const hoje = new Date().toISOString().split('T')[0];
@@ -53,7 +54,7 @@ const Corretor = () => {
         .order('hora', { ascending: true });
       
       if (error) {
-        console.error('Erro ao buscar agendamentos:', error);
+        console.error('Erro ao buscar agendamentos de hoje:', error);
         return [];
       }
       
@@ -93,7 +94,7 @@ const Corretor = () => {
         },
         () => {
           refetchAgendamentos();
-          refetchAgendamentosConfirmados();
+          refetchAgendamentosHoje();
         }
       )
       .on(
@@ -112,7 +113,7 @@ const Corretor = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refetchAgendamentos, refetchVisitas, refetchAgendamentosConfirmados]);
+  }, [refetchAgendamentos, refetchVisitas, refetchAgendamentosHoje]);
 
   // Função para finalizar visita
   const handleFinalizarVisita = async (visitId: string) => {
@@ -145,7 +146,7 @@ const Corretor = () => {
     }
   };
 
-  if (agendamentosLoading || visitasLoading || agendamentosConfirmadosLoading) {
+  if (agendamentosLoading || visitasLoading || agendamentosHojeLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -169,45 +170,58 @@ const Corretor = () => {
           </div>
         </div>
 
-        {/* Links de Confirmação */}
+        {/* Links de Agendamento */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Link className="h-5 w-5" />
-                Links de Confirmação
+                Links de Agendamento
               </CardTitle>
-              <CriarLinkDialog onLinkCreated={() => refetchAgendamentosConfirmados()} />
+              <CriarLinkDialog onLinkCreated={() => {}} />
             </div>
           </CardHeader>
           <CardContent>
             <p className="text-slate-600 mb-4">
-              Gere links de confirmação para seus agendamentos confirmados:
+              Crie links personalizados para que seus clientes possam agendar visitas diretamente:
             </p>
-            {agendamentosConfirmados.length === 0 ? (
+            <GerenciarLinks />
+          </CardContent>
+        </Card>
+
+        {/* Meus Agendamentos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Meus Agendamentos Confirmados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {agendamentos.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-slate-500">Nenhum agendamento confirmado encontrado.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {agendamentosConfirmados.map((agendamento) => (
+                {agendamentos.map((agendamento) => (
                   <div key={agendamento.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{agendamento.cliente_nome}</span>
                         <Badge variant="outline">{agendamento.data} - {agendamento.hora}</Badge>
+                        {agendamento.origem === 'link_agendamento' && (
+                          <Badge variant="secondary">Via Link</Badge>
+                        )}
                       </div>
                       <div className="text-sm text-slate-600">
                         <span>CPF: {agendamento.cliente_cpf}</span>
+                        <span className="ml-4">WhatsApp: {agendamento.whatsapp}</span>
                         {agendamento.empreendimento && (
                           <span className="ml-4">Empreendimento: {agendamento.empreendimento}</span>
                         )}
                       </div>
                     </div>
-                    <LinkGenerator 
-                      agendamentoId={agendamento.id}
-                      onTokenGenerated={() => refetchAgendamentosConfirmados()}
-                    />
                   </div>
                 ))}
               </div>
@@ -225,13 +239,13 @@ const Corretor = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {agendamentos.length === 0 ? (
+              {agendamentosHoje.length === 0 ? (
                 <p className="text-slate-500 text-center py-8">
                   Nenhum agendamento para hoje.
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {agendamentos.map((agendamento) => (
+                  {agendamentosHoje.map((agendamento) => (
                     <div key={agendamento.id} className="p-4 border border-slate-200 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-semibold text-slate-900">{agendamento.cliente_nome}</h3>
@@ -242,6 +256,9 @@ const Corretor = () => {
                         <p><strong>WhatsApp:</strong> {agendamento.whatsapp}</p>
                         {agendamento.empreendimento && (
                           <p><strong>Interesse:</strong> {agendamento.empreendimento}</p>
+                        )}
+                        {agendamento.origem === 'link_agendamento' && (
+                          <Badge variant="secondary" className="text-xs">Agendado via Link</Badge>
                         )}
                       </div>
                     </div>

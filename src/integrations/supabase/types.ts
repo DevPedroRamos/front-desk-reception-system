@@ -54,6 +54,8 @@ export type Database = {
           empreendimento: string
           hora: string
           id: string
+          link_token: string | null
+          origem: string | null
           status: string | null
           whatsapp: string
         }
@@ -66,6 +68,8 @@ export type Database = {
           empreendimento: string
           hora: string
           id?: string
+          link_token?: string | null
+          origem?: string | null
           status?: string | null
           whatsapp: string
         }
@@ -78,6 +82,8 @@ export type Database = {
           empreendimento?: string
           hora?: string
           id?: string
+          link_token?: string | null
+          origem?: string | null
           status?: string | null
           whatsapp?: string
         }
@@ -90,6 +96,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      corretor_links: {
+        Row: {
+          ativo: boolean
+          corretor_id: string
+          created_at: string
+          id: string
+          titulo: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          corretor_id: string
+          created_at?: string
+          id?: string
+          titulo?: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          corretor_id?: string
+          created_at?: string
+          id?: string
+          titulo?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       empreendimentos: {
         Row: {
@@ -272,6 +308,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      buscar_agendamentos_corretor: {
+        Args: { corretor_uuid: string }
+        Returns: {
+          id: string
+          cliente_nome: string
+          cliente_cpf: string
+          cliente_whatsapp: string
+          data: string
+          hora: string
+          empreendimento: string
+          status: string
+        }[]
+      }
       buscar_cliente_por_cpf: {
         Args: { p_cpf: string }
         Returns: {
@@ -293,6 +342,10 @@ export type Database = {
       finalizar_visita: {
         Args: { visit_id: string }
         Returns: undefined
+      }
+      gerar_link_corretor: {
+        Args: { corretor_uuid: string; link_titulo?: string }
+        Returns: string
       }
       gerar_token_agendamento: {
         Args: { agendamento_uuid: string }

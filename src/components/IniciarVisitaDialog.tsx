@@ -5,9 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Calendar, Clock, User } from "lucide-react";
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface ClienteListaEspera {
   id: string;
@@ -18,6 +22,17 @@ interface ClienteListaEspera {
   corretor_id: string | null;
   empreendimento: string | null;
   loja: string;
+}
+
+interface AgendamentoCliente {
+  id: string;
+  cliente_nome: string;
+  cliente_cpf: string;
+  whatsapp: string;
+  data: string;
+  hora: string;
+  empreendimento: string;
+  status: string;
 }
 
 interface IniciarVisitaDialogProps {
@@ -33,11 +48,13 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
     andar: "",
     mesa: "",
   });
+  const [clienteSelecionado, setClienteSelecionado] = useState<AgendamentoCliente | null>(null);
+  const [tipoAtendimento, setTipoAtendimento] = useState<"lista" | "agendado">("lista");
 
-  // Configuração das lojas - ajustada para corresponder ao constraint do banco
+  // Configuração das lojas
   const lojasConfig = {
     "Loja 1": { mesas: 22, temAndar: false },
-    "Loja 2": { mesas: 20, temAndar: true }, // Reduzindo para 20 para cada andar
+    "Loja 2": { mesas: 20, temAndar: true },
     "Loja 3": { mesas: 10, temAndar: false },
     "Loja Superior 37 andar": { mesas: 20, temAndar: false }
   };
@@ -60,28 +77,26 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
     }
   });
 
-  // Buscar corretor pela ID para obter o apelido
-  const { data: corretorData } = useQuery({
-    queryKey: ['corretor', cliente.corretor_id],
+  // Buscar agendamentos do corretor se houver corretor selecionado
+  const { data: agendamentosCorretor = [] } = useQuery({
+    queryKey: ['agendamentos-corretor-dialog', cliente.corretor_id],
     queryFn: async () => {
       if (!cliente.corretor_id || cliente.corretor_id === '00000000-0000-0000-0000-000000000000') {
-        return null;
+        return [];
       }
       
-      const { data, error } = await supabase
-        .from('users')
-        .select('apelido')
-        .eq('id', cliente.corretor_id)
-        .single();
+      const { data, error } = await supabase.rpc('buscar_agendamentos_corretor', {
+        corretor_uuid: cliente.corretor_id
+      });
       
       if (error) {
-        console.error('Erro ao buscar corretor:', error);
-        return null;
+        console.error('Erro ao buscar agendamentos do corretor:', error);
+        return [];
       }
       
-      return data;
+      return data || [];
     },
-    enabled: !!cliente.corretor_id && cliente.corretor_id !== '00000000-0000-0000-0000-000000000000'
+    enabled: !!cliente.corretor_id && cliente.corretor_id !== '00000000-0000-0000-0000-000000000000' && open
   });
 
   // Calcular mesas ocupadas
@@ -97,27 +112,42 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
     }
   }, [cliente.loja]);
 
+  // Reset ao abrir dialog
+  useEffect(() => {
+    if (open) {
+      setClienteSelecionado(null);
+      setTipoAtendimento("lista");
+      setFormData({ andar: "", mesa: "" });
+    }
+  }, [open]);
+
   // Mutation para iniciar visita
   const iniciarVisitaMutation = useMutation({
     mutationFn: async (visitaData: typeof formData) => {
       const mesaNum = parseInt(visitaData.mesa);
       const maxMesas = getMaxMesas();
       
-      console.log('Validando mesa:', { mesaNum, maxMesas, loja: cliente.loja, andar: visitaData.andar });
-      
       if (mesaNum < 1 || mesaNum > maxMesas) {
         throw new Error(`Mesa deve estar entre 1 e ${maxMesas} para ${cliente.loja}`);
       }
 
+      // Dados do cliente a serem usados (da lista de espera ou do agendamento)
+      const dadosCliente = clienteSelecionado || {
+        cliente_nome: cliente.cliente_nome,
+        cliente_cpf: cliente.cliente_cpf,
+        cliente_whatsapp: cliente.cliente_whatsapp,
+        empreendimento: cliente.empreendimento
+      };
+
       const { data, error } = await supabase
         .from('visits')
         .insert({
-          cliente_nome: cliente.cliente_nome,
-          cliente_cpf: cliente.cliente_cpf,
-          cliente_whatsapp: cliente.cliente_whatsapp,
+          cliente_nome: dadosCliente.cliente_nome || cliente.cliente_nome,
+          cliente_cpf: dadosCliente.cliente_cpf || cliente.cliente_cpf,
+          cliente_whatsapp: dadosCliente.whatsapp || dadosCliente.cliente_whatsapp || cliente.cliente_whatsapp,
           corretor_nome: cliente.corretor_nome || '',
           corretor_id: cliente.corretor_id || '00000000-0000-0000-0000-000000000000',
-          empreendimento: cliente.empreendimento,
+          empreendimento: dadosCliente.empreendimento || cliente.empreendimento,
           loja: cliente.loja,
           andar: visitaData.andar || 'N/A',
           mesa: mesaNum,
@@ -214,29 +244,82 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Iniciar Visita</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 mb-6">
-          <div className="bg-slate-50 p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">{cliente.cliente_nome}</h3>
-            <div className="text-sm text-slate-600 space-y-1">
-              <p><strong>CPF:</strong> {cliente.cliente_cpf}</p>
-              {cliente.cliente_whatsapp && (
-                <p><strong>WhatsApp:</strong> {cliente.cliente_whatsapp}</p>
-              )}
-              {cliente.corretor_nome && (
-                <p><strong>Corretor:</strong> {cliente.corretor_nome}</p>
-              )}
-              <p><strong>Loja:</strong> {cliente.loja}</p>
-              {cliente.empreendimento && (
-                <p><strong>Empreendimento:</strong> {cliente.empreendimento}</p>
-              )}
+        <Tabs value={tipoAtendimento} onValueChange={(value) => setTipoAtendimento(value as "lista" | "agendado")}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="lista">Cliente da Lista</TabsTrigger>
+            <TabsTrigger value="agendado" disabled={agendamentosCorretor.length === 0}>
+              Cliente Agendado ({agendamentosCorretor.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="lista" className="space-y-4">
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <h3 className="font-semibold mb-2">{cliente.cliente_nome}</h3>
+              <div className="text-sm text-slate-600 space-y-1">
+                <p><strong>CPF:</strong> {cliente.cliente_cpf}</p>
+                {cliente.cliente_whatsapp && (
+                  <p><strong>WhatsApp:</strong> {cliente.cliente_whatsapp}</p>
+                )}
+                {cliente.corretor_nome && (
+                  <p><strong>Corretor:</strong> {cliente.corretor_nome}</p>
+                )}
+                <p><strong>Loja:</strong> {cliente.loja}</p>
+                {cliente.empreendimento && (
+                  <p><strong>Empreendimento:</strong> {cliente.empreendimento}</p>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
+          </TabsContent>
+          
+          <TabsContent value="agendado" className="space-y-4">
+            <div className="space-y-3">
+              <Label>Selecionar Cliente Agendado</Label>
+              {agendamentosCorretor.map((agendamento) => (
+                <div
+                  key={agendamento.id}
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                    clienteSelecionado?.id === agendamento.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setClienteSelecionado(agendamento)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <span className="font-medium">{agendamento.cliente_nome}</span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>{format(new Date(agendamento.data), "dd/MM/yyyy", { locale: ptBR })}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>{agendamento.hora}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        CPF: {agendamento.cliente_cpf} | WhatsApp: {agendamento.whatsapp}
+                      </p>
+                      {agendamento.empreendimento && (
+                        <p className="text-xs text-gray-500">
+                          Interesse: {agendamento.empreendimento}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           {cliente.loja === "Loja 2" && (
@@ -275,7 +358,7 @@ export function IniciarVisitaDialog({ open, onOpenChange, cliente, onVisitaInici
             <Button 
               type="submit" 
               className="flex-1 bg-green-600 hover:bg-green-700"
-              disabled={iniciarVisitaMutation.isPending}
+              disabled={iniciarVisitaMutation.isPending || (tipoAtendimento === "agendado" && !clienteSelecionado)}
             >
               {iniciarVisitaMutation.isPending ? "Iniciando..." : "Iniciar Visita"}
             </Button>

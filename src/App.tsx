@@ -1,133 +1,51 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import Index from "./pages/Index";
-import Recepcao from "./pages/recepcao";
-import Podio from "./pages/Podio";
-import Cliente from "./pages/cliente";
-import Auth from "./pages/auth";
-import ListaEspera from "./pages/ListaEspera";
-import NotFound from "./pages/NotFound";
-import DashboardCorretor from "./pages/corretor";
-import AgendamentosCorretor from "./pages/corretor/agendamentos";
-import VisitasCorretor from "./pages/corretor/visitas";
-import PerfilCorretor from "./pages/corretor/perfil";
-import ConfirmarAgendamento from "./pages/confirmar-agendamento/[token]";
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { Auth } from '@/pages/auth';
+import { Cliente } from '@/pages/cliente';
+import { Index } from '@/pages/index';
+import { ListaEspera } from '@/pages/lista-espera';
+import { Podio } from '@/pages/podio';
+import { Recepcao } from '@/pages/recepcao';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { SidebarProvider } from '@/contexts/SidebarContext';
+import { Toaster } from '@/components/ui/toaster';
+import { QueryClient } from '@tanstack/react-query';
+import Corretor from '@/pages/corretor';
+import PerfilCorretor from '@/pages/corretor/perfil';
+import AgendamentosCorretor from '@/pages/corretor/agendamentos';
+import VisitasCorretor from '@/pages/corretor/visitas';
+import ConfirmarAgendamento from '@/pages/confirmar-agendamento/[token]';
+import AgendarPage from '@/pages/agendar/[token]';
+import NotFound from '@/pages/not-found';
 
-const queryClient = new QueryClient();
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-  
-  return <>{children}</>;
+function App() {
+  return (
+    <QueryClient>
+      <BrowserRouter>
+        <AuthProvider>
+          <div className="min-h-screen bg-background font-sans antialiased">
+            <SidebarProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/cliente" element={<Cliente />} />
+                <Route path="/recepcao" element={<Recepcao />} />
+                <Route path="/lista-espera" element={<ListaEspera />} />
+                <Route path="/podio" element={<Podio />} />
+                <Route path="/corretor" element={<Corretor />} />
+                <Route path="/corretor/perfil" element={<PerfilCorretor />} />
+                <Route path="/corretor/agendamentos" element={<AgendamentosCorretor />} />
+                <Route path="/corretor/visitas" element={<VisitasCorretor />} />
+                <Route path="/confirmar-agendamento/:token" element={<ConfirmarAgendamento />} />
+                <Route path="/agendar/:token" element={<AgendarPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </SidebarProvider>
+            <Toaster />
+          </div>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClient>
+  );
 }
-
-function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
-  
-  return <>{children}</>;
-}
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={
-              <PublicRoute>
-                <Auth />
-              </PublicRoute>
-            } />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            } />
-            <Route path="/recepcao" element={
-              <ProtectedRoute>
-                <Recepcao />
-              </ProtectedRoute>
-            } />
-            <Route path="/lista-espera" element={
-              <ProtectedRoute>
-                <ListaEspera />
-              </ProtectedRoute>
-            } />
-            <Route path="/podio" element={
-              <ProtectedRoute>
-                <Podio />
-              </ProtectedRoute>
-            } />
-            <Route path="/cliente" element={
-              <ProtectedRoute>
-                <Cliente />
-              </ProtectedRoute>
-            } />
-            {/* Rotas do Corretor */}
-            <Route path="/corretor" element={
-              <ProtectedRoute>
-                <DashboardCorretor />
-              </ProtectedRoute>
-            } />
-            <Route path="/corretor/agendamentos" element={
-              <ProtectedRoute>
-                <AgendamentosCorretor />
-              </ProtectedRoute>
-            } />
-            <Route path="/corretor/visitas" element={
-              <ProtectedRoute>
-                <VisitasCorretor />
-              </ProtectedRoute>
-            } />
-            <Route path="/corretor/perfil" element={
-              <ProtectedRoute>
-                <PerfilCorretor />
-              </ProtectedRoute>
-            } />
-            {/* Rota pública para confirmação de agendamento */}
-            <Route path="/confirmar-agendamento/:token" element={<ConfirmarAgendamento />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
 
 export default App;
