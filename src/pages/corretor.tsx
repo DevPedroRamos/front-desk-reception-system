@@ -1,9 +1,7 @@
-
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, Clock, Building2, Link, Plus } from "lucide-react";
+import { UserCheck, Clock, Building2, Link } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -11,6 +9,7 @@ import { VisitCard } from "@/components/VisitCard";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { LinkGenerator } from "@/components/corretor/LinkGenerator";
+import { CriarLinkDialog } from "@/components/corretor/CriarLinkDialog";
 
 const Corretor = () => {
   const { toast } = useToast();
@@ -178,10 +177,7 @@ const Corretor = () => {
                 <Link className="h-5 w-5" />
                 Links de Confirmação
               </CardTitle>
-              <Button variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Criar Link de Confirmação
-              </Button>
+              <CriarLinkDialog onLinkCreated={() => refetchAgendamentosConfirmados()} />
             </div>
           </CardHeader>
           <CardContent>
