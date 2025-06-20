@@ -1,5 +1,5 @@
 
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Auth from '@/pages/auth';
 import Cliente from '@/pages/cliente';
@@ -7,7 +7,7 @@ import Index from '@/pages/Index';
 import ListaEspera from '@/pages/ListaEspera';
 import Podio from '@/pages/Podio';
 import Recepcao from '@/pages/recepcao';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import Corretor from '@/pages/corretor';
 import PerfilCorretor from '@/pages/corretor/perfil';
@@ -18,6 +18,40 @@ import AgendarPage from '@/pages/agendar/[token]';
 
 const queryClient = new QueryClient();
 
+function ProtectedRoutes() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/cliente" element={<Cliente />} />
+      <Route path="/recepcao" element={<Recepcao />} />
+      <Route path="/lista-espera" element={<ListaEspera />} />
+      <Route path="/podio" element={<Podio />} />
+      <Route path="/corretor" element={<Corretor />} />
+      <Route path="/corretor/perfil" element={<PerfilCorretor />} />
+      <Route path="/corretor/agendamentos" element={<AgendamentosCorretor />} />
+      <Route path="/corretor/visitas" element={<VisitasCorretor />} />
+      <Route path="*" element={<div>404 - Página não encontrada</div>} />
+    </Routes>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -25,19 +59,10 @@ function App() {
         <AuthProvider>
           <div className="min-h-screen bg-background font-sans antialiased">
             <Routes>
-              <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/cliente" element={<Cliente />} />
-              <Route path="/recepcao" element={<Recepcao />} />
-              <Route path="/lista-espera" element={<ListaEspera />} />
-              <Route path="/podio" element={<Podio />} />
-              <Route path="/corretor" element={<Corretor />} />
-              <Route path="/corretor/perfil" element={<PerfilCorretor />} />
-              <Route path="/corretor/agendamentos" element={<AgendamentosCorretor />} />
-              <Route path="/corretor/visitas" element={<VisitasCorretor />} />
               <Route path="/confirmar-agendamento/:token" element={<ConfirmarAgendamento />} />
               <Route path="/agendar/:token" element={<AgendarPage />} />
-              <Route path="*" element={<div>404 - Página não encontrada</div>} />
+              <Route path="/*" element={<ProtectedRoutes />} />
             </Routes>
             <Toaster />
           </div>

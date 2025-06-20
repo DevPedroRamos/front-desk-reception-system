@@ -1,63 +1,42 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { Plus, Search } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { AutoSuggest } from '@/components/AutoSuggest';
 
-interface AgendamentoCliente {
-  id: string;
-  cliente_nome: string;
-  cliente_cpf: string;
-  whatsapp: string;
-  data: string;
-  hora: string;
-  empreendimento: string;
-  status: string;
+interface IniciarVisitaDialogProps {
+  onVisitaIniciada: () => void;
 }
 
-export function IniciarVisitaDialog({ onVisitaIniciada }: { onVisitaIniciada: () => void }) {
+export function IniciarVisitaDialog({ onVisitaIniciada }: IniciarVisitaDialogProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
-    cliente_nome: '',
-    cliente_cpf: '',
-    cliente_whatsapp: '',
-    loja: '',
-    mesa: '',
-    andar: '',
-    empreendimento: '',
-    corretor_id: '',
-    corretor_nome: ''
+    cliente_nome: "",
+    cliente_cpf: "",
+    cliente_whatsapp: "",
+    corretor_nome: "",
+    empreendimento: "",
+    loja: "",
+    andar: "",
+    mesa: "",
   });
-  const [clienteSelecionado, setClienteSelecionado] = useState<AgendamentoCliente | null>(null);
 
-  // Buscar agendamentos confirmados
-  const { data: agendamentos = [] } = useQuery({
-    queryKey: ['agendamentos-confirmados'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('agendamentos')
-        .select('*')
-        .eq('status', 'confirmado')
-        .eq('data', new Date().toISOString().split('T')[0]);
-      
-      if (error) {
-        console.error('Erro ao buscar agendamentos:', error);
-        return [];
-      }
-      
-      return data || [];
-    }
-  });
+  // Configuração das lojas
+  const lojasConfig = {
+    "Loja 1": { mesas: 22, temAndar: false },
+    "Loja 2": { mesas: 29, temAndar: true },
+    "Loja 3": { mesas: 10, temAndar: false },
+    "Loja Superior 37 andar": { mesas: 29, temAndar: false }
+  };
 
   // Buscar corretores
   const { data: corretores = [] } = useQuery({
@@ -65,12 +44,53 @@ export function IniciarVisitaDialog({ onVisitaIniciada }: { onVisitaIniciada: ()
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
-        .eq('role', 'corretor')
-        .order('name');
+        .select('id, name, apelido')
+        .eq('role', 'corretor');
       
       if (error) {
         console.error('Erro ao buscar corretores:', error);
+        return [];
+      }
+      
+      return data?.map(corretor => ({
+        id: corretor.id,
+        name: `${corretor.name} (${corretor.apelido})`
+      })) || [];
+    }
+  });
+
+  // Buscar empreendimentos
+  const { data: empreendimentos = [] } = useQuery({
+    queryKey: ['empreendimentos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('empreendimentos')
+        .select('id, nome')
+        .order('nome');
+      
+      if (error) {
+        console.error('Erro ao buscar empreendimentos:', error);
+        return [];
+      }
+      
+      return data?.map(emp => ({
+        id: emp.id,
+        name: emp.nome
+      })) || [];
+    }
+  });
+
+  // Buscar visitas ativas para verificar mesas ocupadas
+  const { data: visitasAtivas = [] } = useQuery({
+    queryKey: ['visitas-ativas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('visits')
+        .select('mesa, loja, andar')
+        .eq('status', 'ativo');
+      
+      if (error) {
+        console.error('Erro ao buscar visitas ativas:', error);
         return [];
       }
       
@@ -78,84 +98,91 @@ export function IniciarVisitaDialog({ onVisitaIniciada }: { onVisitaIniciada: ()
     }
   });
 
-  // Verificar disponibilidade da mesa
-  const verificarMesaMutation = useMutation({
-    mutationFn: async ({ loja, andar, mesa }: { loja: string; andar: string; mesa: number }) => {
-      const { data, error } = await supabase.rpc('check_mesa_disponivel', {
-        p_loja: loja,
-        p_andar: andar,
-        p_mesa: mesa
-      });
-
-      if (error) {
-        throw error;
+  // Mutation para criar nova visita
+  const createVisitMutation = useMutation({
+    mutationFn: async (visitData: typeof formData) => {
+      // Buscar ID do corretor se foi informado
+      let corretor_id = null;
+      if (visitData.corretor_nome) {
+        const { data: corretorData } = await supabase
+          .from('users')
+          .select('id')
+          .or(`name.ilike.%${visitData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${visitData.corretor_nome}%`)
+          .limit(1)
+          .single();
+        
+        corretor_id = corretorData?.id || null;
       }
 
-      return data;
-    }
-  });
+      // Usar CPF padrão se não foi preenchido
+      const cpfFinal = visitData.cliente_cpf.trim() || "00000000000";
 
-  const iniciarVisitaMutation = useMutation({
-    mutationFn: async (dadosVisita: typeof formData) => {
       const { data, error } = await supabase
         .from('visits')
         .insert({
-          cliente_nome: dadosVisita.cliente_nome,
-          cliente_cpf: dadosVisita.cliente_cpf,
-          cliente_whatsapp: dadosVisita.cliente_whatsapp,
-          loja: dadosVisita.loja,
-          mesa: parseInt(dadosVisita.mesa),
-          andar: dadosVisita.andar,
-          empreendimento: dadosVisita.empreendimento,
-          corretor_id: dadosVisita.corretor_id,
-          corretor_nome: dadosVisita.corretor_nome,
+          cliente_nome: visitData.cliente_nome,
+          cliente_cpf: cpfFinal,
+          cliente_whatsapp: visitData.cliente_whatsapp || null,
+          corretor_nome: visitData.corretor_nome || '',
+          corretor_id: corretor_id || '00000000-0000-0000-0000-000000000000',
+          empreendimento: visitData.empreendimento || null,
+          loja: visitData.loja,
+          andar: visitData.andar || 'N/A',
+          mesa: parseInt(visitData.mesa),
           status: 'ativo'
         })
         .select()
         .single();
 
       if (error) {
+        console.error('Erro ao criar visita:', error);
         throw error;
       }
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Visita iniciada!",
-        description: "A visita foi iniciada com sucesso.",
+        description: `Cliente ${data.cliente_nome} foi registrado na mesa ${data.mesa}.`,
       });
-      
+
+      // Limpar formulário
       setFormData({
-        cliente_nome: '',
-        cliente_cpf: '',
-        cliente_whatsapp: '',
-        loja: '',
-        mesa: '',
-        andar: '',
-        empreendimento: '',
-        corretor_id: '',
-        corretor_nome: ''
+        cliente_nome: "",
+        cliente_cpf: "",
+        cliente_whatsapp: "",
+        corretor_nome: "",
+        empreendimento: "",
+        loja: "",
+        andar: "",
+        mesa: "",
       });
-      setClienteSelecionado(null);
+
       setIsOpen(false);
       onVisitaIniciada();
+      queryClient.invalidateQueries({ queryKey: ['visitas-ativas'] });
     },
     onError: (error) => {
       console.error('Erro ao iniciar visita:', error);
       toast({
         title: "Erro ao iniciar visita",
-        description: "Não foi possível iniciar a visita. Tente novamente.",
+        description: "Ocorreu um erro ao salvar os dados. Tente novamente.",
         variant: "destructive",
       });
     }
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Calcular mesas ocupadas
+  const mesasOcupadas = visitasAtivas
+    .filter(visita => visita.loja === formData.loja && 
+      (formData.andar === '' || visita.andar === formData.andar || formData.andar === 'N/A'))
+    .map(visita => visita.mesa);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.cliente_nome || !formData.cliente_cpf || !formData.loja || 
-        !formData.mesa || !formData.andar || !formData.corretor_id) {
+    if (!formData.cliente_nome || !formData.mesa || !formData.loja) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -164,241 +191,182 @@ export function IniciarVisitaDialog({ onVisitaIniciada }: { onVisitaIniciada: ()
       return;
     }
 
-    // Verificar se a mesa está disponível
-    try {
-      const mesaDisponivel = await verificarMesaMutation.mutateAsync({
-        loja: formData.loja,
-        andar: formData.andar,
-        mesa: parseInt(formData.mesa)
-      });
-
-      if (!mesaDisponivel) {
-        toast({
-          title: "Mesa ocupada",
-          description: "Esta mesa já está ocupada. Escolha outra mesa.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      iniciarVisitaMutation.mutate(formData);
-    } catch (error) {
-      console.error('Erro ao verificar mesa:', error);
+    if (formData.loja === "Loja 2" && !formData.andar) {
       toast({
-        title: "Erro ao verificar mesa",
-        description: "Não foi possível verificar a disponibilidade da mesa.",
+        title: "Andar obrigatório",
+        description: "Para Loja 2, é necessário selecionar o andar.",
         variant: "destructive",
       });
+      return;
     }
+
+    if (mesasOcupadas.includes(parseInt(formData.mesa))) {
+      toast({
+        title: "Mesa ocupada",
+        description: "Esta mesa já está sendo utilizada. Escolha outra mesa.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createVisitMutation.mutate(formData);
   };
 
-  const selecionarAgendamento = (agendamento: any) => {
-    const agendamentoFormatado: AgendamentoCliente = {
-      id: agendamento.id,
-      cliente_nome: agendamento.cliente_nome,
-      cliente_cpf: agendamento.cliente_cpf,
-      whatsapp: agendamento.whatsapp, // Corrigido: usar whatsapp em vez de cliente_whatsapp
-      data: agendamento.data,
-      hora: agendamento.hora,
-      empreendimento: agendamento.empreendimento,
-      status: agendamento.status
-    };
-    
-    setClienteSelecionado(agendamentoFormatado);
-    setFormData(prev => ({
-      ...prev,
-      cliente_nome: agendamento.cliente_nome,
-      cliente_cpf: agendamento.cliente_cpf,
-      cliente_whatsapp: agendamento.whatsapp, // Corrigido: usar whatsapp
-      empreendimento: agendamento.empreendimento || '',
-      corretor_id: agendamento.corretor_id || ''
-    }));
-
-    // Buscar nome do corretor
-    const corretor = corretores.find(c => c.id === agendamento.corretor_id);
-    if (corretor) {
-      setFormData(prev => ({
-        ...prev,
-        corretor_nome: corretor.name
-      }));
-    }
+  const renderMesaOption = (mesa: number) => {
+    const isOcupada = mesasOcupadas.includes(mesa);
+    return (
+      <SelectItem 
+        key={mesa} 
+        value={mesa.toString()} 
+        disabled={isOcupada}
+        className={isOcupada ? "opacity-50" : ""}
+      >
+        <div className="flex items-center gap-2">
+          <span>Mesa {mesa}</span>
+          {isOcupada && (
+            <Badge variant="secondary" className="text-xs">
+              Ocupada
+            </Badge>
+          )}
+        </div>
+      </SelectItem>
+    );
   };
 
-  const agendamentosFiltrados = agendamentos.filter(agendamento =>
-    agendamento.cliente_nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    agendamento.cliente_cpf.includes(searchTerm)
-  );
+  const getMaxMesas = () => {
+    if (!formData.loja) return 0;
+    return lojasConfig[formData.loja as keyof typeof lojasConfig]?.mesas || 0;
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Iniciar Visita
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Iniciar Nova Visita</DialogTitle>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Seleção de Cliente Agendado */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Clientes com Agendamento Hoje</h3>
-            
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por nome ou CPF..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+    <>
+      <Button onClick={() => setIsOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+        Iniciar Nova Visita
+      </Button>
 
-            {agendamentosFiltrados.length > 0 && (
-              <div className="max-h-40 overflow-y-auto border rounded-lg">
-                {agendamentosFiltrados.map((agendamento) => (
-                  <div
-                    key={agendamento.id}
-                    className={`p-3 border-b cursor-pointer hover:bg-gray-50 ${
-                      clienteSelecionado?.id === agendamento.id ? 'bg-blue-50 border-blue-200' : ''
-                    }`}
-                    onClick={() => selecionarAgendamento(agendamento)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">{agendamento.cliente_nome}</p>
-                        <p className="text-sm text-gray-600">CPF: {agendamento.cliente_cpf}</p>
-                        <p className="text-sm text-gray-600">WhatsApp: {agendamento.whatsapp}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">{agendamento.hora}</p>
-                        <p className="text-sm text-gray-600">{agendamento.empreendimento}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Iniciar Nova Visita</DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cliente_nome">Nome do Cliente *</Label>
+                <Input
+                  id="cliente_nome"
+                  placeholder="Digite o nome do cliente"
+                  value={formData.cliente_nome}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_nome: e.target.value }))}
+                  required
+                />
               </div>
-            )}
-          </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="cliente_cpf">CPF</Label>
+                <Input
+                  id="cliente_cpf"
+                  placeholder="000.000.000-00"
+                  value={formData.cliente_cpf}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_cpf: e.target.value }))}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="cliente_whatsapp">WhatsApp</Label>
+                <Input
+                  id="cliente_whatsapp"
+                  placeholder="(00) 00000-0000"
+                  value={formData.cliente_whatsapp}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_whatsapp: e.target.value }))}
+                />
+              </div>
 
-          {/* Formulário de Dados */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="cliente_nome">Nome do Cliente *</Label>
-              <Input
-                id="cliente_nome"
-                value={formData.cliente_nome}
-                onChange={(e) => setFormData(prev => ({ ...prev, cliente_nome: e.target.value }))}
-                required
+              <AutoSuggest
+                label="Corretor"
+                placeholder="Digite o nome do corretor"
+                options={corretores}
+                value={formData.corretor_nome}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, corretor_nome: value }))}
               />
-            </div>
-            
-            <div>
-              <Label htmlFor="cliente_cpf">CPF *</Label>
-              <Input
-                id="cliente_cpf"
-                value={formData.cliente_cpf}
-                onChange={(e) => setFormData(prev => ({ ...prev, cliente_cpf: e.target.value }))}
-                placeholder="000.000.000-00"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="cliente_whatsapp">WhatsApp</Label>
-              <Input
-                id="cliente_whatsapp"
-                value={formData.cliente_whatsapp}
-                onChange={(e) => setFormData(prev => ({ ...prev, cliente_whatsapp: e.target.value }))}
-                placeholder="(11) 99999-9999"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="empreendimento">Empreendimento</Label>
-              <Input
-                id="empreendimento"
+              
+              <AutoSuggest
+                label="Empreendimento de Interesse"
+                placeholder="Digite o nome do empreendimento"
+                options={empreendimentos}
                 value={formData.empreendimento}
-                onChange={(e) => setFormData(prev => ({ ...prev, empreendimento: e.target.value }))}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, empreendimento: value }))}
               />
+              
+              <div className="space-y-2">
+                <Label htmlFor="loja">Loja *</Label>
+                <Select onValueChange={(value) => setFormData(prev => ({ ...prev, loja: value, mesa: "" }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a loja" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(lojasConfig).map((loja) => (
+                      <SelectItem key={loja} value={loja}>
+                        {loja}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {formData.loja === "Loja 2" && (
+                <div className="space-y-2">
+                  <Label htmlFor="andar">Andar *</Label>
+                  <Select onValueChange={(value) => setFormData(prev => ({ ...prev, andar: value, mesa: "" }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o andar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Térreo">Térreo</SelectItem>
+                      <SelectItem value="Mezanino">Mezanino</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="mesa">Mesa *</Label>
+                <Select 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, mesa: value }))}
+                  disabled={!formData.loja || (formData.loja === "Loja 2" && !formData.andar)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a mesa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: getMaxMesas() }, (_, i) => i + 1).map((mesa) => 
+                      renderMesaOption(mesa)
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="loja">Loja *</Label>
-              <Select onValueChange={(value) => setFormData(prev => ({ ...prev, loja: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a loja" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Loja A">Loja A</SelectItem>
-                  <SelectItem value="Loja B">Loja B</SelectItem>
-                  <SelectItem value="Loja C">Loja C</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex gap-4 pt-6">
+              <Button 
+                type="submit" 
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                disabled={createVisitMutation.isPending}
+              >
+                {createVisitMutation.isPending ? "Iniciando..." : "Iniciar Visita"}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsOpen(false)}
+              >
+                Cancelar
+              </Button>
             </div>
-
-            <div>
-              <Label htmlFor="andar">Andar *</Label>
-              <Select onValueChange={(value) => setFormData(prev => ({ ...prev, andar: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o andar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Térreo">Térreo</SelectItem>
-                  <SelectItem value="1º Andar">1º Andar</SelectItem>
-                  <SelectItem value="2º Andar">2º Andar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="mesa">Mesa *</Label>
-              <Input
-                id="mesa"
-                type="number"
-                value={formData.mesa}
-                onChange={(e) => setFormData(prev => ({ ...prev, mesa: e.target.value }))}
-                placeholder="Número da mesa"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="corretor">Corretor *</Label>
-              <Select onValueChange={(value) => {
-                const corretor = corretores.find(c => c.id === value);
-                setFormData(prev => ({ 
-                  ...prev, 
-                  corretor_id: value,
-                  corretor_nome: corretor?.name || ''
-                }));
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o corretor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {corretores.map((corretor) => (
-                    <SelectItem key={corretor.id} value={corretor.id}>
-                      {corretor.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={iniciarVisitaMutation.isPending || verificarMesaMutation.isPending}
-          >
-            {iniciarVisitaMutation.isPending ? "Iniciando..." : "Iniciar Visita"}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

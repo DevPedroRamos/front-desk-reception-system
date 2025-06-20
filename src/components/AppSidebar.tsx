@@ -22,7 +22,12 @@ export function AppSidebar() {
   const { userProfile, loading } = useUserRole();
 
   const handleLogout = async () => {
-    await signOut();
+    console.log('Botão logout clicado');
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Erro no handleLogout:', error);
+    }
   };
 
   // Definir menu items baseado no role
@@ -168,7 +173,7 @@ export function AppSidebar() {
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+              className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors w-full"
             >
               <LogOut className="h-3 w-3" />
               Sair

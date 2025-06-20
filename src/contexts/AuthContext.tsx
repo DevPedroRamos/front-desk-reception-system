@@ -22,7 +22,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -84,7 +86,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    console.log('Iniciando logout...');
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Erro no logout:', error);
+        throw error;
+      }
+      
+      // Forçar limpeza do estado local
+      setUser(null);
+      setSession(null);
+      
+      console.log('Logout realizado com sucesso');
+      
+      // Redirecionar para página de login
+      window.location.href = '/auth';
+    } catch (error) {
+      console.error('Erro durante logout:', error);
+      // Mesmo com erro, limpar estado local e redirecionar
+      setUser(null);
+      setSession(null);
+      window.location.href = '/auth';
+    }
   };
 
   return (
