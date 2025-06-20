@@ -78,10 +78,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
+    
+    if (!error && data.user) {
+      // Buscar o papel do usuário para redirecionar corretamente
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+      
+      // Redirecionar baseado no papel do usuário
+      setTimeout(() => {
+        if (profileData?.role === 'corretor') {
+          window.location.href = '/corretor/visitas';
+        } else {
+          window.location.href = '/';
+        }
+      }, 100);
+    }
+    
     return { error };
   };
 
