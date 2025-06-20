@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +11,11 @@ import Cliente from "./pages/cliente";
 import Auth from "./pages/auth";
 import ListaEspera from "./pages/ListaEspera";
 import NotFound from "./pages/NotFound";
+import DashboardCorretor from "./pages/corretor";
+import AgendamentosCorretor from "./pages/corretor/agendamentos";
+import VisitasCorretor from "./pages/corretor/visitas";
+import PerfilCorretor from "./pages/corretor/perfil";
+import ConfirmarAgendamento from "./pages/confirmar-agendamento/[token]";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +99,29 @@ const App = () => (
                 <Cliente />
               </ProtectedRoute>
             } />
+            {/* Rotas do Corretor */}
+            <Route path="/corretor" element={
+              <ProtectedRoute>
+                <DashboardCorretor />
+              </ProtectedRoute>
+            } />
+            <Route path="/corretor/agendamentos" element={
+              <ProtectedRoute>
+                <AgendamentosCorretor />
+              </ProtectedRoute>
+            } />
+            <Route path="/corretor/visitas" element={
+              <ProtectedRoute>
+                <VisitasCorretor />
+              </ProtectedRoute>
+            } />
+            <Route path="/corretor/perfil" element={
+              <ProtectedRoute>
+                <PerfilCorretor />
+              </ProtectedRoute>
+            } />
+            {/* Rota pública para confirmação de agendamento */}
+            <Route path="/confirmar-agendamento/:token" element={<ConfirmarAgendamento />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agendamento_tokens: {
+        Row: {
+          agendamento_id: string | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          token: string
+          used: boolean | null
+        }
+        Insert: {
+          agendamento_id?: string | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          token: string
+          used?: boolean | null
+        }
+        Update: {
+          agendamento_id?: string | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          token?: string
+          used?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamento_tokens_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agendamentos: {
         Row: {
           cliente_cpf: string
@@ -19,6 +54,7 @@ export type Database = {
           empreendimento: string
           hora: string
           id: string
+          status: string | null
           whatsapp: string
         }
         Insert: {
@@ -30,6 +66,7 @@ export type Database = {
           empreendimento: string
           hora: string
           id?: string
+          status?: string | null
           whatsapp: string
         }
         Update: {
@@ -41,6 +78,7 @@ export type Database = {
           empreendimento?: string
           hora?: string
           id?: string
+          status?: string | null
           whatsapp?: string
         }
         Relationships: [
@@ -255,6 +293,20 @@ export type Database = {
       finalizar_visita: {
         Args: { visit_id: string }
         Returns: undefined
+      }
+      gerar_token_agendamento: {
+        Args: { agendamento_uuid: string }
+        Returns: string
+      }
+      get_corretor_stats: {
+        Args: { corretor_uuid: string }
+        Returns: {
+          total_visitas: number
+          visitas_ativas: number
+          visitas_hoje: number
+          tempo_medio_minutos: number
+          agendamentos_confirmados: number
+        }[]
       }
       get_dashboard_stats: {
         Args: Record<PropertyKey, never>
