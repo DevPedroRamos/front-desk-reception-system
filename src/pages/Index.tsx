@@ -65,7 +65,12 @@ export default function Index() {
       .not('superintendente', 'is', null);
     
     if (data) {
-      const uniqueSuperintendentes = [...new Set(data.map(u => u.superintendente))];
+      // Filter out empty strings and null values, then get unique superintendentes
+      const uniqueSuperintendentes = [...new Set(
+        data
+          .map(u => u.superintendente)
+          .filter(sup => sup && sup.trim() !== '') // Filter out empty strings and null values
+      )];
       setSuperintendentes(uniqueSuperintendentes);
     }
   };
@@ -487,9 +492,11 @@ export default function Index() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os superintendentes</SelectItem>
-                    {superintendentes.map((sup) => (
-                      <SelectItem key={sup} value={sup}>{sup}</SelectItem>
-                    ))}
+                    {superintendentes
+                      .filter(sup => sup && sup.trim() !== '') // Additional safety filter
+                      .map((sup) => (
+                        <SelectItem key={sup} value={sup}>{sup}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
