@@ -318,6 +318,7 @@ export type Database = {
           visitas_ativas: number
           visitas_finalizadas_hoje: number
           mesas_ocupadas: number
+          clientes_lista_espera: number
         }[]
       }
       validate_cpf_and_create_profile: {

@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { Calendar, Users, Clock, MapPin, FileDown, X } from 'lucide-react';
+import { Calendar, Users, Clock, MapPin, FileDown, X, UserCheck } from 'lucide-react';
 import { BrindeDialog } from '@/components/BrindeDialog';
 
 interface DashboardStats {
@@ -17,6 +17,7 @@ interface DashboardStats {
   visitas_ativas: number;
   visitas_finalizadas_hoje: number;
   mesas_ocupadas: number;
+  clientes_lista_espera: number;
 }
 
 interface Visit {
@@ -39,7 +40,8 @@ export default function Index() {
     total_visitas_hoje: 0,
     visitas_ativas: 0,
     visitas_finalizadas_hoje: 0,
-    mesas_ocupadas: 0
+    mesas_ocupadas: 0,
+    clientes_lista_espera: 0
   });
   
   const [activeVisits, setActiveVisits] = useState<Visit[]>([]);
@@ -194,11 +196,35 @@ export default function Index() {
       const { data: mesasData } = await mesasQuery;
       const mesasOcupadas = mesasData ? new Set(mesasData.map(v => v.mesa)).size : 0;
 
+      // Clientes na lista de espera
+      let listaEsperaQuery = supabase.from('lista_espera').select('*', { count: 'exact' }).eq('status', 'aguardando');
+      if (startDate) {
+        listaEsperaQuery = listaEsperaQuery.gte('created_at', startDate);
+      }
+      if (endDate) {
+        listaEsperaQuery = listaEsperaQuery.lte('created_at', endDate + 'T23:59:59');
+      }
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          // Incluir clientes sem corretor atribuído OU com corretor do superintendente selecionado
+          listaEsperaQuery = listaEsperaQuery.or(`corretor_id.is.null,corretor_id.in.(${userIds.join(',')})`);
+        }
+      }
+      
+      const { count: clientesListaEspera } = await listaEsperaQuery;
+
       setStats({
         total_visitas_hoje: totalVisitas || 0,
         visitas_ativas: visitasAtivas || 0,
         visitas_finalizadas_hoje: visitasFinalizadas || 0,
-        mesas_ocupadas: mesasOcupadas
+        mesas_ocupadas: mesasOcupadas,
+        clientes_lista_espera: clientesListaEspera || 0
       });
 
     } catch (error) {
@@ -482,7 +508,7 @@ export default function Index() {
         </Card>
 
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Visitas</CardTitle>
@@ -531,6 +557,19 @@ export default function Index() {
               <div className="text-2xl font-bold">{stats.mesas_ocupadas}</div>
               <p className="text-xs text-muted-foreground">
                 Atualmente ocupadas
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Lista de Espera</CardTitle>
+              <UserCheck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.clientes_lista_espera}</div>
+              <p className="text-xs text-muted-foreground">
+                Clientes aguardando
               </p>
             </CardContent>
           </Card>
