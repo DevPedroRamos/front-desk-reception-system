@@ -50,7 +50,7 @@ export default function ListaEspera() {
         return;
       }
 
-      // Mapear os dados para o formato esperado incluindo dados do corretor
+      // Mapear os dados para o formato esperado
       const clientesFormatados = (data || []).map(item => ({
         id: item.id,
         nome: item.cliente_nome || '',
@@ -61,7 +61,7 @@ export default function ListaEspera() {
         corretor_nome: item.corretor_nome || undefined
       }));
 
-      console.log('Clientes formatados com dados do corretor:', clientesFormatados);
+      console.log('Clientes formatados:', clientesFormatados);
       setClientes(clientesFormatados);
     } catch (error) {
       console.error('Erro inesperado:', error);
