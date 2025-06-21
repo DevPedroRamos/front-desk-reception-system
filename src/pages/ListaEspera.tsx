@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { IniciarVisitaDialog } from '@/components/IniciarVisitaDialog';
+import { AddClienteDialog } from '@/components/AddClienteDialog';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, UserCheck, Search, XCircle } from 'lucide-react';
 
@@ -25,6 +26,7 @@ export default function ListaEspera() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -68,12 +70,13 @@ export default function ListaEspera() {
     }
   };
 
-  const handleCreateClient = async () => {
-    // Implementar a lógica para criar um novo cliente
-    toast({
-      title: "Funcionalidade em breve!",
-      description: "Aguarde novas implementações.",
-    });
+  const handleCreateClient = () => {
+    setShowAddDialog(true);
+  };
+
+  const handleClienteAdicionado = () => {
+    loadData();
+    setShowAddDialog(false);
   };
 
   const filteredClients = clientes.filter(
@@ -171,6 +174,12 @@ export default function ListaEspera() {
           onVisitaIniciada={loadData}
         />
       )}
+
+      <AddClienteDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        onClienteAdicionado={handleClienteAdicionado}
+      />
     </Layout>
   );
 }
