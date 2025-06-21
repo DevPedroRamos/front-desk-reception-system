@@ -76,35 +76,51 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
     queryFn: async () => {
       if (!loja || !andar) return [];
       
-      // Buscar mesas ocupadas
-      const { data: mesasOcupadas, error } = await supabase
-        .from('visits')
-        .select('mesa')
-        .eq('loja', loja)
-        .eq('andar', andar)
-        .eq('status', 'ativo');
+      try {
+        // Buscar mesas ocupadas
+        const { data: mesasOcupadas, error } = await supabase
+          .from('visits')
+          .select('mesa')
+          .eq('loja', loja)
+          .eq('andar', andar)
+          .eq('status', 'ativo');
 
-      if (error) {
-        console.error('Erro ao buscar mesas ocupadas:', error);
+        if (error) {
+          console.error('Erro ao buscar mesas ocupadas:', error);
+          return [];
+        }
+
+        // Gerar lista de mesas de 1 a 50 e filtrar as ocupadas
+        const todasMesas = Array.from({ length: 50 }, (_, i) => i + 1);
+        const ocupadas = mesasOcupadas?.map(m => m.mesa) || [];
+        
+        return todasMesas.filter(mesa => !ocupadas.includes(mesa));
+      } catch (error) {
+        console.error('Erro ao buscar mesas:', error);
         return [];
       }
-
-      // Gerar lista de mesas de 1 a 50 e filtrar as ocupadas
-      const todasMesas = Array.from({ length: 50 }, (_, i) => i + 1);
-      const ocupadas = mesasOcupadas?.map(m => m.mesa) || [];
-      
-      return todasMesas.filter(mesa => !ocupadas.includes(mesa));
     },
     enabled: !!loja && !!andar
   });
 
   // Pré-preencher dados quando vem da lista de espera
   useEffect(() => {
-    if (cliente.corretor_id && isOpen) {
-      setCorretor(cliente.corretor_id);
-      console.log('Pre-preenchendo corretor:', cliente.corretor_id, cliente.corretor_nome);
+    if (isOpen && cliente) {
+      console.log('Cliente selecionado:', cliente);
+      
+      // Se cliente tem corretor_id, pré-selecionar
+      if (cliente.corretor_id) {
+        console.log('Pre-preenchendo corretor:', cliente.corretor_id, cliente.corretor_nome);
+        setCorretor(cliente.corretor_id);
+      }
+      
+      // Reset outros campos
+      setLoja('');
+      setAndar('');
+      setMesa('');
+      setEmpreendimento('');
     }
-  }, [cliente.corretor_id, isOpen]);
+  }, [cliente, isOpen]);
 
   // Reset do select de mesa quando loja/andar mudam
   useEffect(() => {
@@ -127,13 +143,26 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
 
     try {
       // Verificar se a mesa está disponível
-      const { data: mesaDisponivel } = await supabase.rpc('check_mesa_disponivel', {
-        p_loja: loja,
-        p_andar: andar,
-        p_mesa: parseInt(mesa)
-      });
+      const { data: visitasAtivas, error: checkError } = await supabase
+        .from('visits')
+        .select('id')
+        .eq('loja', loja)
+        .eq('andar', andar)
+        .eq('mesa', parseInt(mesa))
+        .eq('status', 'ativo');
 
-      if (!mesaDisponivel) {
+      if (checkError) {
+        console.error('Erro ao verificar mesa:', checkError);
+        toast({
+          title: "Erro ao verificar mesa",
+          description: "Ocorreu um erro ao verificar disponibilidade da mesa.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (visitasAtivas && visitasAtivas.length > 0) {
         toast({
           title: "Mesa ocupada",
           description: "Esta mesa já está sendo utilizada.",
@@ -179,6 +208,7 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
           description: "Ocorreu um erro ao iniciar a visita. Tente novamente.",
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 
@@ -291,11 +321,11 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
               </SelectTrigger>
               <SelectContent>
                 {!loja || !andar ? (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="placeholder" disabled>
                     Selecione loja e andar primeiro
                   </SelectItem>
                 ) : mesasDisponiveis.length === 0 ? (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="no-mesas" disabled>
                     Nenhuma mesa disponível
                   </SelectItem>
                 ) : (
@@ -317,7 +347,7 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
               </SelectTrigger>
               <SelectContent>
                 {empreendimentos.length === 0 ? (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="no-empreendimentos" disabled>
                     Nenhum empreendimento cadastrado
                   </SelectItem>
                 ) : (

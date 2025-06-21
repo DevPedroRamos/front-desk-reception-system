@@ -53,8 +53,8 @@ export default function ListaEspera() {
       // Mapear os dados para o formato esperado incluindo dados do corretor
       const clientesFormatados = (data || []).map(item => ({
         id: item.id,
-        nome: item.cliente_nome,
-        cpf: item.cliente_cpf,
+        nome: item.cliente_nome || '',
+        cpf: item.cliente_cpf || '',
         whatsapp: item.cliente_whatsapp || undefined,
         createdAt: item.created_at,
         corretor_id: item.corretor_id || undefined,
