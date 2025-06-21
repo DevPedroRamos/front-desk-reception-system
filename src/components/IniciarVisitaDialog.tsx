@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 
 interface Cliente {
+  id: string;
   nome: string;
   cpf: string;
   whatsapp?: string;
@@ -112,7 +113,7 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
       }
 
       // Criar a visita
-      const { error } = await supabase
+      const { error: visitError } = await supabase
         .from('visits')
         .insert({
           cliente_nome: cliente.nome,
@@ -127,14 +128,24 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
           status: 'ativo'
         });
 
-      if (error) {
-        console.error('Erro ao iniciar visita:', error);
+      if (visitError) {
+        console.error('Erro ao iniciar visita:', visitError);
         toast({
           title: "Erro ao iniciar visita",
           description: "Ocorreu um erro ao iniciar a visita. Tente novamente.",
           variant: "destructive",
         });
         return;
+      }
+
+      // Atualizar status na lista de espera
+      const { error: updateError } = await supabase
+        .from('lista_espera')
+        .update({ status: 'atendido' })
+        .eq('id', cliente.id);
+
+      if (updateError) {
+        console.error('Erro ao atualizar lista de espera:', updateError);
       }
 
       toast({
@@ -248,7 +259,6 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
                 <SelectValue placeholder="Selecione um empreendimento (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum empreendimento</SelectItem>
                 {empreendimentos.map((emp) => (
                   <SelectItem key={emp.id} value={emp.nome}>
                     {emp.nome}
