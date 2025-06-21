@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,8 @@ interface Cliente {
   nome: string;
   cpf: string;
   whatsapp?: string;
+  corretor_id?: string;
+  corretor_nome?: string;
 }
 
 interface IniciarVisitaDialogProps {
@@ -63,9 +65,51 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
         console.error('Erro ao buscar empreendimentos:', error);
         return [];
       }
+      console.log('Empreendimentos carregados:', data);
       return data || [];
     }
   });
+
+  // Buscar mesas disponíveis baseado na loja e andar selecionados
+  const { data: mesasDisponiveis = [] } = useQuery({
+    queryKey: ['mesas-disponiveis', loja, andar],
+    queryFn: async () => {
+      if (!loja || !andar) return [];
+      
+      // Buscar mesas ocupadas
+      const { data: mesasOcupadas, error } = await supabase
+        .from('visits')
+        .select('mesa')
+        .eq('loja', loja)
+        .eq('andar', andar)
+        .eq('status', 'ativo');
+
+      if (error) {
+        console.error('Erro ao buscar mesas ocupadas:', error);
+        return [];
+      }
+
+      // Gerar lista de mesas de 1 a 50 e filtrar as ocupadas
+      const todasMesas = Array.from({ length: 50 }, (_, i) => i + 1);
+      const ocupadas = mesasOcupadas?.map(m => m.mesa) || [];
+      
+      return todasMesas.filter(mesa => !ocupadas.includes(mesa));
+    },
+    enabled: !!loja && !!andar
+  });
+
+  // Pré-preencher dados quando vem da lista de espera
+  useEffect(() => {
+    if (cliente.corretor_id && isOpen) {
+      setCorretor(cliente.corretor_id);
+      console.log('Pre-preenchendo corretor:', cliente.corretor_id, cliente.corretor_nome);
+    }
+  }, [cliente.corretor_id, isOpen]);
+
+  // Reset do select de mesa quando loja/andar mudam
+  useEffect(() => {
+    setMesa('');
+  }, [loja, andar]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,7 +245,7 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
               <SelectContent>
                 {corretores.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.apelido || c.name} - CPF: {c.cpf}
+                    {c.name} ({c.apelido}) - CPF: {c.cpf}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -240,16 +284,29 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
           </div>
 
           <div>
-            <Label htmlFor="mesa">Número da Mesa *</Label>
-            <Input
-              id="mesa"
-              type="number"
-              min="1"
-              max="50"
-              value={mesa}
-              onChange={(e) => setMesa(e.target.value)}
-              placeholder="Ex: 1"
-            />
+            <Label htmlFor="mesa">Mesa *</Label>
+            <Select value={mesa} onValueChange={setMesa}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma mesa" />
+              </SelectTrigger>
+              <SelectContent>
+                {!loja || !andar ? (
+                  <SelectItem value="" disabled>
+                    Selecione loja e andar primeiro
+                  </SelectItem>
+                ) : mesasDisponiveis.length === 0 ? (
+                  <SelectItem value="" disabled>
+                    Nenhuma mesa disponível
+                  </SelectItem>
+                ) : (
+                  mesasDisponiveis.map((mesaNum) => (
+                    <SelectItem key={mesaNum} value={mesaNum.toString()}>
+                      Mesa {mesaNum}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -259,11 +316,17 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
                 <SelectValue placeholder="Selecione um empreendimento (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                {empreendimentos.map((emp) => (
-                  <SelectItem key={emp.id} value={emp.nome}>
-                    {emp.nome}
+                {empreendimentos.length === 0 ? (
+                  <SelectItem value="" disabled>
+                    Nenhum empreendimento cadastrado
                   </SelectItem>
-                ))}
+                ) : (
+                  empreendimentos.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.nome}>
+                      {emp.nome}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>

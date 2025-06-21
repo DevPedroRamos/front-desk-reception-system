@@ -19,6 +19,8 @@ interface Cliente {
   cpf: string;
   whatsapp?: string;
   createdAt: string;
+  corretor_id?: string;
+  corretor_nome?: string;
 }
 
 export default function ListaEspera() {
@@ -48,15 +50,18 @@ export default function ListaEspera() {
         return;
       }
 
-      // Mapear os dados para o formato esperado
+      // Mapear os dados para o formato esperado incluindo dados do corretor
       const clientesFormatados = (data || []).map(item => ({
         id: item.id,
         nome: item.cliente_nome,
         cpf: item.cliente_cpf,
         whatsapp: item.cliente_whatsapp || undefined,
-        createdAt: item.created_at
+        createdAt: item.created_at,
+        corretor_id: item.corretor_id || undefined,
+        corretor_nome: item.corretor_nome || undefined
       }));
 
+      console.log('Clientes formatados com dados do corretor:', clientesFormatados);
       setClientes(clientesFormatados);
     } catch (error) {
       console.error('Erro inesperado:', error);
@@ -125,6 +130,7 @@ export default function ListaEspera() {
                   <TableHead>Nome</TableHead>
                   <TableHead>CPF</TableHead>
                   <TableHead>WhatsApp</TableHead>
+                  <TableHead>Corretor</TableHead>
                   <TableHead>Data de Cadastro</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -132,11 +138,11 @@ export default function ListaEspera() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4">Carregando...</TableCell>
+                    <TableCell colSpan={6} className="text-center py-4">Carregando...</TableCell>
                   </TableRow>
                 ) : filteredClients.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4">Nenhum cliente encontrado.</TableCell>
+                    <TableCell colSpan={6} className="text-center py-4">Nenhum cliente encontrado.</TableCell>
                   </TableRow>
                 ) : (
                   filteredClients.map((cliente) => (
@@ -144,6 +150,7 @@ export default function ListaEspera() {
                       <TableCell className="font-medium">{cliente.nome}</TableCell>
                       <TableCell>{cliente.cpf}</TableCell>
                       <TableCell>{cliente.whatsapp || '-'}</TableCell>
+                      <TableCell>{cliente.corretor_nome || '-'}</TableCell>
                       <TableCell>
                         {format(new Date(cliente.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                       </TableCell>
