@@ -53,7 +53,7 @@ export function AppSidebar() {
         },
       ];
     } else {
-      // Recepcionista ou outros roles
+      // Recepcionista, administrador ou outros roles
       return [
         {
           title: "Dashboard",
@@ -107,6 +107,18 @@ export function AppSidebar() {
     );
   }
 
+  const getPortalTitle = () => {
+    switch (userProfile?.role) {
+      case 'corretor':
+        return 'Portal do Corretor';
+      case 'adm':
+        return 'Portal do Administrador';
+      case 'recepcionista':
+      default:
+        return 'Sistema de Recepção';
+    }
+  };
+
   return (
     <Sidebar className="border-r border-slate-200">
       <SidebarHeader className="p-6 border-b border-slate-200">
@@ -117,7 +129,7 @@ export function AppSidebar() {
           <div>
             <h1 className="font-bold text-lg text-slate-900">Front Desk</h1>
             <p className="text-sm text-slate-500">
-              {userProfile?.role === 'corretor' ? 'Portal do Corretor' : 'Sistema de Recepção'}
+              {getPortalTitle()}
             </p>
           </div>
         </div>
