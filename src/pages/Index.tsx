@@ -24,6 +24,7 @@ interface Visit {
   id: string;
   cliente_nome: string;
   cliente_cpf: string;
+  cliente_whatsapp?: string;
   corretor_nome: string;
   corretor_id: string;
   empreendimento: string;
@@ -291,6 +292,7 @@ export default function Index() {
           id,
           cliente_nome,
           cliente_cpf,
+          cliente_whatsapp,
           corretor_nome,
           corretor_id,
           empreendimento,
@@ -372,6 +374,7 @@ export default function Index() {
     const csvData = finishedVisits.map(visit => ({
       'Cliente': visit.cliente_nome,
       'CPF': visit.cliente_cpf,
+      'WhatsApp': visit.cliente_whatsapp || '',
       'Corretor': visit.corretor_nome,
       'Empreendimento': visit.empreendimento || '',
       'Loja': visit.loja,
