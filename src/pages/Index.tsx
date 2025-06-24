@@ -1,35 +1,16 @@
-
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useToast } from '@/hooks/use-toast';
-import { Download, Calendar } from 'lucide-react';
-import { useExportCSV } from '@/hooks/useExportCSV';
-
-interface Visit {
-  id: string;
-  cliente_nome: string;
-  cliente_cpf: string;
-  cliente_whatsapp?: string;
-  corretor_nome: string;
-  corretor_id: string;
-  empreendimento?: string;
-  loja: string;
-  andar: string;
-  mesa: number;
-  status: string;
-  horario_entrada: string;
-  horario_saida?: string;
-  created_at: string;
-}
+import { toast } from 'sonner';
+import { Calendar, Users, Clock, MapPin, FileDown, X, UserCheck } from 'lucide-react';
+import { BrindeDialog } from '@/components/BrindeDialog';
 
 interface DashboardStats {
   total_visitas_hoje: number;
@@ -39,351 +20,714 @@ interface DashboardStats {
   clientes_lista_espera: number;
 }
 
+interface Visit {
+  id: string;
+  cliente_nome: string;
+  cliente_cpf: string;
+  corretor_nome: string;
+  corretor_id: string;
+  empreendimento: string;
+  loja: string;
+  andar: string;
+  mesa: number;
+  horario_entrada: string;
+  horario_saida?: string;
+  status: string;
+}
+
 export default function Index() {
-  const [visits, setVisits] = useState<Visit[]>([]);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [stats, setStats] = useState<DashboardStats>({
+    total_visitas_hoje: 0,
+    visitas_ativas: 0,
+    visitas_finalizadas_hoje: 0,
+    mesas_ocupadas: 0,
+    clientes_lista_espera: 0
+  });
+  
+  const [activeVisits, setActiveVisits] = useState<Visit[]>([]);
+  const [finishedVisits, setFinishedVisits] = useState<Visit[]>([]);
   const [superintendentes, setSuperintendentes] = useState<string[]>([]);
-  const [superintendenteFilter, setSuperintendenteFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [brindeDialogOpen, setBrindeDialogOpen] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
+
+  // Inicializar filtros com data atual
+  const hoje = new Date();
+  const [startDate, setStartDate] = useState(format(hoje, 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(hoje, 'yyyy-MM-dd'));
+  const [selectedSuperintendente, setSelectedSuperintendente] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredVisits, setFilteredVisits] = useState<Visit[]>([]);
-  const { toast } = useToast();
-  const { exportToCSV } = useExportCSV();
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadSuperintendentes = async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('superintendente')
+      .not('superintendente', 'is', null);
+    
+    if (data) {
+      // Filter out empty strings and null values, then get unique superintendentes
+      const uniqueSuperintendentes = [...new Set(
+        data
+          .map(u => u.superintendente)
+          .filter(sup => sup && sup.trim() !== '') // Filter out empty strings and null values
+      )];
+      setSuperintendentes(uniqueSuperintendentes);
+    }
+  };
+
+  // Função para filtros rápidos
+  const setFiltroRapido = (tipo: 'hoje' | 'mes') => {
+    const hoje = new Date();
+    
+    if (tipo === 'hoje') {
+      const dataHoje = format(hoje, 'yyyy-MM-dd');
+      setStartDate(dataHoje);
+      setEndDate(dataHoje);
+    } else if (tipo === 'mes') {
+      const inicioMes = format(startOfMonth(hoje), 'yyyy-MM-dd');
+      const fimMes = format(endOfMonth(hoje), 'yyyy-MM-dd');
+      setStartDate(inicioMes);
+      setEndDate(fimMes);
+    }
+  };
+
+  const loadDashboardStats = async () => {
     try {
-      // Carregar estatísticas usando função do banco
-      const { data: statsData, error: statsError } = await supabase
-        .rpc('get_dashboard_stats_filtered', {
-          start_date: startDate || null,
-          end_date: endDate || null,
-          superintendente: superintendenteFilter !== 'all' ? superintendenteFilter : null
-        });
+      // Primeiro, tentar usar a função RPC
+      const params: any = {};
+      
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+      if (selectedSuperintendente !== 'all') params.superintendente = selectedSuperintendente;
 
-      if (statsError) {
-        console.error('Erro ao buscar estatísticas:', statsError);
-        toast({
-          title: "Erro ao carregar estatísticas",
-          description: "Usando estatísticas básicas como fallback.",
-          variant: "destructive",
-        });
-
-        // Fallback para estatísticas básicas
-        const { data: basicStats, error: basicStatsError } = await supabase
-          .rpc('get_dashboard_stats');
-
-        if (!basicStatsError && basicStats && basicStats.length > 0) {
-          setStats({
-            ...basicStats[0],
-            clientes_lista_espera: 0
-          });
-        }
-      } else if (statsData && statsData.length > 0) {
-        setStats(statsData[0]);
+      const { data, error } = await supabase.rpc('get_dashboard_stats_filtered', params);
+      
+      if (error) {
+        console.log('RPC error, fallback to manual calculation:', error);
+        // Fallback para cálculo manual se a função RPC falhar
+        await loadDashboardStatsManual();
+        return;
       }
+      
+      if (data && data.length > 0) {
+        setStats(data[0]);
+      }
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+      // Fallback para cálculo manual
+      await loadDashboardStatsManual();
+    }
+  };
 
-      // Carregar visitas
+  const loadDashboardStatsManual = async () => {
+    try {
+      // Cálculo manual das estatísticas
+      let baseQuery = supabase.from('visits').select('*', { count: 'exact' });
+      
+      // Total de visitas no período
+      let totalQuery = baseQuery;
+      if (startDate) {
+        totalQuery = totalQuery.gte('horario_entrada', startDate);
+      }
+      if (endDate) {
+        totalQuery = totalQuery.lte('horario_entrada', endDate + 'T23:59:59');
+      }
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          totalQuery = totalQuery.in('corretor_id', userIds);
+        }
+      }
+      
+      const { count: totalVisitas } = await totalQuery;
+
+      // Visitas ativas
+      let activeQuery = supabase.from('visits').select('*', { count: 'exact' }).eq('status', 'ativo');
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          activeQuery = activeQuery.in('corretor_id', userIds);
+        }
+      }
+      
+      const { count: visitasAtivas } = await activeQuery;
+
+      // Visitas finalizadas no período
+      let finishedQuery = supabase.from('visits').select('*', { count: 'exact' }).eq('status', 'finalizado');
+      if (startDate) {
+        finishedQuery = finishedQuery.gte('horario_entrada', startDate);
+      }
+      if (endDate) {
+        finishedQuery = finishedQuery.lte('horario_entrada', endDate + 'T23:59:59');
+      }
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          finishedQuery = finishedQuery.in('corretor_id', userIds);
+        }
+      }
+      
+      const { count: visitasFinalizadas } = await finishedQuery;
+
+      // Mesas ocupadas
+      let mesasQuery = supabase.from('visits').select('mesa').eq('status', 'ativo');
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          mesasQuery = mesasQuery.in('corretor_id', userIds);
+        }
+      }
+      
+      const { data: mesasData } = await mesasQuery;
+      const mesasOcupadas = mesasData ? new Set(mesasData.map(v => v.mesa)).size : 0;
+
+      // Clientes na lista de espera
+      let listaEsperaQuery = supabase.from('lista_espera').select('*', { count: 'exact' }).eq('status', 'aguardando');
+      if (startDate) {
+        listaEsperaQuery = listaEsperaQuery.gte('created_at', startDate);
+      }
+      if (endDate) {
+        listaEsperaQuery = listaEsperaQuery.lte('created_at', endDate + 'T23:59:59');
+      }
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          // Incluir clientes sem corretor atribuído OU com corretor do superintendente selecionado
+          listaEsperaQuery = listaEsperaQuery.or(`corretor_id.is.null,corretor_id.in.(${userIds.join(',')})`);
+        }
+      }
+      
+      const { count: clientesListaEspera } = await listaEsperaQuery;
+
+      setStats({
+        total_visitas_hoje: totalVisitas || 0,
+        visitas_ativas: visitasAtivas || 0,
+        visitas_finalizadas_hoje: visitasFinalizadas || 0,
+        mesas_ocupadas: mesasOcupadas,
+        clientes_lista_espera: clientesListaEspera || 0
+      });
+
+    } catch (error) {
+      console.error('Error in manual stats calculation:', error);
+      toast.error('Erro ao carregar estatísticas do dashboard');
+    }
+  };
+
+  const loadActiveVisits = async () => {
+    try {
       let query = supabase
         .from('visits')
-        .select('*')
+        .select(`
+          id,
+          cliente_nome,
+          cliente_cpf,
+          corretor_nome,
+          corretor_id,
+          empreendimento,
+          loja,
+          andar,
+          mesa,
+          horario_entrada,
+          status,
+          users!visits_corretor_id_fkey(superintendente)
+        `)
+        .eq('status', 'ativo')
         .order('horario_entrada', { ascending: false });
 
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          query = query.in('corretor_id', userIds);
+        }
+      }
+
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      if (data) {
+        setActiveVisits(data);
+      }
+    } catch (error) {
+      console.error('Error loading active visits:', error);
+      toast.error('Erro ao carregar visitas ativas');
+    }
+  };
+
+  const loadFinishedVisits = async () => {
+    try {
+      let query = supabase
+        .from('visits')
+        .select(`
+          id,
+          cliente_nome,
+          cliente_cpf,
+          corretor_nome,
+          corretor_id,
+          empreendimento,
+          loja,
+          andar,
+          mesa,
+          horario_entrada,
+          horario_saida,
+          status,
+          users!visits_corretor_id_fkey(superintendente)
+        `)
+        .eq('status', 'finalizado')
+        .order('horario_saida', { ascending: false });
+
+      // Aplicar filtros de data
       if (startDate) {
         query = query.gte('horario_entrada', startDate);
       }
       if (endDate) {
-        query = query.lte('horario_entrada', endDate);
+        query = query.lte('horario_entrada', endDate + 'T23:59:59');
+      }
+
+      if (selectedSuperintendente !== 'all') {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('superintendente', selectedSuperintendente);
+        
+        if (userData) {
+          const userIds = userData.map(u => u.id);
+          query = query.in('corretor_id', userIds);
+        }
       }
 
       const { data, error } = await query;
-
-      if (error) {
-        console.error('Erro ao buscar visitas:', error);
-        toast({
-          title: "Erro ao carregar",
-          description: "Ocorreu um erro ao carregar as visitas.",
-          variant: "destructive",
-        });
-        return;
+      
+      if (error) throw error;
+      if (data) {
+        setFinishedVisits(data);
       }
-
-      setVisits(data || []);
-
-      // Extrair superintendentes únicos
-      const superintendentesSet = new Set<string>();
-      data?.forEach((visit) => {
-        superintendentesSet.add(visit.corretor_nome);
-      });
-      setSuperintendentes(Array.from(superintendentesSet));
     } catch (error) {
-      console.error('Erro inesperado:', error);
-      toast({
-        title: "Erro inesperado",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      console.error('Error loading finished visits:', error);
+      toast.error('Erro ao carregar visitas finalizadas');
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [startDate, endDate, superintendenteFilter]);
-
-  useEffect(() => {
-    let filtered = visits;
-
-    if (superintendenteFilter !== 'all') {
-      filtered = filtered.filter((visit) => visit.corretor_nome === superintendenteFilter);
+  const finalizarVisita = async (visitId: string) => {
+    // Encontrar a visita para passar os dados para o dialog
+    const visit = activeVisits.find(v => v.id === visitId);
+    if (!visit) {
+      toast.error('Visita não encontrada');
+      return;
     }
 
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (visit) =>
-          visit.cliente_nome.toLowerCase().includes(term) ||
-          visit.cliente_cpf.toLowerCase().includes(term) ||
-          visit.corretor_nome.toLowerCase().includes(term)
-      );
-    }
+    setSelectedVisit(visit);
+    setBrindeDialogOpen(true);
+  };
 
-    setFilteredVisits(filtered);
-  }, [visits, superintendenteFilter, searchTerm]);
+  const handleFinalizarVisita = async () => {
+    if (!selectedVisit) return;
+
+    try {
+      const { error } = await supabase.rpc('finalizar_visita', { visit_id: selectedVisit.id });
+      
+      if (error) throw error;
+      
+      toast.success('Visita finalizada com sucesso!');
+      loadActiveVisits();
+      loadFinishedVisits();
+      loadDashboardStats();
+      setSelectedVisit(null);
+    } catch (error) {
+      console.error('Error finishing visit:', error);
+      toast.error('Erro ao finalizar visita');
+    }
+  };
+
+  const exportToCSV = () => {
+    const csvData = finishedVisits.map(visit => ({
+      'Cliente': visit.cliente_nome,
+      'CPF': visit.cliente_cpf,
+      'Corretor': visit.corretor_nome,
+      'Empreendimento': visit.empreendimento || '',
+      'Loja': visit.loja,
+      'Andar': visit.andar,
+      'Mesa': visit.mesa,
+      'Entrada': format(new Date(visit.horario_entrada), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+      'Saída': visit.horario_saida ? format(new Date(visit.horario_saida), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : ''
+    }));
+
+    const headers = Object.keys(csvData[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => headers.map(header => `"${row[header as keyof typeof row]}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `visitas_${format(new Date(), 'dd-MM-yyyy')}.csv`);
+    link.click();
+  };
 
   const clearFilters = () => {
-    setStartDate('');
-    setEndDate('');
-    setSuperintendenteFilter('all');
+    const hoje = format(new Date(), 'yyyy-MM-dd');
+    setStartDate(hoje);
+    setEndDate(hoje);
+    setSelectedSuperintendente('all');
     setSearchTerm('');
   };
 
-  const setTodayFilter = () => {
-    const today = format(new Date(), 'yyyy-MM-dd');
-    setStartDate(today);
-    setEndDate(today);
-  };
+  const filteredActiveVisits = activeVisits.filter(visit =>
+    visit.corretor_nome.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const setCurrentMonthFilter = () => {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await loadSuperintendentes();
+      await loadDashboardStats();
+      await loadActiveVisits();
+      await loadFinishedVisits();
+      setLoading(false);
+    };
     
-    setStartDate(format(firstDay, 'yyyy-MM-dd'));
-    setEndDate(format(lastDay, 'yyyy-MM-dd'));
-  };
+    loadData();
+  }, [startDate, endDate, selectedSuperintendente]);
 
-  const handleExportCSV = () => {
-    if (filteredVisits.length === 0) {
-      toast({
-        title: "Nenhum dado para exportar",
-        description: "Não há visitas para exportar com os filtros aplicados.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    exportToCSV(filteredVisits, `visitas-${format(new Date(), 'dd-MM-yyyy')}.csv`);
-    toast({
-      title: "Exportação concluída",
-      description: `${filteredVisits.length} visitas exportadas com sucesso.`,
-    });
-  };
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p>Carregando dashboard...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-600">Visão geral das atividades do sistema</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+            <p className="text-slate-600">Visão geral dos atendimentos</p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total de Visitas</CardTitle>
-              <CardDescription>Baseado nos filtros aplicados</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {stats?.total_visitas_hoje || 0}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Atendimentos Ativos</CardTitle>
-              <CardDescription>Visitas em andamento agora</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {stats?.visitas_ativas || 0}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Visitas Finalizadas</CardTitle>
-              <CardDescription>Baseado nos filtros aplicados</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {stats?.visitas_finalizadas_hoje || 0}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Mesas Ocupadas</CardTitle>
-              <CardDescription>Mesas sendo utilizadas agora</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {stats?.mesas_ocupadas || 0}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Lista de Espera</CardTitle>
-              <CardDescription>Clientes aguardando atendimento</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {stats?.clientes_lista_espera || 0}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
+        {/* Filtros */}
         <Card>
           <CardHeader>
-            <CardTitle>Visitas Finalizadas</CardTitle>
-            <CardDescription>
-              Histórico completo de visitas finalizadas
-            </CardDescription>
+            <CardTitle className="text-lg">Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-4 items-end">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
-                  <div>
-                    <Label htmlFor="startDate">Data Inicial</Label>
-                    <Input
-                      id="startDate"
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="endDate">Data Final</Label>
-                    <Input
-                      id="endDate"
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="superintendenteFilter">Superintendente</Label>
-                    <Select value={superintendenteFilter} onValueChange={setSuperintendenteFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos os superintendentes" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos os superintendentes</SelectItem>
-                        {superintendentes.map((sup) => (
-                          <SelectItem key={sup} value={sup}>
-                            {sup}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="searchTerm">Pesquisar</Label>
-                    <Input
-                      id="searchTerm"
-                      placeholder="Nome, CPF, corretor..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={setTodayFilter} className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Hoje
-                  </Button>
-                  <Button variant="outline" onClick={setCurrentMonthFilter} className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Mês Atual
-                  </Button>
-                  <Button variant="outline" onClick={clearFilters}>
-                    Limpar Filtros
-                  </Button>
-                  <Button onClick={handleExportCSV} className="bg-green-600 hover:bg-green-700">
-                    <Download className="w-4 h-4 mr-2" />
-                    Exportar CSV
-                  </Button>
-                </div>
+            {/* Botões de Filtros Rápidos */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={startDate === format(new Date(), 'yyyy-MM-dd') && endDate === format(new Date(), 'yyyy-MM-dd') ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFiltroRapido('hoje')}
+              >
+                Hoje
+              </Button>
+              <Button
+                variant={startDate === format(startOfMonth(new Date()), 'yyyy-MM-dd') && endDate === format(endOfMonth(new Date()), 'yyyy-MM-dd') ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFiltroRapido('mes')}
+              >
+                Mês Atual
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Data Inicial</label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
               </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>CPF</TableHead>
-                    <TableHead>Corretor</TableHead>
-                    <TableHead>Empreendimento</TableHead>
-                    <TableHead>Loja</TableHead>
-                    <TableHead>Mesa</TableHead>
-                    <TableHead>Entrada</TableHead>
-                    <TableHead>Saída</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-4">Carregando...</TableCell>
-                    </TableRow>
-                  ) : filteredVisits.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-4">Nenhuma visita encontrada.</TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredVisits.map((visit) => (
-                      <TableRow key={visit.id}>
-                        <TableCell className="font-medium">{visit.cliente_nome}</TableCell>
-                        <TableCell>{visit.cliente_cpf}</TableCell>
-                        <TableCell>{visit.corretor_nome}</TableCell>
-                        <TableCell>{visit.empreendimento || '-'}</TableCell>
-                        <TableCell>{visit.loja} - {visit.andar}</TableCell>
-                        <TableCell>{visit.mesa}</TableCell>
-                        <TableCell>
-                          {format(new Date(visit.horario_entrada), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
-                        </TableCell>
-                        <TableCell>
-                          {visit.horario_saida
-                            ? format(new Date(visit.horario_saida), 'dd/MM/yyyy HH:mm', { locale: ptBR })
-                            : '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Data Final</label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Superintendente</label>
+                <Select value={selectedSuperintendente} onValueChange={setSelectedSuperintendente}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os superintendentes</SelectItem>
+                    {superintendentes
+                      .filter(sup => sup && sup.trim() !== '') // Additional safety filter
+                      .map((sup) => (
+                        <SelectItem key={sup} value={sup}>{sup}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  variant="outline" 
+                  onClick={clearFilters}
+                  className="w-full"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Limpar Filtros
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Cards de Estatísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total de Visitas</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total_visitas_hoje}</div>
+              <p className="text-xs text-muted-foreground">
+                Visitas no período
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Atendimentos Ativos</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.visitas_ativas}</div>
+              <p className="text-xs text-muted-foreground">
+                Em andamento
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Visitas Finalizadas</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.visitas_finalizadas_hoje}</div>
+              <p className="text-xs text-muted-foreground">
+                Finalizadas no período
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Mesas Ocupadas</CardTitle>
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.mesas_ocupadas}</div>
+              <p className="text-xs text-muted-foreground">
+                Atualmente ocupadas
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Lista de Espera</CardTitle>
+              <UserCheck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.clientes_lista_espera}</div>
+              <p className="text-xs text-muted-foreground">
+                Clientes aguardando
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Atendimentos Ativos */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Atendimentos Ativos</CardTitle>
+                <CardDescription>
+                  Lista de atendimentos em andamento
+                </CardDescription>
+              </div>
+              <div className="w-64">
+                <Input
+                  placeholder="Pesquisar por corretor..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Corretor</TableHead>
+                  <TableHead>Empreendimento</TableHead>
+                  <TableHead>Local</TableHead>
+                  <TableHead>Entrada</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredActiveVisits.map((visit) => (
+                  <TableRow key={visit.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{visit.cliente_nome}</p>
+                        <p className="text-sm text-gray-500">{visit.cliente_cpf}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{visit.corretor_nome}</TableCell>
+                    <TableCell>{visit.empreendimento || '-'}</TableCell>
+                    <TableCell>
+                      {visit.loja} - {visit.andar} - Mesa {visit.mesa}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(visit.horario_entrada), 'dd/MM HH:mm', { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        onClick={() => finalizarVisita(visit.id)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        Finalizar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {filteredActiveVisits.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                Nenhum atendimento ativo encontrado
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Visitas Finalizadas */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Visitas Finalizadas</CardTitle>
+                <CardDescription>
+                  Histórico de visitas finalizadas
+                </CardDescription>
+              </div>
+              <Button onClick={exportToCSV} variant="outline">
+                <FileDown className="w-4 h-4 mr-2" />
+                Exportar CSV
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Corretor</TableHead>
+                  <TableHead>Empreendimento</TableHead>
+                  <TableHead>Local</TableHead>
+                  <TableHead>Entrada</TableHead>
+                  <TableHead>Saída</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {finishedVisits.slice(0, 50).map((visit) => (
+                  <TableRow key={visit.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{visit.cliente_nome}</p>
+                        <p className="text-sm text-gray-500">{visit.cliente_cpf}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{visit.corretor_nome}</TableCell>
+                    <TableCell>{visit.empreendimento || '-'}</TableCell>
+                    <TableCell>
+                      {visit.loja} - {visit.andar} - Mesa {visit.mesa}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(visit.horario_entrada), 'dd/MM HH:mm', { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>
+                      {visit.horario_saida 
+                        ? format(new Date(visit.horario_saida), 'dd/MM HH:mm', { locale: ptBR })
+                        : '-'
+                      }
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {finishedVisits.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                Nenhuma visita finalizada encontrada
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Dialog de Brinde */}
+        {selectedVisit && (
+          <BrindeDialog
+            open={brindeDialogOpen}
+            onOpenChange={setBrindeDialogOpen}
+            visitData={{
+              id: selectedVisit.id,
+              cliente_nome: selectedVisit.cliente_nome,
+              cliente_cpf: selectedVisit.cliente_cpf,
+              corretor_nome: selectedVisit.corretor_nome
+            }}
+            onFinalize={handleFinalizarVisita}
+          />
+        )}
       </div>
     </Layout>
   );

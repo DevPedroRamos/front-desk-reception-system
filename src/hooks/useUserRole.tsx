@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-export type UserRole = 'corretor' | 'recepcionista' | 'adm' | null;
+export type UserRole = 'corretor' | 'recepcionista' | null;
 
 interface UserProfile {
   role: UserRole;
@@ -56,8 +56,6 @@ export function useUserRole() {
     userProfile,
     isCorretor: userProfile?.role === 'corretor',
     isRecepcionista: userProfile?.role === 'recepcionista',
-    isAdm: userProfile?.role === 'adm',
-    isAdminOrRecepcao: userProfile?.role === 'adm' || userProfile?.role === 'recepcionista',
     loading
   };
 }
