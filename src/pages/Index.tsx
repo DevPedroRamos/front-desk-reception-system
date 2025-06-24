@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { Download } from 'lucide-react';
+import { Download, Calendar } from 'lucide-react';
 import { useExportCSV } from '@/hooks/useExportCSV';
 
 interface Visit {
@@ -30,8 +31,17 @@ interface Visit {
   created_at: string;
 }
 
+interface DashboardStats {
+  total_visitas_hoje: number;
+  visitas_ativas: number;
+  visitas_finalizadas_hoje: number;
+  mesas_ocupadas: number;
+  clientes_lista_espera: number;
+}
+
 export default function Index() {
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -45,6 +55,21 @@ export default function Index() {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Carregar estatísticas usando função do banco
+      const { data: statsData, error: statsError } = await supabase
+        .rpc('get_dashboard_stats_filtered', {
+          start_date: startDate || null,
+          end_date: endDate || null,
+          superintendente: superintendenteFilter !== 'all' ? superintendenteFilter : null
+        });
+
+      if (statsError) {
+        console.error('Erro ao buscar estatísticas:', statsError);
+      } else if (statsData && statsData.length > 0) {
+        setStats(statsData[0]);
+      }
+
+      // Carregar visitas
       let query = supabase
         .from('visits')
         .select('*')
@@ -91,7 +116,7 @@ export default function Index() {
 
   useEffect(() => {
     loadData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, superintendenteFilter]);
 
   useEffect(() => {
     let filtered = visits;
@@ -120,26 +145,37 @@ export default function Index() {
     setSearchTerm('');
   };
 
+  const setTodayFilter = () => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    setStartDate(today);
+    setEndDate(today);
+  };
+
+  const setCurrentMonthFilter = () => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    setStartDate(format(firstDay, 'yyyy-MM-dd'));
+    setEndDate(format(lastDay, 'yyyy-MM-dd'));
+  };
+
   const handleExportCSV = () => {
     if (filteredVisits.length === 0) {
       toast({
         title: "Nenhum dado para exportar",
-        description: "Não há visitas finalizadas para exportar.",
+        description: "Não há visitas para exportar com os filtros aplicados.",
         variant: "destructive",
       });
       return;
     }
     
-    exportToCSV(filteredVisits, `visitas-finalizadas-${format(new Date(), 'dd-MM-yyyy')}.csv`);
+    exportToCSV(filteredVisits, `visitas-${format(new Date(), 'dd-MM-yyyy')}.csv`);
     toast({
       title: "Exportação concluída",
       description: `${filteredVisits.length} visitas exportadas com sucesso.`,
     });
   };
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   return (
     <Layout>
@@ -149,45 +185,64 @@ export default function Index() {
           <p className="text-slate-600">Visão geral das atividades do sistema</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Visitas Hoje</CardTitle>
-              <CardDescription>Número de visitas agendadas para hoje</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {visits.filter(
-                  (visit) => format(new Date(visit.horario_entrada), 'dd/MM/yyyy') === format(new Date(), 'dd/MM/yyyy')
-                ).length}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Visitas esta Semana</CardTitle>
-              <CardDescription>Número de visitas agendadas para esta semana</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {visits.filter((visit) => {
-                  const today = new Date();
-                  const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
-                  const visitDate = new Date(visit.horario_entrada);
-                  return visitDate >= startOfWeek;
-                }).length}
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <CardHeader>
               <CardTitle>Total de Visitas</CardTitle>
-              <CardDescription>Número total de visitas agendadas</CardDescription>
+              <CardDescription>Baseado nos filtros aplicados</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{visits.length}</div>
+              <div className="text-2xl font-bold text-slate-900">
+                {stats?.total_visitas_hoje || 0}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Atendimentos Ativos</CardTitle>
+              <CardDescription>Visitas em andamento agora</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-slate-900">
+                {stats?.visitas_ativas || 0}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Visitas Finalizadas</CardTitle>
+              <CardDescription>Baseado nos filtros aplicados</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-slate-900">
+                {stats?.visitas_finalizadas_hoje || 0}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Mesas Ocupadas</CardTitle>
+              <CardDescription>Mesas sendo utilizadas agora</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-slate-900">
+                {stats?.mesas_ocupadas || 0}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Lista de Espera</CardTitle>
+              <CardDescription>Clientes aguardando atendimento</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-slate-900">
+                {stats?.clientes_lista_espera || 0}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -247,7 +302,15 @@ export default function Index() {
                     />
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={setTodayFilter} className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Hoje
+                  </Button>
+                  <Button variant="outline" onClick={setCurrentMonthFilter} className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Mês Atual
+                  </Button>
                   <Button variant="outline" onClick={clearFilters}>
                     Limpar Filtros
                   </Button>
