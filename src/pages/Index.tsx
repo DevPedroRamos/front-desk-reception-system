@@ -65,6 +65,22 @@ export default function Index() {
 
       if (statsError) {
         console.error('Erro ao buscar estatísticas:', statsError);
+        toast({
+          title: "Erro ao carregar estatísticas",
+          description: "Usando estatísticas básicas como fallback.",
+          variant: "destructive",
+        });
+
+        // Fallback para estatísticas básicas
+        const { data: basicStats, error: basicStatsError } = await supabase
+          .rpc('get_dashboard_stats');
+
+        if (!basicStatsError && basicStats && basicStats.length > 0) {
+          setStats({
+            ...basicStats[0],
+            clientes_lista_espera: 0
+          });
+        }
       } else if (statsData && statsData.length > 0) {
         setStats(statsData[0]);
       }
