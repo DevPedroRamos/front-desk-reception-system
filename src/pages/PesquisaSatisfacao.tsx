@@ -230,30 +230,30 @@ const PesquisaSatisfacao = () => {
 
   if (step === 3) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-rose-50 to-pink-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="text-center pb-4">
-            <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-8 h-8 text-red-600" />
             </div>
-            <CardTitle className="text-2xl text-emerald-700 font-bold">Pesquisa Concluída!</CardTitle>
+            <CardTitle className="text-2xl text-red-700 font-bold">Pesquisa Concluída!</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-6">
             <p className="text-gray-600 text-lg">Obrigado por participar da nossa pesquisa de satisfação!</p>
 
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+            <div className="bg-gradient-to-r from-red-50 to-rose-50 p-6 rounded-xl border border-red-200">
               <div className="flex items-center justify-center mb-3">
-                <Gift className="w-6 h-6 text-blue-600 mr-2" />
-                <p className="text-sm font-medium text-blue-800">Seu código de validação:</p>
+                <Gift className="w-6 h-6 text-red-600 mr-2" />
+                <p className="text-sm font-medium text-red-800">Seu código de validação:</p>
               </div>
-              <p className="text-4xl font-bold text-blue-600 tracking-wider">{codigoValidacao}</p>
+              <p className="text-4xl font-bold text-red-600 tracking-wider">{codigoValidacao}</p>
             </div>
 
             <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
               <p className="text-sm text-amber-800 font-medium">🎁 Guarde este código para retirar seu brinde!</p>
             </div>
 
-            <Button onClick={() => window.location.reload()} className="w-full bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={() => window.location.reload()} className="w-full bg-red-600 hover:bg-red-700">
               Nova Pesquisa
             </Button>
           </CardContent>
@@ -263,7 +263,7 @@ const PesquisaSatisfacao = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-rose-50 to-pink-50">
       {/* Header com progresso */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -286,8 +286,8 @@ const PesquisaSatisfacao = () => {
         <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="pb-6">
             <div className="flex items-center gap-3">
-              {step === 1 && <User className="w-6 h-6 text-blue-600" />}
-              {step === 2 && <MessageSquare className="w-6 h-6 text-blue-600" />}
+              {step === 1 && <User className="w-6 h-6 text-red-600" />}
+              {step === 2 && <MessageSquare className="w-6 h-6 text-red-600" />}
               <CardTitle className="text-xl">
                 {step === 1 && "Seus Dados Básicos"}
                 {step === 2 && "Avalie Sua Experiência"}
@@ -350,7 +350,7 @@ const PesquisaSatisfacao = () => {
                 <Button
                   onClick={buscarDadosCliente}
                   disabled={loading}
-                  className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700"
+                  className="w-full h-12 text-base bg-red-600 hover:bg-red-700"
                 >
                   {loading ? (
                     <>
@@ -370,12 +370,12 @@ const PesquisaSatisfacao = () => {
             {step === 2 && (
               <div className="space-y-6">
                 {clienteInfo?.nome && (
-                  <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-lg">
+                  <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                      <p className="text-emerald-800 font-medium">Dados encontrados!</p>
+                      <CheckCircle2 className="w-5 h-5 text-red-600" />
+                      <p className="text-red-800 font-medium">Dados encontrados!</p>
                     </div>
-                    <p className="text-emerald-700 mt-1">
+                    <p className="text-red-700 mt-1">
                       Nome: <strong>{clienteInfo.nome}</strong>
                     </p>
                   </div>
@@ -504,7 +504,7 @@ const PesquisaSatisfacao = () => {
                   <Button
                     onClick={handleSubmitPesquisa}
                     disabled={loading}
-                    className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-700"
+                    className="flex-1 h-12 bg-red-600 hover:bg-red-700"
                   >
                     {loading ? (
                       <>
