@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -271,7 +272,7 @@ const PesquisaSatisfacao = () => {
             {/* Logo da Metrocasa */}
             <div className="flex justify-center mb-4">
               <img 
-                src="/lovable-uploads/c1c1d076-9abb-4f71-b95c-abfbb74f4d43.png" 
+                src="/lovable-uploads/8db02464-87a8-4ade-ad6f-425a5b4b20ee.png" 
                 alt="Metrocasa Construtora" 
                 className="h-16 w-auto"
               />
@@ -285,7 +286,7 @@ const PesquisaSatisfacao = () => {
               <span>Etapa {step} de 3</span>
               <span>{getProgressValue()}% concluído</span>
             </div>
-            <Progress value={getProgressValue()} className="h-2 bg-red-800" />
+            <Progress value={getProgressValue()} className="h-2 bg-red-800 [&>div]:bg-white" />
           </div>
         </div>
       </div>
