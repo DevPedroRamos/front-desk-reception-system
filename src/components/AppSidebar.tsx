@@ -11,7 +11,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { BarChart3, UserCheck, LogOut, Trophy, Clock, Calendar, Users, User } from "lucide-react";
+import { BarChart3, UserCheck, LogOut, Trophy, Clock, Calendar, Users, User, Gift } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -69,6 +69,11 @@ export function AppSidebar() {
           title: "Lista de Espera",
           url: "/lista-espera",
           icon: Clock,
+        },
+        {
+          title: "Brindes",
+          url: "/brindes",
+          icon: Gift,
         },
         {
           title: "Pódio",

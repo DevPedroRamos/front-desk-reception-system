@@ -7,6 +7,8 @@ import Index from '@/pages/Index';
 import ListaEspera from '@/pages/ListaEspera';
 import Podio from '@/pages/Podio';
 import Recepcao from '@/pages/recepcao';
+import Brindes from '@/pages/Brindes';
+import PesquisaSatisfacao from '@/pages/PesquisaSatisfacao';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import Corretor from '@/pages/corretor';
@@ -40,6 +42,7 @@ function ProtectedRoutes() {
       <Route path="/recepcao" element={<Recepcao />} />
       <Route path="/lista-espera" element={<ListaEspera />} />
       <Route path="/podio" element={<Podio />} />
+      <Route path="/brindes" element={<Brindes />} />
       <Route path="/corretor" element={<Corretor />} />
       <Route path="/corretor/perfil" element={<PerfilCorretor />} />
       <Route path="/corretor/visitas" element={<VisitasCorretor />} />
@@ -56,6 +59,7 @@ function App() {
           <div className="min-h-screen bg-background font-sans antialiased">
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/pesquisa-satisfacao" element={<PesquisaSatisfacao />} />
               <Route path="/*" element={<ProtectedRoutes />} />
             </Routes>
             <Toaster />

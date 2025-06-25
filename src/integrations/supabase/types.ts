@@ -13,31 +13,50 @@ export type Database = {
         Row: {
           cliente_cpf: string
           cliente_nome: string
+          codigo_usado: string | null
           corretor_nome: string
           created_at: string
+          data_validacao: string | null
           id: string
+          pesquisa_satisfacao_id: string | null
           tipo_brinde: string
-          visit_id: string
+          validado: boolean | null
+          visit_id: string | null
         }
         Insert: {
           cliente_cpf: string
           cliente_nome: string
+          codigo_usado?: string | null
           corretor_nome: string
           created_at?: string
+          data_validacao?: string | null
           id?: string
+          pesquisa_satisfacao_id?: string | null
           tipo_brinde: string
-          visit_id: string
+          validado?: boolean | null
+          visit_id?: string | null
         }
         Update: {
           cliente_cpf?: string
           cliente_nome?: string
+          codigo_usado?: string | null
           corretor_nome?: string
           created_at?: string
+          data_validacao?: string | null
           id?: string
+          pesquisa_satisfacao_id?: string | null
           tipo_brinde?: string
-          visit_id?: string
+          validado?: boolean | null
+          visit_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "brindes_pesquisa_satisfacao_id_fkey"
+            columns: ["pesquisa_satisfacao_id"]
+            isOneToOne: false
+            referencedRelation: "pesquisas_satisfacao"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "brindes_visit_id_fkey"
             columns: ["visit_id"]
@@ -134,6 +153,60 @@ export type Database = {
           loja?: string
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      pesquisas_satisfacao: {
+        Row: {
+          avaliacao_experiencia: string | null
+          codigo_validacao: string
+          comprou_empreendimento: boolean | null
+          corretor_nome: string | null
+          cpf: string
+          created_at: string
+          dicas_sugestoes: string | null
+          email: string
+          empreendimento_adquirido: string | null
+          empreendimento_interesse: string | null
+          id: string
+          nome_completo: string
+          nota_consultor: number | null
+          onde_conheceu: string | null
+          validado: boolean | null
+        }
+        Insert: {
+          avaliacao_experiencia?: string | null
+          codigo_validacao: string
+          comprou_empreendimento?: boolean | null
+          corretor_nome?: string | null
+          cpf: string
+          created_at?: string
+          dicas_sugestoes?: string | null
+          email: string
+          empreendimento_adquirido?: string | null
+          empreendimento_interesse?: string | null
+          id?: string
+          nome_completo: string
+          nota_consultor?: number | null
+          onde_conheceu?: string | null
+          validado?: boolean | null
+        }
+        Update: {
+          avaliacao_experiencia?: string | null
+          codigo_validacao?: string
+          comprou_empreendimento?: boolean | null
+          corretor_nome?: string | null
+          cpf?: string
+          created_at?: string
+          dicas_sugestoes?: string | null
+          email?: string
+          empreendimento_adquirido?: string | null
+          empreendimento_interesse?: string | null
+          id?: string
+          nome_completo?: string
+          nota_consultor?: number | null
+          onde_conheceu?: string | null
+          validado?: boolean | null
         }
         Relationships: []
       }
