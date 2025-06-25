@@ -1,708 +1,880 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Layout } from "@/components/Layout"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { AutoSuggest } from "@/components/AutoSuggest"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/integrations/supabase/client"
-import { useCpfValidation } from "@/hooks/useCpfValidation"
-import { useToast } from "@/hooks/use-toast"
-import { useQuery } from "@tanstack/react-query"
+import { format, startOfMonth, endOfMonth } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { toast } from "sonner"
 import {
-  User,
-  Mail,
-  CreditCard,
-  Building2,
-  Star,
-  MessageSquare,
+  Calendar,
+  Users,
+  X,
+  Search,
+  Filter,
+  TrendingUp,
+  Activity,
   CheckCircle2,
-  ArrowLeft,
-  ArrowRight,
+  Timer,
+  Building2,
   Loader2,
-  Gift,
-  Phone,
-  MapPin,
+  RefreshCw,
+  Download,
+  Eye,
+  UserX,
 } from "lucide-react"
+import { BrindeDialog } from "@/components/BrindeDialog"
 
-interface Empreendimento {
+interface DashboardStats {
+  total_visitas_hoje: number
+  visitas_ativas: number
+  visitas_finalizadas_hoje: number
+  mesas_ocupadas: number
+  clientes_lista_espera: number
+}
+
+interface Visit {
   id: string
-  nome: string
+  cliente_nome: string
+  cliente_cpf: string
+  cliente_whatsapp?: string
+  corretor_nome: string
+  corretor_id: string
+  empreendimento: string
+  loja: string
+  andar: string
+  mesa: number
+  horario_entrada: string
+  horario_saida?: string
+  status: string
 }
 
-interface ClienteInfo {
-  nome: string
-  corretor_nome?: string
-}
-
-const PesquisaSatisfacaoMetrocasa = () => {
-  const { toast } = useToast()
-  const { formatCpf } = useCpfValidation()
-
-  // Estados do formulário
-  const [step, setStep] = useState(1)
-  const [loading, setLoading] = useState(false)
-  const [codigoValidacao, setCodigoValidacao] = useState("")
-
-  // Dados básicos
-  const [nomeCompleto, setNomeCompleto] = useState("")
-  const [cpf, setCpf] = useState("")
-  const [email, setEmail] = useState("")
-
-  // Dados do cliente encontrado
-  const [clienteInfo, setClienteInfo] = useState<ClienteInfo | null>(null)
-
-  // Dados da pesquisa
-  const [corretorNome, setCorretorNome] = useState("")
-  const [ondeConheceu, setOndeConheceu] = useState("")
-  const [empreendimentoInteresse, setEmpreendimentoInteresse] = useState("")
-  const [comprouEmpreendimento, setComprouEmpreendimento] = useState("")
-  const [empreendimentoAdquirido, setEmpreendimentoAdquirido] = useState("")
-  const [notaConsultor, setNotaConsultor] = useState("")
-  const [avaliacaoExperiencia, setAvaliacaoExperiencia] = useState("")
-  const [dicasSugestoes, setDicasSugestoes] = useState("")
-
-  // Buscar empreendimentos
-  const { data: empreendimentos = [] } = useQuery({
-    queryKey: ["empreendimentos"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("empreendimentos").select("id, nome").order("nome")
-
-      if (error) throw error
-      return data as Empreendimento[]
-    },
+export default function index() {
+  const [stats, setStats] = useState<DashboardStats>({
+    total_visitas_hoje: 0,
+    visitas_ativas: 0,
+    visitas_finalizadas_hoje: 0,
+    mesas_ocupadas: 0,
+    clientes_lista_espera: 0,
   })
 
-  const handleCpfChange = (value: string) => {
-    setCpf(formatCpf(value))
+  const [activeVisits, setActiveVisits] = useState<Visit[]>([])
+  const [finishedVisits, setFinishedVisits] = useState<Visit[]>([])
+  const [superintendentes, setSuperintendentes] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [brindeDialogOpen, setBrindeDialogOpen] = useState(false)
+  const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null)
+
+  // Inicializar filtros com data atual
+  const hoje = new Date()
+  const [startDate, setStartDate] = useState(format(hoje, "yyyy-MM-dd"))
+  const [endDate, setEndDate] = useState(format(hoje, "yyyy-MM-dd"))
+  const [selectedSuperintendente, setSelectedSuperintendente] = useState("all")
+  const [searchTerm, setSearchTerm] = useState("")
+
+  const loadSuperintendentes = async () => {
+    const { data } = await supabase.from("users").select("superintendente").not("superintendente", "is", null)
+
+    if (data) {
+      // Filter out empty strings and null values, then get unique superintendentes
+      const uniqueSuperintendentes = [
+        ...new Set(
+          data
+            .map((u) => u.superintendente)
+            .filter((sup) => sup && sup.trim() !== ""), // Filter out empty strings and null values
+        ),
+      ]
+      setSuperintendentes(uniqueSuperintendentes)
+    }
   }
 
-  const buscarDadosCliente = async () => {
-    if (!nomeCompleto || !cpf || !email) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos básicos.",
-        variant: "destructive",
-      })
-      return
+  // Função para filtros rápidos
+  const setFiltroRapido = (tipo: "hoje" | "mes") => {
+    const hoje = new Date()
+
+    if (tipo === "hoje") {
+      const dataHoje = format(hoje, "yyyy-MM-dd")
+      setStartDate(dataHoje)
+      setEndDate(dataHoje)
+    } else if (tipo === "mes") {
+      const inicioMes = format(startOfMonth(hoje), "yyyy-MM-dd")
+      const fimMes = format(endOfMonth(hoje), "yyyy-MM-dd")
+      setStartDate(inicioMes)
+      setEndDate(fimMes)
     }
+  }
 
-    setLoading(true)
-
+  const loadDashboardStats = async () => {
     try {
-      const cpfLimpo = cpf.replace(/[.-]/g, "")
+      // Primeiro, tentar usar a função RPC
+      const params: any = {}
 
-      // Buscar nas visitas
-      const { data: visitasData, error: visitasError } = await supabase
-        .from("visits")
-        .select("cliente_nome, corretor_nome")
-        .eq("cliente_cpf", cpfLimpo)
-        .order("created_at", { ascending: false })
-        .limit(1)
+      if (startDate) params.start_date = startDate
+      if (endDate) params.end_date = endDate
+      if (selectedSuperintendente !== "all") params.superintendente = selectedSuperintendente
 
-      if (visitasError) throw visitasError
+      const { data, error } = await supabase.rpc("get_dashboard_stats_filtered", params)
 
-      let corretor = ""
-      let nomeEncontrado = ""
+      if (error) {
+        console.log("RPC error, fallback to manual calculation:", error)
+        // Fallback para cálculo manual se a função RPC falhar
+        await loadDashboardStatsManual()
+        return
+      }
 
-      if (visitasData && visitasData.length > 0) {
-        nomeEncontrado = visitasData[0].cliente_nome
-        corretor = visitasData[0].corretor_nome
-      } else {
-        // Buscar na lista de espera se não encontrou nas visitas
-        const { data: listaEsperaData, error: listaEsperaError } = await supabase
-          .from("lista_espera")
-          .select("cliente_nome, corretor_nome")
-          .eq("cliente_cpf", cpfLimpo)
-          .order("created_at", { ascending: false })
-          .limit(1)
+      if (data && data.length > 0) {
+        setStats(data[0])
+      }
+    } catch (error) {
+      console.error("Error loading dashboard stats:", error)
+      // Fallback para cálculo manual
+      await loadDashboardStatsManual()
+    }
+  }
 
-        if (listaEsperaError) throw listaEsperaError
+  const loadDashboardStatsManual = async () => {
+    try {
+      // Cálculo manual das estatísticas
+      const baseQuery = supabase.from("visits").select("*", { count: "exact" })
 
-        if (listaEsperaData && listaEsperaData.length > 0) {
-          nomeEncontrado = listaEsperaData[0].cliente_nome
-          corretor = listaEsperaData[0].corretor_nome || ""
+      // Total de visitas no período
+      let totalQuery = baseQuery
+      if (startDate) {
+        totalQuery = totalQuery.gte("horario_entrada", startDate)
+      }
+      if (endDate) {
+        totalQuery = totalQuery.lte("horario_entrada", endDate + "T23:59:59")
+      }
+      if (selectedSuperintendente !== "all") {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("id")
+          .eq("superintendente", selectedSuperintendente)
+
+        if (userData) {
+          const userIds = userData.map((u) => u.id)
+          totalQuery = totalQuery.in("corretor_id", userIds)
         }
       }
 
-      setClienteInfo({ nome: nomeEncontrado, corretor_nome: corretor })
-      setCorretorNome(corretor)
-      setStep(2)
-    } catch (error) {
-      console.error("Erro ao buscar dados do cliente:", error)
-      toast({
-        title: "Erro",
-        description: "Erro ao buscar dados. Você pode continuar com a pesquisa.",
-        variant: "destructive",
+      const { count: totalVisitas } = await totalQuery
+
+      // Visitas ativas
+      let activeQuery = supabase.from("visits").select("*", { count: "exact" }).eq("status", "ativo")
+      if (selectedSuperintendente !== "all") {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("id")
+          .eq("superintendente", selectedSuperintendente)
+
+        if (userData) {
+          const userIds = userData.map((u) => u.id)
+          activeQuery = activeQuery.in("corretor_id", userIds)
+        }
+      }
+
+      const { count: visitasAtivas } = await activeQuery
+
+      // Visitas finalizadas no período
+      let finishedQuery = supabase.from("visits").select("*", { count: "exact" }).eq("status", "finalizado")
+      if (startDate) {
+        finishedQuery = finishedQuery.gte("horario_entrada", startDate)
+      }
+      if (endDate) {
+        finishedQuery = finishedQuery.lte("horario_entrada", endDate + "T23:59:59")
+      }
+      if (selectedSuperintendente !== "all") {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("id")
+          .eq("superintendente", selectedSuperintendente)
+
+        if (userData) {
+          const userIds = userData.map((u) => u.id)
+          finishedQuery = finishedQuery.in("corretor_id", userIds)
+        }
+      }
+
+      const { count: visitasFinalizadas } = await finishedQuery
+
+      // Mesas ocupadas
+      let mesasQuery = supabase.from("visits").select("mesa").eq("status", "ativo")
+      if (selectedSuperintendente !== "all") {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("id")
+          .eq("superintendente", selectedSuperintendente)
+
+        if (userData) {
+          const userIds = userData.map((u) => u.id)
+          mesasQuery = mesasQuery.in("corretor_id", userIds)
+        }
+      }
+
+      const { data: mesasData } = await mesasQuery
+      const mesasOcupadas = mesasData ? new Set(mesasData.map((v) => v.mesa)).size : 0
+
+      // Clientes na lista de espera
+      let listaEsperaQuery = supabase.from("lista_espera").select("*", { count: "exact" }).eq("status", "aguardando")
+      if (startDate) {
+        listaEsperaQuery = listaEsperaQuery.gte("created_at", startDate)
+      }
+      if (endDate) {
+        listaEsperaQuery = listaEsperaQuery.lte("created_at", endDate + "T23:59:59")
+      }
+      if (selectedSuperintendente !== "all") {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("id")
+          .eq("superintendente", selectedSuperintendente)
+
+        if (userData) {
+          const userIds = userData.map((u) => u.id)
+          // Incluir clientes sem corretor atribuído OU com corretor do superintendente selecionado
+          listaEsperaQuery = listaEsperaQuery.or(`corretor_id.is.null,corretor_id.in.(${userIds.join(",")})`)
+        }
+      }
+
+      const { count: clientesListaEspera } = await listaEsperaQuery
+
+      setStats({
+        total_visitas_hoje: totalVisitas || 0,
+        visitas_ativas: visitasAtivas || 0,
+        visitas_finalizadas_hoje: visitasFinalizadas || 0,
+        mesas_ocupadas: mesasOcupadas,
+        clientes_lista_espera: clientesListaEspera || 0,
       })
-      setStep(2)
-    } finally {
-      setLoading(false)
+    } catch (error) {
+      console.error("Error in manual stats calculation:", error)
+      toast.error("Erro ao carregar estatísticas do dashboard")
     }
   }
 
-  const gerarCodigoValidacao = () => {
-    return Math.floor(1000 + Math.random() * 9000).toString()
+  const loadActiveVisits = async () => {
+    try {
+      let query = supabase
+        .from("visits")
+        .select(
+          `
+          id,
+          cliente_nome,
+          cliente_cpf,
+          corretor_nome,
+          corretor_id,
+          empreendimento,
+          loja,
+          andar,
+          mesa,
+          horario_entrada,
+          status,
+          users!visits_corretor_id_fkey(superintendente)
+        `,
+        )
+        .eq("status", "ativo")
+        .order("horario_entrada", { ascending: false })
+
+      if (selectedSuperintendente !== "all") {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("id")
+          .eq("superintendente", selectedSuperintendente)
+
+        if (userData) {
+          const userIds = userData.map((u) => u.id)
+          query = query.in("corretor_id", userIds)
+        }
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      if (data) {
+        setActiveVisits(data)
+      }
+    } catch (error) {
+      console.error("Error loading active visits:", error)
+      toast.error("Erro ao carregar visitas ativas")
+    }
   }
 
-  const handleSubmitPesquisa = async () => {
-    setLoading(true)
+  const loadFinishedVisits = async () => {
+    try {
+      let query = supabase
+        .from("visits")
+        .select(
+          `
+          id,
+          cliente_nome,
+          cliente_cpf,
+          cliente_whatsapp,
+          corretor_nome,
+          corretor_id,
+          empreendimento,
+          loja,
+          andar,
+          mesa,
+          horario_entrada,
+          horario_saida,
+          status,
+          users!visits_corretor_id_fkey(superintendente)
+        `,
+        )
+        .eq("status", "finalizado")
+        .order("horario_saida", { ascending: false })
+
+      // Aplicar filtros de data
+      if (startDate) {
+        query = query.gte("horario_entrada", startDate)
+      }
+      if (endDate) {
+        query = query.lte("horario_entrada", endDate + "T23:59:59")
+      }
+
+      if (selectedSuperintendente !== "all") {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("id")
+          .eq("superintendente", selectedSuperintendente)
+
+        if (userData) {
+          const userIds = userData.map((u) => u.id)
+          query = query.in("corretor_id", userIds)
+        }
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      if (data) {
+        setFinishedVisits(data)
+      }
+    } catch (error) {
+      console.error("Error loading finished visits:", error)
+      toast.error("Erro ao carregar visitas finalizadas")
+    }
+  }
+
+  const finalizarVisita = async (visitId: string) => {
+    // Encontrar a visita para passar os dados para o dialog
+    const visit = activeVisits.find((v) => v.id === visitId)
+    if (!visit) {
+      toast.error("Visita não encontrada")
+      return
+    }
+
+    setSelectedVisit(visit)
+    setBrindeDialogOpen(true)
+  }
+
+  const handleFinalizarVisita = async () => {
+    if (!selectedVisit) return
 
     try {
-      const codigo = gerarCodigoValidacao()
-
-      const { error } = await supabase.from("pesquisas_satisfacao").insert({
-        nome_completo: nomeCompleto,
-        cpf: cpf.replace(/[.-]/g, ""),
-        email,
-        corretor_nome: corretorNome,
-        onde_conheceu: ondeConheceu,
-        empreendimento_interesse: empreendimentoInteresse,
-        comprou_empreendimento: comprouEmpreendimento === "sim",
-        empreendimento_adquirido: comprouEmpreendimento === "sim" ? empreendimentoAdquirido : null,
-        nota_consultor: notaConsultor ? Number.parseInt(notaConsultor) : null,
-        avaliacao_experiencia: avaliacaoExperiencia,
-        dicas_sugestoes: dicasSugestoes,
-        codigo_validacao: codigo,
-      })
+      const { error } = await supabase.rpc("finalizar_visita", { visit_id: selectedVisit.id })
 
       if (error) throw error
 
-      setCodigoValidacao(codigo)
-      setStep(3)
-
-      toast({
-        title: "Pesquisa enviada!",
-        description: "Obrigado pela sua participação!",
-      })
+      toast.success("Visita finalizada com sucesso!")
+      loadActiveVisits()
+      loadFinishedVisits()
+      loadDashboardStats()
+      setSelectedVisit(null)
     } catch (error) {
-      console.error("Erro ao salvar pesquisa:", error)
-      toast({
-        title: "Erro",
-        description: "Erro ao enviar pesquisa. Tente novamente.",
-        variant: "destructive",
-      })
-    } finally {
+      console.error("Error finishing visit:", error)
+      toast.error("Erro ao finalizar visita")
+    }
+  }
+
+  const exportToCSV = () => {
+    const csvData = finishedVisits.map((visit) => ({
+      Cliente: visit.cliente_nome,
+      CPF: visit.cliente_cpf,
+      WhatsApp: visit.cliente_whatsapp || "",
+      Corretor: visit.corretor_nome,
+      Empreendimento: visit.empreendimento || "",
+      Loja: visit.loja,
+      Andar: visit.andar,
+      Mesa: visit.mesa,
+      Entrada: format(new Date(visit.horario_entrada), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+      Saída: visit.horario_saida ? format(new Date(visit.horario_saida), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "",
+    }))
+
+    const headers = Object.keys(csvData[0] || {})
+    const csvContent = [
+      headers.join(","),
+      ...csvData.map((row) => headers.map((header) => `"${row[header as keyof typeof row]}"`).join(",")),
+    ].join("\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", `visitas_${format(new Date(), "dd-MM-yyyy")}.csv`)
+    link.click()
+  }
+
+  const clearFilters = () => {
+    const hoje = format(new Date(), "yyyy-MM-dd")
+    setStartDate(hoje)
+    setEndDate(hoje)
+    setSelectedSuperintendente("all")
+    setSearchTerm("")
+  }
+
+  const refreshData = async () => {
+    setRefreshing(true)
+    await loadDashboardStats()
+    await loadActiveVisits()
+    await loadFinishedVisits()
+    setRefreshing(false)
+    toast.success("Dados atualizados!")
+  }
+
+  const filteredActiveVisits = activeVisits.filter((visit) =>
+    visit.corretor_nome.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  const getTempoAtendimento = (horarioEntrada: string) => {
+    const entrada = new Date(horarioEntrada)
+    const agora = new Date()
+    const diffMs = agora.getTime() - entrada.getTime()
+    const diffMinutes = Math.floor(diffMs / (1000 * 60))
+    const hours = Math.floor(diffMinutes / 60)
+    const minutes = diffMinutes % 60
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`
+    }
+    return `${minutes}m`
+  }
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      await loadSuperintendentes()
+      await loadDashboardStats()
+      await loadActiveVisits()
+      await loadFinishedVisits()
       setLoading(false)
     }
-  }
 
-  const getProgressValue = () => {
-    switch (step) {
-      case 1:
-        return 33
-      case 2:
-        return 66
-      case 3:
-        return 100
-      default:
-        return 0
-    }
-  }
+    loadData()
+  }, [startDate, endDate, selectedSuperintendente])
 
-  const renderStarRating = () => {
-    const stars = []
-    for (let i = 1; i <= 10; i++) {
-      stars.push(
-        <button
-          key={i}
-          type="button"
-          onClick={() => setNotaConsultor(i.toString())}
-          className={`p-1 transition-colors ${
-            Number.parseInt(notaConsultor) >= i
-              ? "text-yellow-400 hover:text-yellow-500"
-              : "text-gray-300 hover:text-yellow-300"
-          }`}
-        >
-          <Star className="w-6 h-6 fill-current" />
-        </button>,
-      )
-    }
+  if (loading) {
     return (
-      <div className="flex items-center gap-1 justify-center">
-        {stars}
-        {notaConsultor && <span className="ml-2 text-sm font-medium text-gray-600">{notaConsultor}/10</span>}
-      </div>
-    )
-  }
-
-  if (step === 3) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header Metrocasa */}
-        <div className="bg-[#dc2626] text-white">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <img src="/metrocasa-logo.png" alt="Metrocasa" className="h-10" />
-              <span className="text-lg font-medium">Pesquisa de Satisfação</span>
+      <Layout>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-gray-900">Carregando Dashboard</h3>
+                <p className="text-gray-600">Aguarde enquanto buscamos os dados...</p>
+              </div>
             </div>
-            <Button variant="outline" className="bg-white text-[#dc2626] border-white hover:bg-gray-100">
-              Fale Conosco
-            </Button>
           </div>
         </div>
-
-        <div className="flex items-center justify-center min-h-[80vh] p-4">
-          <Card className="w-full max-w-md shadow-2xl border-0">
-            <CardHeader className="text-center pb-4 bg-[#dc2626] text-white rounded-t-lg">
-              <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle2 className="w-8 h-8 text-white" />
-              </div>
-              <CardTitle className="text-2xl font-bold">Pesquisa Concluída!</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center space-y-6 p-8">
-              <p className="text-gray-600 text-lg">Obrigado por participar da nossa pesquisa de satisfação!</p>
-
-              <div className="bg-[#dc2626]/5 border border-[#dc2626]/20 p-6 rounded-xl">
-                <div className="flex items-center justify-center mb-3">
-                  <Gift className="w-6 h-6 text-[#dc2626] mr-2" />
-                  <p className="text-sm font-medium text-[#dc2626]">Seu código de validação:</p>
-                </div>
-                <p className="text-4xl font-bold text-[#dc2626] tracking-wider">{codigoValidacao}</p>
-              </div>
-
-              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                <p className="text-sm text-amber-800 font-medium">🎁 Guarde este código para retirar seu brinde!</p>
-              </div>
-
-              <Button
-                onClick={() => window.location.reload()}
-                className="w-full bg-[#dc2626] hover:bg-[#dc2626]/90 h-12"
-              >
-                Nova Pesquisa
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      </Layout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Metrocasa */}
-      <div className="bg-[#dc2626] text-white">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <img src="/metrocasa-logo.png" alt="Metrocasa" className="h-10" />
-            <span className="text-lg font-medium">Pesquisa de Satisfação</span>
-          </div>
-          <Button variant="outline" className="bg-white text-[#dc2626] border-white hover:bg-gray-100">
-            Fale Conosco
-          </Button>
-        </div>
-      </div>
-
-      {/* Hero Section */}
-      <div className="bg-[#dc2626] text-white py-16">
-        <div className="max-w-4xl mx-auto text-center px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">AVALIE E GANHE</h1>
-          <p className="text-xl mb-8 opacity-90">
-            Sua opinião é muito importante para nós! Participe da nossa pesquisa de satisfação
-            <br />e concorra a brindes exclusivos. É simples, rápido e vantajoso para todos!
-          </p>
-          <div className="flex justify-center items-center gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold">R$500</div>
-              <div className="text-sm opacity-80">em brindes</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">Ilimitado</div>
-              <div className="text-sm opacity-80">número de participações</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">Rápido</div>
-              <div className="text-sm opacity-80">preenchimento garantido</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Formulário Principal */}
-        <Card className="shadow-xl border-0 overflow-hidden">
-          {/* Header do Formulário */}
-          <div className="bg-[#dc2626] text-white p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <MessageSquare className="w-6 h-6" />
-              <h2 className="text-xl font-semibold">Formulário de Pesquisa</h2>
-            </div>
-            <p className="opacity-90">Preencha os dados abaixo para avaliar seus amigos e familiares</p>
-
-            {/* Progress Bar */}
-            <div className="mt-6 space-y-2">
-              <div className="flex justify-between text-sm opacity-80">
-                <span>Etapa {step} de 3</span>
-                <span>{getProgressValue()}% concluído</span>
+    <Layout>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        {/* Header */}
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
+                <p className="text-gray-600 text-lg">Visão geral dos atendimentos em tempo real</p>
               </div>
-              <div className="w-full bg-white/20 rounded-full h-2">
-                <div
-                  className="bg-white h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${getProgressValue()}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <CardContent className="p-8">
-            {/* Abas de Navegação */}
-            <div className="flex mb-8 bg-gray-100 rounded-lg p-1">
-              <div
-                className={`flex-1 text-center py-3 px-4 rounded-md transition-all ${
-                  step === 1
-                    ? "bg-[#dc2626] text-white shadow-sm"
-                    : step > 1
-                      ? "bg-green-100 text-green-700"
-                      : "text-gray-500"
-                }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  {step > 1 ? <CheckCircle2 className="w-4 h-4" /> : <User className="w-4 h-4" />}
-                  <span className="font-medium">Seus dados</span>
-                </div>
-              </div>
-              <div
-                className={`flex-1 text-center py-3 px-4 rounded-md transition-all ${
-                  step === 2
-                    ? "bg-[#dc2626] text-white shadow-sm"
-                    : step > 2
-                      ? "bg-green-100 text-green-700"
-                      : "text-gray-400"
-                }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  {step > 2 ? <CheckCircle2 className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
-                  <span className="font-medium">Dados da Pesquisa</span>
-                </div>
-              </div>
-            </div>
-
-            {step === 1 && (
-              <div className="space-y-6">
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Informações Pessoais</h3>
-                  <p className="text-gray-600">Digite seus dados para começar a pesquisa</p>
-                </div>
-
-                <div className="grid gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome" className="text-sm font-medium flex items-center gap-2 text-[#dc2626]">
-                      <User className="w-4 h-4" />
-                      Nome Completo *
-                    </Label>
-                    <Input
-                      id="nome"
-                      value={nomeCompleto}
-                      onChange={(e) => setNomeCompleto(e.target.value)}
-                      placeholder="Digite seu nome completo"
-                      className="h-12 text-base border-gray-300 focus:border-[#dc2626] focus:ring-[#dc2626]"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="cpf" className="text-sm font-medium flex items-center gap-2 text-[#dc2626]">
-                        <CreditCard className="w-4 h-4" />
-                        CPF *
-                      </Label>
-                      <Input
-                        id="cpf"
-                        value={cpf}
-                        onChange={(e) => handleCpfChange(e.target.value)}
-                        placeholder="000.000.000-00"
-                        className="h-12 text-base border-gray-300 focus:border-[#dc2626] focus:ring-[#dc2626]"
-                        maxLength={14}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium flex items-center gap-2 text-[#dc2626]">
-                        <Mail className="w-4 h-4" />
-                        E-mail *
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="seuemail@exemplo.com"
-                        className="h-12 text-base border-gray-300 focus:border-[#dc2626] focus:ring-[#dc2626]"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-6">
-                  <Button
-                    onClick={buscarDadosCliente}
-                    disabled={loading}
-                    className="w-full h-12 text-base bg-[#dc2626] hover:bg-[#dc2626]/90"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Buscando dados...
-                      </>
-                    ) : (
-                      <>
-                        Próximo passo
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {step === 2 && (
-              <div className="space-y-6">
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Avalie Sua Experiência</h3>
-                  <p className="text-gray-600">Conte-nos sobre sua experiência conosco</p>
-                </div>
-
-                {clienteInfo?.nome && (
-                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg mb-6">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
-                      <p className="text-green-800 font-medium">Dados encontrados!</p>
-                    </div>
-                    <p className="text-green-700 mt-1">
-                      Nome: <strong>{clienteInfo.nome}</strong>
-                    </p>
-                  </div>
+              <Button onClick={refreshData} disabled={refreshing} className="bg-blue-600 hover:bg-blue-700">
+                {refreshing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
                 )}
+                Atualizar
+              </Button>
+            </div>
+          </div>
+        </div>
 
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="corretor" className="text-sm font-medium text-[#dc2626]">
-                      Corretor Responsável
-                    </Label>
-                    <Input
-                      id="corretor"
-                      value={corretorNome}
-                      readOnly
-                      className="bg-gray-50 h-12 border-gray-300"
-                      placeholder="Não informado"
-                    />
-                  </div>
+        <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+          {/* Filtros */}
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-blue-600" />
+                <CardTitle className="text-xl">Filtros</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Botões de Filtros Rápidos */}
+              <div className="flex gap-3">
+                <Button
+                  variant={
+                    startDate === format(new Date(), "yyyy-MM-dd") && endDate === format(new Date(), "yyyy-MM-dd")
+                      ? "default"
+                      : "outline"
+                  }
+                  size="sm"
+                  onClick={() => setFiltroRapido("hoje")}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Hoje
+                </Button>
+                <Button
+                  variant={
+                    startDate === format(startOfMonth(new Date()), "yyyy-MM-dd") &&
+                    endDate === format(endOfMonth(new Date()), "yyyy-MM-dd")
+                      ? "default"
+                      : "outline"
+                  }
+                  size="sm"
+                  onClick={() => setFiltroRapido("mes")}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Mês Atual
+                </Button>
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="onde_conheceu" className="text-sm font-medium text-[#dc2626]">
-                      Onde conheceu a Construtora Metrocasa?
-                    </Label>
-                    <Input
-                      id="onde_conheceu"
-                      value={ondeConheceu}
-                      onChange={(e) => setOndeConheceu(e.target.value)}
-                      placeholder="Ex: redes sociais, indicação, site, etc."
-                      className="h-12 border-gray-300 focus:border-[#dc2626] focus:ring-[#dc2626]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium flex items-center gap-2 text-[#dc2626]">
-                      <Building2 className="w-4 h-4" />
-                      Empreendimento/Bairro de Interesse
-                    </Label>
-                    <AutoSuggest
-                      label=""
-                      placeholder="Digite para buscar empreendimentos"
-                      options={empreendimentos.map((emp) => ({ id: emp.id, name: emp.nome }))}
-                      value={empreendimentoInteresse}
-                      onValueChange={setEmpreendimentoInteresse}
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label className="text-sm font-medium text-[#dc2626]">
-                      Você comprou algum empreendimento conosco?
-                    </Label>
-                    <RadioGroup
-                      value={comprouEmpreendimento}
-                      onValueChange={setComprouEmpreendimento}
-                      className="flex gap-6"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="sim" id="comprou_sim" className="border-[#dc2626] text-[#dc2626]" />
-                        <Label htmlFor="comprou_sim" className="cursor-pointer">
-                          Sim
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="nao" id="comprou_nao" className="border-[#dc2626] text-[#dc2626]" />
-                        <Label htmlFor="comprou_nao" className="cursor-pointer">
-                          Não
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  {comprouEmpreendimento === "sim" && (
-                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                      <Label className="text-sm font-medium text-[#dc2626]">Qual empreendimento você adquiriu?</Label>
-                      <AutoSuggest
-                        label=""
-                        placeholder="Digite para buscar empreendimentos"
-                        options={empreendimentos.map((emp) => ({ id: emp.id, name: emp.nome }))}
-                        value={empreendimentoAdquirido}
-                        onValueChange={setEmpreendimentoAdquirido}
-                      />
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium flex items-center gap-2 text-[#dc2626]">
-                      <Star className="w-4 h-4" />
-                      Avalie nosso consultor (0 a 10)
-                    </Label>
-                    <div className="p-6 bg-gray-50 rounded-lg">{renderStarRating()}</div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="experiencia" className="text-sm font-medium text-[#dc2626]">
-                      Como você avalia sua experiência em nossa sede?
-                    </Label>
-                    <Textarea
-                      id="experiencia"
-                      value={avaliacaoExperiencia}
-                      onChange={(e) => setAvaliacaoExperiencia(e.target.value)}
-                      placeholder="Conte-nos sobre sua experiência conosco..."
-                      rows={4}
-                      className="resize-none border-gray-300 focus:border-[#dc2626] focus:ring-[#dc2626]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="sugestoes" className="text-sm font-medium text-[#dc2626]">
-                      Sugestões para melhorarmos
-                    </Label>
-                    <Textarea
-                      id="sugestoes"
-                      value={dicasSugestoes}
-                      onChange={(e) => setDicasSugestoes(e.target.value)}
-                      placeholder="Suas sugestões são muito importantes para nós..."
-                      rows={4}
-                      className="resize-none border-gray-300 focus:border-[#dc2626] focus:ring-[#dc2626]"
-                    />
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Data Inicial</label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="h-11"
+                  />
                 </div>
-
-                <div className="flex gap-4 pt-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Data Final</label>
+                  <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-11" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Superintendente</label>
+                  <Select value={selectedSuperintendente} onValueChange={setSelectedSuperintendente}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os superintendentes</SelectItem>
+                      {superintendentes
+                        .filter((sup) => sup && sup.trim() !== "") // Additional safety filter
+                        .map((sup) => (
+                          <SelectItem key={sup} value={sup}>
+                            {sup}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end">
                   <Button
                     variant="outline"
-                    onClick={() => setStep(1)}
-                    className="flex-1 h-12 border-[#dc2626] text-[#dc2626] hover:bg-[#dc2626]/5"
+                    onClick={clearFilters}
+                    className="w-full h-11 hover:bg-red-50 hover:border-red-200"
                   >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Voltar
-                  </Button>
-                  <Button
-                    onClick={handleSubmitPesquisa}
-                    disabled={loading}
-                    className="flex-1 h-12 bg-[#dc2626] hover:bg-[#dc2626]/90"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Enviando...
-                      </>
-                    ) : (
-                      <>
-                        Enviar Pesquisa
-                        <CheckCircle2 className="w-4 h-4 ml-2" />
-                      </>
-                    )}
+                    <X className="w-4 h-4 mr-2" />
+                    Limpar Filtros
                   </Button>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Como Funciona */}
-        <div className="mt-16 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Como Funciona</h2>
-          <p className="text-gray-600 mb-12">Entenda as regras e benefícios do nosso programa de pesquisa</p>
+          {/* Cards de Estatísticas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium opacity-90">Total de Visitas</CardTitle>
+                <Users className="h-6 w-6 opacity-80" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats.total_visitas_hoje}</div>
+                <p className="text-xs opacity-80 mt-1">Visitas no período</p>
+              </CardContent>
+            </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#dc2626]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="w-8 h-8 text-[#dc2626]" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">1. Responda</h3>
-              <p className="text-gray-600">Preencha o formulário com seus dados e avalie sua experiência conosco</p>
-            </div>
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium opacity-90">Atendimentos Ativos</CardTitle>
+                <Activity className="h-6 w-6 opacity-80" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats.visitas_ativas}</div>
+                <p className="text-xs opacity-80 mt-1">Em andamento</p>
+              </CardContent>
+            </Card>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#dc2626]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="w-8 h-8 text-[#dc2626]" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">2. Acompanhe</h3>
-              <p className="text-gray-600">Nossos consultores entrarão em contato com seu amigo</p>
-            </div>
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium opacity-90">Visitas Finalizadas</CardTitle>
+                <CheckCircle2 className="h-6 w-6 opacity-80" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats.visitas_finalizadas_hoje}</div>
+                <p className="text-xs opacity-80 mt-1">Finalizadas no período</p>
+              </CardContent>
+            </Card>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#dc2626]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Gift className="w-8 h-8 text-[#dc2626]" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">3. Receba</h3>
-              <p className="text-gray-600">Quando seu indicado fechar negócio, você recebe sua recompensa</p>
-            </div>
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium opacity-90">Mesas Ocupadas</CardTitle>
+                <Building2 className="h-6 w-6 opacity-80" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats.mesas_ocupadas}</div>
+                <p className="text-xs opacity-80 mt-1">Atualmente ocupadas</p>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-red-500 to-red-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium opacity-90">Lista de Espera</CardTitle>
+                <Timer className="h-6 w-6 opacity-80" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats.clientes_lista_espera}</div>
+                <p className="text-xs opacity-80 mt-1">Clientes aguardando</p>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* Atendimentos Ativos */}
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <Activity className="w-6 h-6 text-emerald-600" />
+                  <div>
+                    <CardTitle className="text-xl">Atendimentos Ativos</CardTitle>
+                    <CardDescription className="text-base">Lista de atendimentos em andamento</CardDescription>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <Input
+                      placeholder="Pesquisar por corretor..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-64"
+                    />
+                  </div>
+                  <Badge variant="secondary" className="text-sm px-3 py-1">
+                    {filteredActiveVisits.length} ativo{filteredActiveVisits.length !== 1 ? "s" : ""}
+                  </Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="font-semibold">Cliente</TableHead>
+                      <TableHead className="font-semibold">Corretor</TableHead>
+                      <TableHead className="font-semibold">Empreendimento</TableHead>
+                      <TableHead className="font-semibold">Local</TableHead>
+                      <TableHead className="font-semibold">Entrada</TableHead>
+                      <TableHead className="font-semibold">Tempo</TableHead>
+                      <TableHead className="font-semibold text-center">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredActiveVisits.map((visit) => (
+                      <TableRow key={visit.id} className="hover:bg-gray-50/50">
+                        <TableCell>
+                          <div className="space-y-1">
+                            <p className="font-medium text-gray-900">{visit.cliente_nome}</p>
+                            <p className="text-sm text-gray-500">{visit.cliente_cpf}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-medium">
+                            {visit.corretor_nome}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-gray-900">{visit.empreendimento || "-"}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">{visit.loja}</div>
+                            <div className="text-gray-500">
+                              {visit.andar} - Mesa {visit.mesa}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">
+                              {format(new Date(visit.horario_entrada), "dd/MM", { locale: ptBR })}
+                            </div>
+                            <div className="text-gray-500">
+                              {format(new Date(visit.horario_entrada), "HH:mm", { locale: ptBR })}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                            {getTempoAtendimento(visit.horario_entrada)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            size="sm"
+                            onClick={() => finalizarVisita(visit.id)}
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                            Finalizar
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {filteredActiveVisits.length === 0 && (
+                  <div className="text-center py-12">
+                    <UserX className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum atendimento ativo</h3>
+                    <p className="text-gray-500">Não há atendimentos em andamento no momento</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Visitas Finalizadas */}
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-purple-600" />
+                  <div>
+                    <CardTitle className="text-xl">Visitas Finalizadas</CardTitle>
+                    <CardDescription className="text-base">Histórico de visitas finalizadas</CardDescription>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="secondary" className="text-sm px-3 py-1">
+                    {finishedVisits.length} finalizada{finishedVisits.length !== 1 ? "s" : ""}
+                  </Badge>
+                  <Button onClick={exportToCSV} variant="outline" className="hover:bg-green-50 hover:border-green-200">
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar CSV
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="font-semibold">Cliente</TableHead>
+                      <TableHead className="font-semibold">Corretor</TableHead>
+                      <TableHead className="font-semibold">Empreendimento</TableHead>
+                      <TableHead className="font-semibold">Local</TableHead>
+                      <TableHead className="font-semibold">Entrada</TableHead>
+                      <TableHead className="font-semibold">Saída</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {finishedVisits.slice(0, 50).map((visit) => (
+                      <TableRow key={visit.id} className="hover:bg-gray-50/50">
+                        <TableCell>
+                          <div className="space-y-1">
+                            <p className="font-medium text-gray-900">{visit.cliente_nome}</p>
+                            <p className="text-sm text-gray-500">{visit.cliente_cpf}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-medium">
+                            {visit.corretor_nome}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-gray-900">{visit.empreendimento || "-"}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">{visit.loja}</div>
+                            <div className="text-gray-500">
+                              {visit.andar} - Mesa {visit.mesa}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">
+                              {format(new Date(visit.horario_entrada), "dd/MM", { locale: ptBR })}
+                            </div>
+                            <div className="text-gray-500">
+                              {format(new Date(visit.horario_entrada), "HH:mm", { locale: ptBR })}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {visit.horario_saida ? (
+                            <div className="text-sm">
+                              <div className="font-medium">
+                                {format(new Date(visit.horario_saida), "dd/MM", { locale: ptBR })}
+                              </div>
+                              <div className="text-gray-500">
+                                {format(new Date(visit.horario_saida), "HH:mm", { locale: ptBR })}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {finishedVisits.length === 0 && (
+                  <div className="text-center py-12">
+                    <Eye className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma visita finalizada</h3>
+                    <p className="text-gray-500">Não há visitas finalizadas no período selecionado</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Dialog de Brinde */}
+          {selectedVisit && (
+            <BrindeDialog
+              open={brindeDialogOpen}
+              onOpenChange={setBrindeDialogOpen}
+              visitData={{
+                id: selectedVisit.id,
+                cliente_nome: selectedVisit.cliente_nome,
+                cliente_cpf: selectedVisit.cliente_cpf,
+                corretor_nome: selectedVisit.corretor_nome,
+              }}
+              onFinalize={handleFinalizarVisita}
+            />
+          )}
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white mt-16">
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <img src="/metrocasa-logo.png" alt="Metrocasa" className="h-12 mb-4" />
-              <p className="text-gray-400">Construindo sonhos, criando histórias.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Empresa</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>Entre em Contato</li>
-                <li>Carreiras</li>
-                <li>Blog</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Suporte</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>Suporte Via Chat</li>
-                <li>Central de Atendimento</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Contato</h4>
-              <div className="space-y-2 text-gray-400">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  <span>(11) 5061-0022</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  <span>São Paulo, SP</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>Copyright © 2025 Construtora Metrocasa - Todos os Direitos Reservados</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </Layout>
   )
 }
-
-export default PesquisaSatisfacaoMetrocasa
