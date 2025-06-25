@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Calendar, Download, Gift } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Calendar, Download, Gift, CheckCircle } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -328,6 +329,55 @@ const Brindes = () => {
                     </Dialog>
                   </div>
                 ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Lista de brindes validados */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" />
+              Brindes Validados ({brindesValidados.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {brindesValidados.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Nenhum brinde validado encontrado.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>CPF</TableHead>
+                      <TableHead>Corretor</TableHead>
+                      <TableHead>Tipo Brinde</TableHead>
+                      <TableHead>Data Validação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {brindesValidados.map((brinde) => (
+                      <TableRow key={brinde.id}>
+                        <TableCell className="font-medium">{brinde.cliente_nome}</TableCell>
+                        <TableCell>{brinde.cliente_cpf}</TableCell>
+                        <TableCell>{brinde.corretor_nome}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{brinde.tipo_brinde}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {brinde.data_validacao 
+                            ? format(new Date(brinde.data_validacao), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                            : '-'
+                          }
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>

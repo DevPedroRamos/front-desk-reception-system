@@ -51,13 +51,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "brindes_pesquisa_satisfacao_id_fkey"
-            columns: ["pesquisa_satisfacao_id"]
-            isOneToOne: false
-            referencedRelation: "pesquisas_satisfacao"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "brindes_visit_id_fkey"
             columns: ["visit_id"]
             isOneToOne: false
