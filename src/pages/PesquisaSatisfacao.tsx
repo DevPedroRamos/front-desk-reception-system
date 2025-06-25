@@ -264,20 +264,28 @@ const PesquisaSatisfacao = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-rose-50 to-pink-50">
-      {/* Header com progresso */}
-      <div className="bg-white shadow-sm border-b">
+      {/* Header com progresso - FUNDO VERMELHO */}
+      <div className="bg-red-600 shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Pesquisa de Satisfação</h1>
-            <p className="text-gray-600">Sua opinião é muito importante para nós</p>
+            {/* Logo da Metrocasa */}
+            <div className="flex justify-center mb-4">
+              <img 
+                src="/lovable-uploads/c1c1d076-9abb-4f71-b95c-abfbb74f4d43.png" 
+                alt="Metrocasa Construtora" 
+                className="h-16 w-auto"
+              />
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">Pesquisa de Satisfação</h1>
+            <p className="text-red-100">Sua opinião é muito importante para nós</p>
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between text-sm text-gray-500">
+            <div className="flex justify-between text-sm text-red-100">
               <span>Etapa {step} de 3</span>
               <span>{getProgressValue()}% concluído</span>
             </div>
-            <Progress value={getProgressValue()} className="h-2" />
+            <Progress value={getProgressValue()} className="h-2 bg-red-800" />
           </div>
         </div>
       </div>
