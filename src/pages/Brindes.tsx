@@ -32,6 +32,7 @@ interface Brinde {
   id: string;
   cliente_nome: string;
   cliente_cpf: string;
+  corretor_nome: string;
   tipo_brinde: string;
   validado: boolean;
   data_validacao: string | null;
