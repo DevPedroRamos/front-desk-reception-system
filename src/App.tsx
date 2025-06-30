@@ -9,6 +9,7 @@ import Podio from '@/pages/Podio';
 import Recepcao from '@/pages/recepcao';
 import Brindes from '@/pages/Brindes';
 import PesquisaSatisfacao from '@/pages/PesquisaSatisfacao';
+import PesquisaRelatorio from '@/pages/PesquisaRelatorio';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import Corretor from '@/pages/corretor';
@@ -43,6 +44,7 @@ function ProtectedRoutes() {
       <Route path="/lista-espera" element={<ListaEspera />} />
       <Route path="/podio" element={<Podio />} />
       <Route path="/brindes" element={<Brindes />} />
+      <Route path="/pesquisa" element={<PesquisaRelatorio />} />
       <Route path="/corretor" element={<Corretor />} />
       <Route path="/corretor/perfil" element={<PerfilCorretor />} />
       <Route path="/corretor/visitas" element={<VisitasCorretor />} />
