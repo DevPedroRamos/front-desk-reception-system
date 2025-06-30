@@ -34,9 +34,9 @@ export const PesquisaRelatorioDashboard = ({ pesquisas, brindes }: DashboardProp
     quantidade
   }));
 
-  // Dados para gráfico de notas
+  // Dados para gráfico de notas - filtrar apenas pesquisas com nota_consultor válida
   const notasDistribuicao = pesquisas.reduce((acc, pesquisa) => {
-    if (pesquisa.nota_consultor) {
+    if (pesquisa.nota_consultor && pesquisa.nota_consultor > 0 && pesquisa.nota_consultor <= 10) {
       acc[pesquisa.nota_consultor] = (acc[pesquisa.nota_consultor] || 0) + 1;
     }
     return acc;
@@ -48,8 +48,10 @@ export const PesquisaRelatorioDashboard = ({ pesquisas, brindes }: DashboardProp
     fill: COLORS[parseInt(nota) - 1] || COLORS[4]
   }));
 
-  const notaMedia = pesquisas.length > 0 
-    ? pesquisas.filter(p => p.nota_consultor).reduce((sum, p) => sum + (p.nota_consultor || 0), 0) / pesquisas.filter(p => p.nota_consultor).length
+  // Calcular nota média apenas com pesquisas que têm nota_consultor válida
+  const pesquisasComNota = pesquisas.filter(p => p.nota_consultor && p.nota_consultor > 0);
+  const notaMedia = pesquisasComNota.length > 0 
+    ? pesquisasComNota.reduce((sum, p) => sum + p.nota_consultor, 0) / pesquisasComNota.length
     : 0;
 
   return (
@@ -90,7 +92,7 @@ export const PesquisaRelatorioDashboard = ({ pesquisas, brindes }: DashboardProp
           <CardContent>
             <div className="text-2xl font-bold">{notaMedia.toFixed(1)}</div>
             <div className="text-xs text-muted-foreground mt-2">
-              De {pesquisas.filter(p => p.nota_consultor).length} avaliações
+              De {pesquisasComNota.length} avaliações
             </div>
           </CardContent>
         </Card>
@@ -142,7 +144,7 @@ export const PesquisaRelatorioDashboard = ({ pesquisas, brindes }: DashboardProp
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ nome, quantidade }) => `${nome}: ${quantidade}`}
+                  label={({ nota, quantidade }) => `${nota}: ${quantidade}`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="quantidade"
