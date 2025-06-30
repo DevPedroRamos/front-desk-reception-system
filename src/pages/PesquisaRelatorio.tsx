@@ -3,12 +3,11 @@ import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PesquisaRelatorioDashboard } from '@/components/pesquisa-relatorio/PesquisaRelatorioDashboard';
-import { PesquisaRelatorioValidacoes } from '@/components/pesquisa-relatorio/PesquisaRelatorioValidacoes';
 import { PesquisaRelatorioTabela } from '@/components/pesquisa-relatorio/PesquisaRelatorioTabela';
 import { PesquisaRelatorioFilters } from '@/components/pesquisa-relatorio/PesquisaRelatorioFilters';
 import { usePesquisasData, useBrindesData, useCorretores, PesquisaFilters } from '@/hooks/usePesquisasData';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BarChart3, CheckSquare, FileText, Filter } from 'lucide-react';
+import { BarChart3, FileText, Filter } from 'lucide-react';
 
 const PesquisaRelatorio = () => {
   const [filters, setFilters] = useState<PesquisaFilters>({});
@@ -63,14 +62,10 @@ const PesquisaRelatorio = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="validacoes" className="flex items-center gap-2">
-              <CheckSquare className="h-4 w-4" />
-              Validações
             </TabsTrigger>
             <TabsTrigger value="relatorios" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -84,10 +79,6 @@ const PesquisaRelatorio = () => {
 
           <TabsContent value="dashboard">
             <PesquisaRelatorioDashboard pesquisas={pesquisas} brindes={brindes} />
-          </TabsContent>
-
-          <TabsContent value="validacoes">
-            <PesquisaRelatorioValidacoes brindes={brindes} onUpdate={handleUpdate} />
           </TabsContent>
 
           <TabsContent value="relatorios">
