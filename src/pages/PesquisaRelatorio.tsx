@@ -1357,4 +1357,4 @@ const AdvancedReportsDashboard = () => {
   )
 }
 
-export default PesquisaRelatorio
+export default AdvancedReportsDashboard
