@@ -752,7 +752,7 @@ const Integracao = () => {
                       A pesquisa fica disponível em uma URL pública que pode ser compartilhada facilmente:
                     </p>
                     <div className="bg-white p-2 rounded border font-mono text-xs text-blue-800">
-                      https://seudominio.com/pesquisa-satisfacao
+                      https://recepcao.metrocasa.com.br/pesquisa-satisfacao
                     </div>
                     <p className="text-xs text-blue-600 mt-2">
                       * Este link pode ser enviado por WhatsApp, email ou QR Code
