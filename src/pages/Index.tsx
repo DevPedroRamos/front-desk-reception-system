@@ -29,7 +29,6 @@ import {
   Eye,
   UserX,
 } from "lucide-react"
-import { BrindeDialog } from "@/components/BrindeDialog"
 
 interface DashboardStats {
   total_visitas_hoje: number
@@ -69,8 +68,6 @@ export default function index() {
   const [superintendentes, setSuperintendentes] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [brindeDialogOpen, setBrindeDialogOpen] = useState(false)
-  const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null)
 
   // Inicializar filtros com data atual
   const hoje = new Date()
@@ -362,30 +359,19 @@ export default function index() {
   }
 
   const finalizarVisita = async (visitId: string) => {
-    // Encontrar a visita para passar os dados para o dialog
-    const visit = activeVisits.find((v) => v.id === visitId)
-    if (!visit) {
-      toast.error("Visita não encontrada")
-      return
-    }
-
-    setSelectedVisit(visit)
-    setBrindeDialogOpen(true)
-  }
-
-  const handleFinalizarVisita = async () => {
-    if (!selectedVisit) return
-
     try {
-      const { error } = await supabase.rpc("finalizar_visita", { visit_id: selectedVisit.id })
+      const { error } = await supabase.rpc("finalizar_visita", { visit_id: visitId })
 
-      if (error) throw error
+      if (error) {
+        console.error('Erro ao finalizar visita:', error)
+        toast.error("Erro ao finalizar visita")
+        return
+      }
 
       toast.success("Visita finalizada com sucesso!")
       loadActiveVisits()
       loadFinishedVisits()
       loadDashboardStats()
-      setSelectedVisit(null)
     } catch (error) {
       console.error("Error finishing visit:", error)
       toast.error("Erro ao finalizar visita")
@@ -858,21 +844,6 @@ export default function index() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Dialog de Brinde */}
-          {selectedVisit && (
-            <BrindeDialog
-              open={brindeDialogOpen}
-              onOpenChange={setBrindeDialogOpen}
-              visitData={{
-                id: selectedVisit.id,
-                cliente_nome: selectedVisit.cliente_nome,
-                cliente_cpf: selectedVisit.cliente_cpf,
-                corretor_nome: selectedVisit.corretor_nome,
-              }}
-              onFinalize={handleFinalizarVisita}
-            />
-          )}
         </div>
       </div>
     </Layout>
