@@ -1,4 +1,3 @@
-
 import {
   Sidebar,
   SidebarContent,
@@ -11,7 +10,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { BarChart3, UserCheck, LogOut, Trophy, Clock, Calendar, Users, User, Gift, FileText } from "lucide-react";
+import { BarChart3, UserCheck, LogOut, Trophy, Clock, Calendar, Users, User, Gift, FileText, BookOpen } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -51,6 +50,11 @@ export function AppSidebar() {
           url: "/podio",
           icon: Trophy,
         },
+        {
+          title: "Integração",
+          url: "/integracao",
+          icon: BookOpen,
+        },
       ];
     } else {
       // Recepcionista ou outros roles
@@ -84,6 +88,11 @@ export function AppSidebar() {
           title: "Pódio",
           url: "/podio",
           icon: Trophy,
+        },
+        {
+          title: "Integração",
+          url: "/integracao",
+          icon: BookOpen,
         },
       ];
     }

@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Auth from '@/pages/auth';
@@ -10,6 +9,7 @@ import Recepcao from '@/pages/recepcao';
 import Brindes from '@/pages/Brindes';
 import PesquisaSatisfacao from '@/pages/PesquisaSatisfacao';
 import PesquisaRelatorio from '@/pages/PesquisaRelatorio';
+import Integracao from '@/pages/Integracao';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import Corretor from '@/pages/corretor';
@@ -45,6 +45,7 @@ function ProtectedRoutes() {
       <Route path="/podio" element={<Podio />} />
       <Route path="/brindes" element={<Brindes />} />
       <Route path="/pesquisa" element={<PesquisaRelatorio />} />
+      <Route path="/integracao" element={<Integracao />} />
       <Route path="/corretor" element={<Corretor />} />
       <Route path="/corretor/perfil" element={<PerfilCorretor />} />
       <Route path="/corretor/visitas" element={<VisitasCorretor />} />
