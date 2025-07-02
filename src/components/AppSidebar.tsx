@@ -46,11 +46,6 @@ export function AppSidebar() {
           icon: User,
         },
         {
-          title: "Pódio",
-          url: "/podio",
-          icon: Trophy,
-        },
-        {
           title: "Integração",
           url: "/integracao",
           icon: BookOpen,
