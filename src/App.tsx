@@ -11,6 +11,7 @@ import PesquisaSatisfacao from '@/pages/PesquisaSatisfacao';
 import PesquisaRelatorio from '@/pages/PesquisaRelatorio';
 import Integracao from '@/pages/Integracao';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { Toaster } from '@/components/ui/toaster';
 import Corretor from '@/pages/corretor';
 import PerfilCorretor from '@/pages/corretor/perfil';
@@ -23,10 +24,10 @@ function ProtectedRoutes() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Carregando...</p>
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando...</p>
         </div>
       </div>
     );
@@ -49,7 +50,7 @@ function ProtectedRoutes() {
       <Route path="/corretor" element={<Corretor />} />
       <Route path="/corretor/perfil" element={<PerfilCorretor />} />
       <Route path="/corretor/visitas" element={<VisitasCorretor />} />
-      <Route path="*" element={<div>404 - Página não encontrada</div>} />
+      <Route path="*" element={<div className="min-h-screen flex items-center justify-center bg-background"><div className="text-center"><h1 className="text-2xl font-bold text-foreground mb-2">404</h1><p className="text-muted-foreground">Página não encontrada</p></div></div>} />
     </Routes>
   );
 }
@@ -57,18 +58,20 @@ function ProtectedRoutes() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <div className="min-h-screen bg-background font-sans antialiased">
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/pesquisa-satisfacao" element={<PesquisaSatisfacao />} />
-              <Route path="/*" element={<ProtectedRoutes />} />
-            </Routes>
-            <Toaster />
-          </div>
-        </AuthProvider>
-      </BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <div className="min-h-screen bg-background font-sans antialiased">
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/pesquisa-satisfacao" element={<PesquisaSatisfacao />} />
+                <Route path="/*" element={<ProtectedRoutes />} />
+              </Routes>
+              <Toaster />
+            </div>
+          </AuthProvider>
+        </BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

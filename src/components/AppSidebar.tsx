@@ -14,6 +14,7 @@ import { BarChart3, UserCheck, LogOut, Trophy, Clock, Calendar, Users, User, Gif
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -97,23 +98,23 @@ export function AppSidebar() {
 
   if (loading) {
     return (
-      <Sidebar className="border-r border-slate-200">
-        <SidebarHeader className="p-6 border-b border-slate-200">
+      <Sidebar className="border-r border-border">
+        <SidebarHeader className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">📊</span>
+            <div className="w-10 h-10 bg-gradient-to-r from-primary to-primary/80 rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-lg">📊</span>
             </div>
             <div>
-              <h1 className="font-bold text-lg text-slate-900">Front Desk</h1>
-              <p className="text-sm text-slate-500">Carregando...</p>
+              <h1 className="font-bold text-lg text-foreground">Front Desk</h1>
+              <p className="text-sm text-muted-foreground">Carregando...</p>
             </div>
           </div>
         </SidebarHeader>
         <SidebarContent>
           <div className="p-6">
             <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-muted rounded w-1/2"></div>
             </div>
           </div>
         </SidebarContent>
@@ -122,15 +123,15 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar className="border-r border-slate-200">
-      <SidebarHeader className="p-6 border-b border-slate-200">
+    <Sidebar className="border-r border-border">
+      <SidebarHeader className="p-6 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">📊</span>
+          <div className="w-10 h-10 bg-gradient-to-r from-primary to-primary/80 rounded-lg flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-lg">📊</span>
           </div>
           <div>
-            <h1 className="font-bold text-lg text-slate-900">Front Desk</h1>
-            <p className="text-sm text-slate-500">
+            <h1 className="font-bold text-lg text-foreground">Front Desk</h1>
+            <p className="text-sm text-muted-foreground">
               {userProfile?.role === 'corretor' ? 'Portal do Corretor' : 'Sistema de Recepção'}
             </p>
           </div>
@@ -139,7 +140,7 @@ export function AppSidebar() {
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-600 font-semibold">
+          <SidebarGroupLabel className="text-muted-foreground font-semibold">
             Navegação
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -150,7 +151,7 @@ export function AppSidebar() {
                     asChild
                     isActive={location.pathname === item.url}
                   >
-                    <a href={item.url} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors">
+                    <a href={item.url} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors">
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </a>
@@ -162,29 +163,32 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-6 border-t border-slate-200">
+      <SidebarFooter className="p-6 border-t border-border">
         {user && (
           <div className="mb-4">
-            <div className="text-sm font-medium text-slate-900 mb-1">
+            <div className="text-sm font-medium text-foreground mb-1">
               {userProfile?.name || user.email}
             </div>
-            <div className="text-xs text-slate-500 mb-2">
+            <div className="text-xs text-muted-foreground mb-3">
               {userProfile?.role && (
-                <span className="capitalize bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                <span className="capitalize bg-primary/10 text-primary px-2 py-1 rounded text-xs">
                   {userProfile.role}
                 </span>
               )}
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors w-full"
-            >
-              <LogOut className="h-3 w-3" />
-              Sair
-            </button>
+            <div className="flex items-center gap-2 mb-3">
+              <ThemeToggle />
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors flex-1"
+              >
+                <LogOut className="h-3 w-3" />
+                Sair
+              </button>
+            </div>
           </div>
         )}
-        <div className="text-xs text-slate-500 text-center">
+        <div className="text-xs text-muted-foreground text-center">
           © 2025 Front Desk System | Metro Lab🧪
         </div>
       </SidebarFooter>

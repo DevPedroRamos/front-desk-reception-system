@@ -12,6 +12,9 @@ import { supabase } from "@/integrations/supabase/client"
 import { format, startOfMonth, endOfMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
+import { MetricsGrid } from "@/components/analytics/MetricsGrid"
+import { ChartContainer } from "@/components/analytics/ChartContainer"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
 import {
   Calendar,
   Users,
@@ -28,6 +31,9 @@ import {
   Download,
   Eye,
   UserX,
+  BarChart3,
+  PieChart as PieChartIcon,
+  LineChart as LineChartIcon,
 } from "lucide-react"
 
 interface DashboardStats {
@@ -54,7 +60,9 @@ interface Visit {
   status: string
 }
 
-export default function index() {
+const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+
+export default function Index() {
   const [stats, setStats] = useState<DashboardStats>({
     total_visitas_hoje: 0,
     visitas_ativas: 0,
@@ -68,6 +76,9 @@ export default function index() {
   const [superintendentes, setSuperintendentes] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [chartData, setChartData] = useState<any[]>([])
+  const [corretorData, setCorretorData] = useState<any[]>([])
+  const [lojaData, setLojaData] = useState<any[]>([])
 
   // Inicializar filtros com data atual
   const hoje = new Date()
@@ -80,15 +91,86 @@ export default function index() {
     const { data } = await supabase.from("users").select("superintendente").not("superintendente", "is", null)
 
     if (data) {
-      // Filter out empty strings and null values, then get unique superintendentes
       const uniqueSuperintendentes = [
         ...new Set(
           data
             .map((u) => u.superintendente)
-            .filter((sup) => sup && sup.trim() !== ""), // Filter out empty strings and null values
+            .filter((sup) => sup && sup.trim() !== ""),
         ),
       ]
       setSuperintendentes(uniqueSuperintendentes)
+    }
+  }
+
+  const loadAnalyticsData = async () => {
+    try {
+      // Dados para gráfico de visitas por dia (últimos 7 dias)
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date()
+        date.setDate(date.getDate() - i)
+        return format(date, 'yyyy-MM-dd')
+      }).reverse()
+
+      const chartPromises = last7Days.map(async (date) => {
+        const { count } = await supabase
+          .from('visits')
+          .select('*', { count: 'exact', head: true })
+          .gte('horario_entrada', `${date}T00:00:00`)
+          .lt('horario_entrada', `${date}T23:59:59`)
+
+        return {
+          date: format(new Date(date), 'dd/MM'),
+          visitas: count || 0
+        }
+      })
+
+      const chartResults = await Promise.all(chartPromises)
+      setChartData(chartResults)
+
+      // Dados por corretor (top 5)
+      const { data: visitasCorretores } = await supabase
+        .from('visits')
+        .select('corretor_nome')
+        .gte('horario_entrada', `${startDate}T00:00:00`)
+        .lte('horario_entrada', `${endDate}T23:59:59`)
+
+      if (visitasCorretores) {
+        const corretorCount = visitasCorretores.reduce((acc: any, visit) => {
+          const nome = visit.corretor_nome || 'Sem corretor'
+          acc[nome] = (acc[nome] || 0) + 1
+          return acc
+        }, {})
+
+        const corretorArray = Object.entries(corretorCount)
+          .map(([nome, count]) => ({ nome, visitas: count }))
+          .sort((a: any, b: any) => b.visitas - a.visitas)
+          .slice(0, 5)
+
+        setCorretorData(corretorArray)
+      }
+
+      // Dados por loja
+      const { data: visitasLojas } = await supabase
+        .from('visits')
+        .select('loja')
+        .gte('horario_entrada', `${startDate}T00:00:00`)
+        .lte('horario_entrada', `${endDate}T23:59:59`)
+
+      if (visitasLojas) {
+        const lojaCount = visitasLojas.reduce((acc: any, visit) => {
+          const loja = visit.loja
+          acc[loja] = (acc[loja] || 0) + 1
+          return acc
+        }, {})
+
+        const lojaArray = Object.entries(lojaCount)
+          .map(([nome, count]) => ({ nome, value: count }))
+
+        setLojaData(lojaArray)
+      }
+
+    } catch (error) {
+      console.error('Erro ao carregar dados analíticos:', error)
     }
   }
 
@@ -110,7 +192,6 @@ export default function index() {
 
   const loadDashboardStats = async () => {
     try {
-      // Primeiro, tentar usar a função RPC
       const params: any = {}
 
       if (startDate) params.start_date = startDate
@@ -121,7 +202,6 @@ export default function index() {
 
       if (error) {
         console.log("RPC error, fallback to manual calculation:", error)
-        // Fallback para cálculo manual se a função RPC falhar
         await loadDashboardStatsManual()
         return
       }
@@ -131,17 +211,14 @@ export default function index() {
       }
     } catch (error) {
       console.error("Error loading dashboard stats:", error)
-      // Fallback para cálculo manual
       await loadDashboardStatsManual()
     }
   }
 
   const loadDashboardStatsManual = async () => {
     try {
-      // Cálculo manual das estatísticas
       const baseQuery = supabase.from("visits").select("*", { count: "exact" })
 
-      // Total de visitas no período
       let totalQuery = baseQuery
       if (startDate) {
         totalQuery = totalQuery.gte("horario_entrada", startDate)
@@ -163,7 +240,6 @@ export default function index() {
 
       const { count: totalVisitas } = await totalQuery
 
-      // Visitas ativas
       let activeQuery = supabase.from("visits").select("*", { count: "exact" }).eq("status", "ativo")
       if (selectedSuperintendente !== "all") {
         const { data: userData } = await supabase
@@ -179,7 +255,6 @@ export default function index() {
 
       const { count: visitasAtivas } = await activeQuery
 
-      // Visitas finalizadas no período
       let finishedQuery = supabase.from("visits").select("*", { count: "exact" }).eq("status", "finalizado")
       if (startDate) {
         finishedQuery = finishedQuery.gte("horario_entrada", startDate)
@@ -201,7 +276,6 @@ export default function index() {
 
       const { count: visitasFinalizadas } = await finishedQuery
 
-      // Mesas ocupadas
       let mesasQuery = supabase.from("visits").select("mesa").eq("status", "ativo")
       if (selectedSuperintendente !== "all") {
         const { data: userData } = await supabase
@@ -218,7 +292,6 @@ export default function index() {
       const { data: mesasData } = await mesasQuery
       const mesasOcupadas = mesasData ? new Set(mesasData.map((v) => v.mesa)).size : 0
 
-      // Clientes na lista de espera
       let listaEsperaQuery = supabase.from("lista_espera").select("*", { count: "exact" }).eq("status", "aguardando")
       if (startDate) {
         listaEsperaQuery = listaEsperaQuery.gte("created_at", startDate)
@@ -234,7 +307,6 @@ export default function index() {
 
         if (userData) {
           const userIds = userData.map((u) => u.id)
-          // Incluir clientes sem corretor atribuído OU com corretor do superintendente selecionado
           listaEsperaQuery = listaEsperaQuery.or(`corretor_id.is.null,corretor_id.in.(${userIds.join(",")})`)
         }
       }
@@ -326,7 +398,6 @@ export default function index() {
         .eq("status", "finalizado")
         .order("horario_saida", { ascending: false })
 
-      // Aplicar filtros de data
       if (startDate) {
         query = query.gte("horario_entrada", startDate)
       }
@@ -419,6 +490,7 @@ export default function index() {
     await loadDashboardStats()
     await loadActiveVisits()
     await loadFinishedVisits()
+    await loadAnalyticsData()
     setRefreshing(false)
     toast.success("Dados atualizados!")
   }
@@ -441,6 +513,18 @@ export default function index() {
     return `${minutes}m`
   }
 
+  // Dados para o MetricsGrid
+  const metricsData = {
+    totalVisitas: stats.total_visitas_hoje,
+    visitasHoje: stats.total_visitas_hoje,
+    visitasAtivas: stats.visitas_ativas,
+    tempoMedio: 45, // Valor exemplo
+    taxaConversao: 68, // Valor exemplo
+    crescimentoSemanal: 12, // Valor exemplo
+    metaMensal: 85, // Valor exemplo
+    performanceGeral: 92, // Valor exemplo
+  }
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
@@ -448,6 +532,7 @@ export default function index() {
       await loadDashboardStats()
       await loadActiveVisits()
       await loadFinishedVisits()
+      await loadAnalyticsData()
       setLoading(false)
     }
 
@@ -457,13 +542,13 @@ export default function index() {
   if (loading) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="min-h-screen bg-background">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center space-y-4">
-              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-gray-900">Carregando Dashboard</h3>
-                <p className="text-gray-600">Aguarde enquanto buscamos os dados...</p>
+                <h3 className="text-lg font-semibold text-foreground">Carregando Dashboard</h3>
+                <p className="text-muted-foreground">Aguarde enquanto buscamos os dados...</p>
               </div>
             </div>
           </div>
@@ -474,16 +559,16 @@ export default function index() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="min-h-screen bg-background">
         {/* Header */}
-        <div className="bg-white shadow-sm border-b">
+        <div className="bg-card shadow-sm border-b border-border">
           <div className="max-w-7xl mx-auto px-6 py-8">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
-                <p className="text-gray-600 text-lg">Visão geral dos atendimentos em tempo real</p>
+                <h1 className="text-4xl font-bold text-foreground mb-2">Dashboard Analytics</h1>
+                <p className="text-muted-foreground text-lg">Visão geral dos atendimentos em tempo real</p>
               </div>
-              <Button onClick={refreshData} disabled={refreshing} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={refreshData} disabled={refreshing} className="bg-primary hover:bg-primary/90">
                 {refreshing ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
@@ -497,15 +582,14 @@ export default function index() {
 
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
           {/* Filtros */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-lg border-border bg-card/50 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-blue-600" />
+                <Filter className="w-5 h-5 text-primary" />
                 <CardTitle className="text-xl">Filtros</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Botões de Filtros Rápidos */}
               <div className="flex gap-3">
                 <Button
                   variant={
@@ -515,7 +599,6 @@ export default function index() {
                   }
                   size="sm"
                   onClick={() => setFiltroRapido("hoje")}
-                  className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   Hoje
@@ -529,7 +612,6 @@ export default function index() {
                   }
                   size="sm"
                   onClick={() => setFiltroRapido("mes")}
-                  className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   <TrendingUp className="w-4 h-4 mr-2" />
                   Mês Atual
@@ -538,7 +620,7 @@ export default function index() {
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Data Inicial</label>
+                  <label className="text-sm font-medium text-foreground">Data Inicial</label>
                   <Input
                     type="date"
                     value={startDate}
@@ -547,11 +629,11 @@ export default function index() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Data Final</label>
+                  <label className="text-sm font-medium text-foreground">Data Final</label>
                   <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-11" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Superintendente</label>
+                  <label className="text-sm font-medium text-foreground">Superintendente</label>
                   <Select value={selectedSuperintendente} onValueChange={setSelectedSuperintendente}>
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="Selecione" />
@@ -559,7 +641,7 @@ export default function index() {
                     <SelectContent>
                       <SelectItem value="all">Todos os superintendentes</SelectItem>
                       {superintendentes
-                        .filter((sup) => sup && sup.trim() !== "") // Additional safety filter
+                        .filter((sup) => sup && sup.trim() !== "")
                         .map((sup) => (
                           <SelectItem key={sup} value={sup}>
                             {sup}
@@ -572,7 +654,7 @@ export default function index() {
                   <Button
                     variant="outline"
                     onClick={clearFilters}
-                    className="w-full h-11 hover:bg-red-50 hover:border-red-200"
+                    className="w-full h-11 hover:bg-destructive/10 hover:border-destructive/20"
                   >
                     <X className="w-4 h-4 mr-2" />
                     Limpar Filtros
@@ -582,70 +664,134 @@ export default function index() {
             </CardContent>
           </Card>
 
-          {/* Cards de Estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium opacity-90">Total de Visitas</CardTitle>
-                <Users className="h-6 w-6 opacity-80" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.total_visitas_hoje}</div>
-                <p className="text-xs opacity-80 mt-1">Visitas no período</p>
-              </CardContent>
-            </Card>
+          {/* Métricas Principais */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-6 h-6 text-primary" />
+              <h2 className="text-2xl font-bold text-foreground">Métricas Principais</h2>
+            </div>
+            <MetricsGrid data={metricsData} isLoading={loading} />
+          </div>
 
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium opacity-90">Atendimentos Ativos</CardTitle>
-                <Activity className="h-6 w-6 opacity-80" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.visitas_ativas}</div>
-                <p className="text-xs opacity-80 mt-1">Em andamento</p>
-              </CardContent>
-            </Card>
+          {/* Gráficos Analytics */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ChartContainer
+              title="Visitas por Dia"
+              description="Últimos 7 dias"
+              isLoading={loading}
+            >
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="date" className="text-muted-foreground" />
+                  <YAxis className="text-muted-foreground" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }} 
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="visitas" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={3}
+                    dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
 
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium opacity-90">Visitas Finalizadas</CardTitle>
-                <CheckCircle2 className="h-6 w-6 opacity-80" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.visitas_finalizadas_hoje}</div>
-                <p className="text-xs opacity-80 mt-1">Finalizadas no período</p>
-              </CardContent>
-            </Card>
+            <ChartContainer
+              title="Top 5 Corretores"
+              description="Visitas no período"
+              isLoading={loading}
+            >
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={corretorData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="nome" className="text-muted-foreground" />
+                  <YAxis className="text-muted-foreground" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }} 
+                  />
+                  <Bar dataKey="visitas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
 
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium opacity-90">Mesas Ocupadas</CardTitle>
-                <Building2 className="h-6 w-6 opacity-80" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.mesas_ocupadas}</div>
-                <p className="text-xs opacity-80 mt-1">Atualmente ocupadas</p>
-              </CardContent>
-            </Card>
+            <ChartContainer
+              title="Distribuição por Loja"
+              description="Visitas por localização"
+              isLoading={loading}
+            >
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={lojaData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ nome, percent }) => `${nome} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {lojaData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }} 
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
 
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-red-500 to-red-600 text-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium opacity-90">Lista de Espera</CardTitle>
-                <Timer className="h-6 w-6 opacity-80" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.clientes_lista_espera}</div>
-                <p className="text-xs opacity-80 mt-1">Clientes aguardando</p>
-              </CardContent>
-            </Card>
+            <ChartContainer
+              title="Performance Semanal"
+              description="Comparativo de performance"
+              isLoading={loading}
+            >
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={[
+                  { semana: 'Sem 1', meta: 100, realizado: 85 },
+                  { semana: 'Sem 2', meta: 100, realizado: 92 },
+                  { semana: 'Sem 3', meta: 100, realizado: 78 },
+                  { semana: 'Sem 4', meta: 100, realizado: 105 },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="semana" className="text-muted-foreground" />
+                  <YAxis className="text-muted-foreground" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }} 
+                  />
+                  <Bar dataKey="meta" fill="hsl(var(--muted))" name="Meta" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="realizado" fill="hsl(var(--primary))" name="Realizado" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </div>
 
           {/* Atendimentos Ativos */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-lg border-border bg-card/80 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <Activity className="w-6 h-6 text-emerald-600" />
+                  <Activity className="w-6 h-6 text-green-600" />
                   <div>
                     <CardTitle className="text-xl">Atendimentos Ativos</CardTitle>
                     <CardDescription className="text-base">Lista de atendimentos em andamento</CardDescription>
@@ -653,7 +799,7 @@ export default function index() {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                     <Input
                       placeholder="Pesquisar por corretor..."
                       value={searchTerm}
@@ -668,9 +814,9 @@ export default function index() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border overflow-hidden">
+              <div className="rounded-lg border border-border overflow-hidden">
                 <Table>
-                  <TableHeader className="bg-gray-50">
+                  <TableHeader className="bg-muted/50">
                     <TableRow>
                       <TableHead className="font-semibold">Cliente</TableHead>
                       <TableHead className="font-semibold">Corretor</TableHead>
@@ -683,11 +829,11 @@ export default function index() {
                   </TableHeader>
                   <TableBody>
                     {filteredActiveVisits.map((visit) => (
-                      <TableRow key={visit.id} className="hover:bg-gray-50/50">
+                      <TableRow key={visit.id} className="hover:bg-muted/50">
                         <TableCell>
                           <div className="space-y-1">
-                            <p className="font-medium text-gray-900">{visit.cliente_nome}</p>
-                            <p className="text-sm text-gray-500">{visit.cliente_cpf}</p>
+                            <p className="font-medium text-foreground">{visit.cliente_nome}</p>
+                            <p className="text-sm text-muted-foreground">{visit.cliente_cpf}</p>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -696,12 +842,12 @@ export default function index() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="text-gray-900">{visit.empreendimento || "-"}</span>
+                          <span className="text-foreground">{visit.empreendimento || "-"}</span>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
                             <div className="font-medium">{visit.loja}</div>
-                            <div className="text-gray-500">
+                            <div className="text-muted-foreground">
                               {visit.andar} - Mesa {visit.mesa}
                             </div>
                           </div>
@@ -711,13 +857,13 @@ export default function index() {
                             <div className="font-medium">
                               {format(new Date(visit.horario_entrada), "dd/MM", { locale: ptBR })}
                             </div>
-                            <div className="text-gray-500">
+                            <div className="text-muted-foreground">
                               {format(new Date(visit.horario_entrada), "HH:mm", { locale: ptBR })}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
                             {getTempoAtendimento(visit.horario_entrada)}
                           </Badge>
                         </TableCell>
@@ -725,7 +871,7 @@ export default function index() {
                           <Button
                             size="sm"
                             onClick={() => finalizarVisita(visit.id)}
-                            className="bg-emerald-600 hover:bg-emerald-700"
+                            className="bg-green-600 hover:bg-green-700"
                           >
                             <CheckCircle2 className="w-4 h-4 mr-1" />
                             Finalizar
@@ -737,9 +883,9 @@ export default function index() {
                 </Table>
                 {filteredActiveVisits.length === 0 && (
                   <div className="text-center py-12">
-                    <UserX className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum atendimento ativo</h3>
-                    <p className="text-gray-500">Não há atendimentos em andamento no momento</p>
+                    <UserX className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">Nenhum atendimento ativo</h3>
+                    <p className="text-muted-foreground">Não há atendimentos em andamento no momento</p>
                   </div>
                 )}
               </div>
@@ -747,7 +893,7 @@ export default function index() {
           </Card>
 
           {/* Visitas Finalizadas */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-lg border-border bg-card/80 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
@@ -761,7 +907,7 @@ export default function index() {
                   <Badge variant="secondary" className="text-sm px-3 py-1">
                     {finishedVisits.length} finalizada{finishedVisits.length !== 1 ? "s" : ""}
                   </Badge>
-                  <Button onClick={exportToCSV} variant="outline" className="hover:bg-green-50 hover:border-green-200">
+                  <Button onClick={exportToCSV} variant="outline" className="hover:bg-green-50 hover:border-green-200 dark:hover:bg-green-900/20">
                     <Download className="w-4 h-4 mr-2" />
                     Exportar CSV
                   </Button>
@@ -769,9 +915,9 @@ export default function index() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border overflow-hidden">
+              <div className="rounded-lg border border-border overflow-hidden">
                 <Table>
-                  <TableHeader className="bg-gray-50">
+                  <TableHeader className="bg-muted/50">
                     <TableRow>
                       <TableHead className="font-semibold">Cliente</TableHead>
                       <TableHead className="font-semibold">Corretor</TableHead>
@@ -783,11 +929,11 @@ export default function index() {
                   </TableHeader>
                   <TableBody>
                     {finishedVisits.slice(0, 50).map((visit) => (
-                      <TableRow key={visit.id} className="hover:bg-gray-50/50">
+                      <TableRow key={visit.id} className="hover:bg-muted/50">
                         <TableCell>
                           <div className="space-y-1">
-                            <p className="font-medium text-gray-900">{visit.cliente_nome}</p>
-                            <p className="text-sm text-gray-500">{visit.cliente_cpf}</p>
+                            <p className="font-medium text-foreground">{visit.cliente_nome}</p>
+                            <p className="text-sm text-muted-foreground">{visit.cliente_cpf}</p>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -796,12 +942,12 @@ export default function index() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="text-gray-900">{visit.empreendimento || "-"}</span>
+                          <span className="text-foreground">{visit.empreendimento || "-"}</span>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
                             <div className="font-medium">{visit.loja}</div>
-                            <div className="text-gray-500">
+                            <div className="text-muted-foreground">
                               {visit.andar} - Mesa {visit.mesa}
                             </div>
                           </div>
@@ -811,7 +957,7 @@ export default function index() {
                             <div className="font-medium">
                               {format(new Date(visit.horario_entrada), "dd/MM", { locale: ptBR })}
                             </div>
-                            <div className="text-gray-500">
+                            <div className="text-muted-foreground">
                               {format(new Date(visit.horario_entrada), "HH:mm", { locale: ptBR })}
                             </div>
                           </div>
@@ -822,12 +968,12 @@ export default function index() {
                               <div className="font-medium">
                                 {format(new Date(visit.horario_saida), "dd/MM", { locale: ptBR })}
                               </div>
-                              <div className="text-gray-500">
+                              <div className="text-muted-foreground">
                                 {format(new Date(visit.horario_saida), "HH:mm", { locale: ptBR })}
                               </div>
                             </div>
                           ) : (
-                            <span className="text-gray-400">-</span>
+                            <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -836,9 +982,9 @@ export default function index() {
                 </Table>
                 {finishedVisits.length === 0 && (
                   <div className="text-center py-12">
-                    <Eye className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma visita finalizada</h3>
-                    <p className="text-gray-500">Não há visitas finalizadas no período selecionado</p>
+                    <Eye className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma visita finalizada</h3>
+                    <p className="text-muted-foreground">Não há visitas finalizadas no período selecionado</p>
                   </div>
                 )}
               </div>
