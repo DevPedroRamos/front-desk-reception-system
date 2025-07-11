@@ -11,6 +11,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { BarChart3, UserCheck, LogOut, Trophy, Clock, Calendar, Users, User, Gift, FileText, BookOpen } from "lucide-react";
+import appLogo from "@/assets/app-logo.png";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -101,9 +102,9 @@ export function AppSidebar() {
       <Sidebar className="border-r border-slate-200">
         <SidebarHeader className="p-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">📊</span>
-            </div>
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+            <img src={appLogo} alt="Front Desk" className="w-10 h-10 rounded-lg" />
+          </div>
             <div>
               <h1 className="font-bold text-lg text-slate-900">Front Desk</h1>
               <p className="text-sm text-slate-500">Carregando...</p>
@@ -126,8 +127,8 @@ export function AppSidebar() {
     <Sidebar className="border-r border-slate-200">
       <SidebarHeader className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">📊</span>
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+            <img src={appLogo} alt="Front Desk" className="w-10 h-10 rounded-lg" />
           </div>
           <div>
             <h1 className="font-bold text-lg text-slate-900">Front Desk</h1>
