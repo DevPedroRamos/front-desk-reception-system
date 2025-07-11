@@ -14,6 +14,7 @@ import { BarChart3, UserCheck, LogOut, Trophy, Clock, Calendar, Users, User, Gif
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -158,6 +159,14 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <div className="px-3 py-2">
+              <PWAInstallButton />
+            </div>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
