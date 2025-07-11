@@ -12,6 +12,7 @@ import PesquisaRelatorio from '@/pages/PesquisaRelatorio';
 import Integracao from '@/pages/Integracao';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import Corretor from '@/pages/corretor';
 import PerfilCorretor from '@/pages/corretor/perfil';
 import VisitasCorretor from '@/pages/corretor/visitas';
@@ -66,6 +67,7 @@ function App() {
               <Route path="/*" element={<ProtectedRoutes />} />
             </Routes>
             <Toaster />
+            <PWAInstallPrompt />
           </div>
         </AuthProvider>
       </BrowserRouter>
