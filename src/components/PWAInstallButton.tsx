@@ -47,6 +47,9 @@ export const PWAInstallButton = () => {
     // Para iOS, sempre mostrar o botão se não estiver instalado
     if (iOS && !isStandalone) {
       setCanInstall(true);
+    } else if (!iOS) {
+      // Para outros navegadores, sempre mostrar o botão
+      setCanInstall(true);
     }
 
     return () => {
@@ -118,10 +121,10 @@ export const PWAInstallButton = () => {
     );
   }
 
-  // Se não puder instalar, não mostrar botão
-  if (!canInstall && !isIOS) {
-    return null;
-  }
+  // Sempre mostrar o botão, exceto se já estiver instalado
+  // if (!canInstall && !isIOS) {
+  //   return null;
+  // }
 
   return (
     <Button variant="ghost" size="sm" onClick={handleInstall}>
