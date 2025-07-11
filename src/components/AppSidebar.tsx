@@ -161,12 +161,12 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* PWA Install Button */}
-        <div className="px-6 py-3">
-          <PWAInstallButton />
-        </div>
       </SidebarContent>
+
+      {/* PWA Install Button - sempre visível */}
+      <div className="px-6 py-4 border-t border-slate-200">
+        <PWAInstallButton />
+      </div>
 
       <SidebarFooter className="p-6 border-t border-slate-200">
         {user && (
