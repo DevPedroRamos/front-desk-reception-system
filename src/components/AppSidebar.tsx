@@ -123,24 +123,24 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar className="border-r border-slate-200">
-      <SidebarHeader className="p-6 border-b border-slate-200">
+    <Sidebar className="border-r border-slate-200" collapsible="icon">
+      <SidebarHeader className="p-4 lg:p-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-            <img src="/icons/icon-192x192.png" alt="Front Desk" className="w-10 h-10 rounded-lg" />
+          <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <img src="/icons/icon-192x192.png" alt="Front Desk" className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg" />
           </div>
-          <div>
-            <h1 className="font-bold text-lg text-slate-900">Front Desk</h1>
-            <p className="text-sm text-slate-500">
+          <div className="min-w-0 hidden lg:block group-data-[collapsible=icon]:hidden">
+            <h1 className="font-bold text-base lg:text-lg text-slate-900 truncate">Front Desk</h1>
+            <p className="text-xs lg:text-sm text-slate-500 truncate">
               {userProfile?.role === 'corretor' ? 'Portal do Corretor' : 'Sistema de Recepção'}
             </p>
           </div>
         </div>
       </SidebarHeader>
       
-      <SidebarContent>
+      <SidebarContent className="px-2 lg:px-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-600 font-semibold">
+          <SidebarGroupLabel className="text-slate-600 font-semibold text-xs lg:text-sm px-2 group-data-[collapsible=icon]:hidden">
             Navegação
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -150,10 +150,11 @@ export function AppSidebar() {
                   <SidebarMenuButton 
                     asChild
                     isActive={location.pathname === item.url}
+                    className="h-9 lg:h-10"
                   >
-                    <a href={item.url} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                    <a href={item.url} className="flex items-center gap-3 px-2 lg:px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors">
+                      <item.icon className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -164,20 +165,20 @@ export function AppSidebar() {
         
         <SidebarGroup>
           <SidebarGroupContent>
-            <div className="px-3 py-2">
+            <div className="px-2 lg:px-3 py-2">
               <PWAInstallButton />
             </div>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-6 border-t border-slate-200">
+      <SidebarFooter className="p-3 lg:p-6 border-t border-slate-200">
         {user && (
-          <div className="mb-4">
-            <div className="text-sm font-medium text-slate-900 mb-1">
+          <div className="mb-3 lg:mb-4">
+            <div className="text-xs lg:text-sm font-medium text-slate-900 mb-1 truncate group-data-[collapsible=icon]:hidden">
               {userProfile?.name || user.email}
             </div>
-            <div className="text-xs text-slate-500 mb-2">
+            <div className="text-xs text-slate-500 mb-2 group-data-[collapsible=icon]:hidden">
               {userProfile?.role && (
                 <span className="capitalize bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
                   {userProfile.role}
@@ -186,14 +187,15 @@ export function AppSidebar() {
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors w-full"
+              className="flex items-center gap-2 text-xs lg:text-sm text-slate-600 hover:text-slate-900 transition-colors w-full justify-center group-data-[collapsible=icon]:justify-center"
+              title="Sair"
             >
-              <LogOut className="h-3 w-3" />
-              Sair
+              <LogOut className="h-3 w-3 lg:h-4 lg:w-4" />
+              <span className="group-data-[collapsible=icon]:hidden">Sair</span>
             </button>
           </div>
         )}
-        <div className="text-xs text-slate-500 text-center">
+        <div className="text-xs text-slate-500 text-center group-data-[collapsible=icon]:hidden">
           © 2025 Front Desk System | Metro Lab🧪
         </div>
       </SidebarFooter>
