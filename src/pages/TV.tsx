@@ -247,46 +247,7 @@ export default function TV() {
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white mt-16">
-        <div className="px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <img src="/metrocasa-logo-white.png" alt="Metrocasa" className="h-12 mb-4" />
-              <p className="text-gray-400">Construindo sonhos, criando histórias.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Empresa</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>Entre em Contato</li>
-                <li>Carreiras</li>
-                <li>Blog</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Suporte</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>Suporte Via Chat</li>
-                <li>Central de Atendimento</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Siga-nos</h4>
-              <div className="flex gap-4">
-                <div className="w-10 h-10 bg-[#AD1010] rounded-full flex items-center justify-center">
-                  <span className="text-sm">f</span>
-                </div>
-                <div className="w-10 h-10 bg-[#AD1010] rounded-full flex items-center justify-center">
-                  <span className="text-sm">@</span>
-                </div>
-                <div className="w-10 h-10 bg-[#AD1010] rounded-full flex items-center justify-center">
-                  <span className="text-sm">in</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>Copyright © 2025 Construtora Metrocasa - Todos os Direitos Reservados</p>
-          </div>
-        </div>
+        
       </footer>
 
       {/* Notification Popup */}
