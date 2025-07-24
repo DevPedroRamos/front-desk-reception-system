@@ -10,6 +10,7 @@ import Brindes from '@/pages/Brindes';
 import PesquisaSatisfacao from '@/pages/PesquisaSatisfacao';
 import PesquisaRelatorio from '@/pages/PesquisaRelatorio';
 import Integracao from '@/pages/Integracao';
+import TV from '@/pages/TV';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
@@ -64,6 +65,7 @@ function App() {
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/pesquisa-satisfacao" element={<PesquisaSatisfacao />} />
+              <Route path="/tv" element={<TV />} />
               <Route path="/*" element={<ProtectedRoutes />} />
             </Routes>
             <PWAInstallPrompt />
