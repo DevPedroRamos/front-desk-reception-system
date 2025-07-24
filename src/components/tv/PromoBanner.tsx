@@ -1,11 +1,9 @@
 import { Card } from '@/components/ui/card';
 import { Sparkles, Home, Calendar } from 'lucide-react';
-
 export function PromoBanner() {
-  return (
-    <div className="grid md:grid-cols-3 gap-6">
+  return <div className="">
       {/* Main Promotion */}
-      <Card className="md:col-span-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-8">
+      <Card className="md:col-span-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-8 bg-white">
         <div className="flex items-center space-x-4 mb-6">
           <Sparkles className="h-12 w-12" />
           <div>
@@ -27,27 +25,6 @@ export function PromoBanner() {
       </Card>
 
       {/* Side Promotions */}
-      <div className="space-y-6">
-        <Card className="bg-secondary text-secondary-foreground p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Home className="h-8 w-8 text-primary" />
-            <h4 className="text-xl font-bold">Novos Lançamentos</h4>
-          </div>
-          <p className="text-sm">
-            Conheça nossos empreendimentos com entrega para 2025/2026
-          </p>
-        </Card>
-
-        <Card className="bg-accent text-accent-foreground p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Calendar className="h-8 w-8 text-primary" />
-            <h4 className="text-xl font-bold">Agende sua Visita</h4>
-          </div>
-          <p className="text-sm">
-            Visite nossos decorados e conheça todas as opções disponíveis
-          </p>
-        </Card>
-      </div>
-    </div>
-  );
+      
+    </div>;
 }

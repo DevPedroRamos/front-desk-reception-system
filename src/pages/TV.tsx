@@ -1,59 +1,46 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/integrations/supabase/client"
-import { VisitasTable } from "@/components/tv/VisitasTable"
-import { NotificationPopup } from "@/components/tv/NotificationPopup"
-import { YouTubeEmbed } from "@/components/tv/YouTubeEmbed"
-import { PromoBanner } from "@/components/tv/PromoBanner"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Trophy, Users, TrendingUp, Star, Gift, Zap, Target, Award, Play, Eye, Clock, Sparkles } from "lucide-react"
-
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { VisitasTable } from "@/components/tv/VisitasTable";
+import { NotificationPopup } from "@/components/tv/NotificationPopup";
+import { YouTubeEmbed } from "@/components/tv/YouTubeEmbed";
+import { PromoBanner } from "@/components/tv/PromoBanner";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Trophy, Users, TrendingUp, Star, Gift, Zap, Target, Award, Play, Eye, Clock, Sparkles } from "lucide-react";
 interface Visit {
-  id: string
-  corretor_nome: string
-  loja: string
-  andar: string
-  mesa: number
-  horario_entrada: string
-  cliente_nome: string
+  id: string;
+  corretor_nome: string;
+  loja: string;
+  andar: string;
+  mesa: number;
+  horario_entrada: string;
+  cliente_nome: string;
 }
-
 export default function TV() {
-  const [newVisit, setNewVisit] = useState<Visit | null>(null)
-
+  const [newVisit, setNewVisit] = useState<Visit | null>(null);
   useEffect(() => {
     // Subscribe to real-time changes in visits table
-    const channel = supabase
-      .channel("visits-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "visits",
-        },
-        (payload) => {
-          console.log("Nova visita detectada:", payload)
-          const visit = payload.new as Visit
-          setNewVisit(visit)
+    const channel = supabase.channel("visits-realtime").on("postgres_changes", {
+      event: "INSERT",
+      schema: "public",
+      table: "visits"
+    }, payload => {
+      console.log("Nova visita detectada:", payload);
+      const visit = payload.new as Visit;
+      setNewVisit(visit);
 
-          // Auto-close popup after 3 seconds
-          setTimeout(() => {
-            setNewVisit(null)
-          }, 3000)
-        },
-      )
-      .subscribe()
-
+      // Auto-close popup after 3 seconds
+      setTimeout(() => {
+        setNewVisit(null);
+      }, 3000);
+    }).subscribe();
     return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [])
-
-  return (
-    <div className="min-h-screen bg-gray-100">
+      supabase.removeChannel(channel);
+    };
+  }, []);
+  return <div className="min-h-screen bg-gray-100">
       {/* Header Promocional Metrocasa */}
       <div className="bg-[#AD1010] text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[#AD1010] via-red-600 to-[#AD1010] opacity-90"></div>
@@ -82,30 +69,7 @@ export default function TV() {
           </div>
 
           {/* Hero Section */}
-          <div className="text-center py-8">
-            <h1 className="text-5xl md:text-6xl font-bold mb-4">MONITORE E GANHE</h1>
-            <p className="text-xl mb-8 opacity-90 max-w-3xl mx-auto">
-              Acompanhe em tempo real o desempenho da sua equipe e conquiste resultados extraordinários!
-              <br />
-              Cada visita é uma oportunidade de sucesso.
-            </p>
-
-            {/* Benefícios em Destaque */}
-            <div className="flex justify-center items-center gap-12 text-center">
-              <div className="flex flex-col items-center">
-                <div className="text-4xl font-bold">TEMPO REAL</div>
-                <div className="text-sm opacity-80">monitoramento ativo</div>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="text-4xl font-bold">24/7</div>
-                <div className="text-sm opacity-80">disponibilidade total</div>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="text-4xl font-bold">RESULTADOS</div>
-                <div className="text-sm opacity-80">performance garantida</div>
-              </div>
-            </div>
-          </div>
+          
         </div>
       </div>
 
@@ -327,6 +291,5 @@ export default function TV() {
 
       {/* Notification Popup */}
       {newVisit && <NotificationPopup visit={newVisit} onClose={() => setNewVisit(null)} />}
-    </div>
-  )
+    </div>;
 }
