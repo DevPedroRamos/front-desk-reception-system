@@ -75,7 +75,7 @@ export default function TV() {
 
       {/* Cards de Métricas em Tempo Real */}
       <div className="px-8 py-6 -mt-8 relative z-20">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="shadow-xl border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -100,17 +100,6 @@ export default function TV() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-xl border-0 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold">89%</div>
-                  <div className="text-sm opacity-90">Taxa Conversão</div>
-                </div>
-                <Target className="w-10 h-10 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
 
           <Card className="shadow-xl border-0 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
             <CardContent className="p-6">
