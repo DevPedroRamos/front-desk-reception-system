@@ -34,7 +34,7 @@ export default function TV() {
       // Auto-close popup after 3 seconds
       setTimeout(() => {
         setNewVisit(null);
-      }, 3000);
+      }, 9000);
     }).subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -75,7 +75,7 @@ export default function TV() {
 
       <div className="px-8 py-6 -mt-8 relative z-20">
         {/* Seção Principal de Conteúdo */}
-        <div className="grid lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid lg:grid-cols-4 gap-8 mb-8">
           {/* Vídeo Institucional */}
           <div className="lg:col-span-2">
             <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
