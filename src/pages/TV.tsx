@@ -73,7 +73,7 @@ export default function TV() {
         </div>
       </div>
 
-      <div className="px-8 py-6 -mt-8 relative z-20">
+      <div className="px-8 py-2 mt-2 relative z-20">
         {/* Seção Principal de Conteúdo */}
         <div className="grid lg:grid-cols-4 gap-8 mb-8">
           {/* Vídeo Institucional */}
@@ -131,7 +131,6 @@ export default function TV() {
           <CardContent className="relative z-10 p-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
-                
                 <div>
                   <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
                     Desconto promocional para unidades <b>ESTAÇÃO ORATÓRIO</b>
