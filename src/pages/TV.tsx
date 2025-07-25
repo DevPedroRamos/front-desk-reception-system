@@ -103,7 +103,7 @@ export default function TV() {
           </div>
 
           {/* Tabela de Visitas */}
-          <div>
+          <div className="lg:col-span-2">
             <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
               <div className="bg-[#AD1010] text-white p-4 rounded-t-lg">
                 <div className="flex items-center justify-between">
