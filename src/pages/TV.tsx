@@ -73,75 +73,37 @@ export default function TV() {
         </div>
       </div>
 
-      {/* Cards de Métricas em Tempo Real */}
       <div className="px-8 py-6 -mt-8 relative z-20">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="shadow-xl border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold">127</div>
-                  <div className="text-sm opacity-90">Visitas Hoje</div>
-                </div>
-                <Users className="w-10 h-10 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-xl border-0 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold">23</div>
-                  <div className="text-sm opacity-90">Ativos Agora</div>
-                </div>
-                <TrendingUp className="w-10 h-10 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
-
-
-          <Card className="shadow-xl border-0 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold">15</div>
-                  <div className="text-sm opacity-90">Mesas Ocupadas</div>
-                </div>
-                <Award className="w-10 h-10 opacity-80" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Seção Principal de Conteúdo */}
         <div className="grid lg:grid-cols-3 gap-8 mb-8">
           {/* Vídeo Institucional */}
-          <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-            <div className="bg-[#AD1010] text-white p-4 rounded-t-lg">
-              <div className="flex items-center gap-3">
-                <Play className="w-6 h-6" />
-                <h2 className="text-xl font-semibold">Vídeo Institucional</h2>
-              </div>
-              <p className="text-sm opacity-90 mt-1">Conheça nossa história de sucesso</p>
-            </div>
-            <CardContent className="p-6">
-              <YouTubeEmbed />
-              <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4" />
-                  <span>1.2M visualizações</span>
+          <div className="lg:col-span-2">
+            <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+              <div className="bg-[#AD1010] text-white p-4 rounded-t-lg">
+                <div className="flex items-center gap-3">
+                  <Play className="w-6 h-6" />
+                  <h2 className="text-xl font-semibold">Vídeo Institucional</h2>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-yellow-500" />
-                  <span>4.9/5 avaliação</span>
-                </div>
+                <p className="text-sm opacity-90 mt-1">Conheça nossa história de sucesso</p>
               </div>
-            </CardContent>
-          </Card>
+              <CardContent className="p-6">
+                <YouTubeEmbed />
+                <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    <span>1.2M visualizações</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Star className="w-4 h-4 text-yellow-500" />
+                    <span>4.9/5 avaliação</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Tabela de Visitas */}
-          <div className="lg:col-span-2">
+          <div>
             <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
               <div className="bg-[#AD1010] text-white p-4 rounded-t-lg">
                 <div className="flex items-center justify-between">
