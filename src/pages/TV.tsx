@@ -49,12 +49,12 @@ export default function TV() {
           <div className="absolute bottom-10 right-10 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
         </div>
 
-        <div className="relative z-10 px-8 py-6">
+        <div className="relative z-10 px-8 py-[12px]">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
               <img src="https://www.metrocasa.com.br/_next/image?url=%2Ftheme%2Fvc-perto-branco.png&w=384&q=75" alt="Metrocasa" className="h-12" />
               <div className="h-8 w-px bg-white/30"></div>
-              <span className="text-xl font-medium">Central de Monitoramento</span>
+              
             </div>
             <div className="flex items-center gap-4">
               <Badge className="bg-white/20 text-white border-white/30 px-4 py-2 text-sm">
