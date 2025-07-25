@@ -30,7 +30,7 @@ export function NotificationPopup({ visit, onClose }: NotificationPopupProps) {
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(onClose, 300); // Wait for animation to complete
-    }, 3000);
+    }, 9000);
 
     return () => clearTimeout(timer);
   }, [onClose]);
