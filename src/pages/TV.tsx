@@ -191,47 +191,6 @@ export default function TV() {
           </CardContent>
         </Card>
 
-        {/* Como Funciona */}
-        <div className="mt-12 text-center">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Como Funciona</h2>
-          <p className="text-gray-600 mb-12 text-lg">Entenda o processo de monitoramento em tempo real</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="shadow-lg border-0 bg-white hover:shadow-xl transition-shadow">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-[#AD1010]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Eye className="w-8 h-8 text-[#AD1010]" />
-                </div>
-                <h3 className="text-xl font-semibold mb-4">1. Monitore</h3>
-                <p className="text-gray-600">
-                  Acompanhe todas as visitas e atendimentos em tempo real através do nosso sistema
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-lg border-0 bg-white hover:shadow-xl transition-shadow">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-[#AD1010]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <TrendingUp className="w-8 h-8 text-[#AD1010]" />
-                </div>
-                <h3 className="text-xl font-semibold mb-4">2. Analise</h3>
-                <p className="text-gray-600">
-                  Nossos consultores analisam os dados e identificam oportunidades de melhoria
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-lg border-0 bg-white hover:shadow-xl transition-shadow">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-[#AD1010]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Trophy className="w-8 h-8 text-[#AD1010]" />
-                </div>
-                <h3 className="text-xl font-semibold mb-4">3. Conquiste</h3>
-                <p className="text-gray-600">Alcance resultados extraordinários com base nos insights obtidos</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
       </div>
 
       {/* Footer */}
