@@ -131,9 +131,7 @@ export default function TV() {
           <CardContent className="relative z-10 p-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                  <Gift className="w-8 h-8" />
-                </div>
+                
                 <div>
                   <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
                     Desconto promocional para unidades <b>ESTAÇÃO ORATÓRIO</b>
