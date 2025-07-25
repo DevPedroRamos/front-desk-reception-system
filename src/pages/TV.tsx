@@ -136,15 +136,10 @@ export default function TV() {
                 </div>
                 <div>
                   <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
-                    <Sparkles className="w-8 h-8" />
-                    PROMOÇÕES & NOVIDADES
+                    Desconto promocional para unidades <b>ESTAÇÃO ORATÓRIO</b>
                   </h2>
-                  <p className="text-lg opacity-90">Ofertas exclusivas e lançamentos imperdíveis</p>
+                  <p className="text-lg opacity-90">Mega Feirão Valido somente este fim de semana</p>
                 </div>
-              </div>
-              <div className="text-right">
-                <div className="text-4xl font-bold">50%</div>
-                <div className="text-sm opacity-80">DE DESCONTO</div>
               </div>
             </div>
             <div className="mt-6">
