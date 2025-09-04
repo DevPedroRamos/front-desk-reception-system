@@ -125,21 +125,7 @@ export default function TV() {
         {/* Banner Promocional */}
         <Card className="shadow-xl border-0 bg-gradient-to-r from-[#AD1010] via-red-600 to-[#AD1010] text-white overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
-          <CardContent className="relative z-10 p-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <div>
-                  <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
-                    Desconto promocional para unidades <b>ESTAÇÃO ORATÓRIO</b>
-                  </h2>
-                  <p className="text-lg opacity-90">Mega Feirão Valido somente este fim de semana</p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-6">
-              <PromoBanner />
-            </div>
-          </CardContent>
+          
         </Card>
 
       </div>
