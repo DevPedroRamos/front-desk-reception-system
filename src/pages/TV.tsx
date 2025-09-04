@@ -46,10 +46,6 @@ export default function TV() {
           notifiedIds.current.add(visit.id);
           setNewVisit(visit);
           setLastVisitId(visit.id);
-          
-          setTimeout(() => {
-            setNewVisit(null);
-          }, 9000);
         }
       })
       .subscribe((status) => {
@@ -71,10 +67,6 @@ export default function TV() {
           notifiedIds.current.add(latestVisit.id);
           setNewVisit(latestVisit);
           setLastVisitId(latestVisit.id);
-          
-          setTimeout(() => {
-            setNewVisit(null);
-          }, 9000);
         }
       } catch (error) {
         console.error("❌ Erro no fallback polling:", error);
@@ -174,6 +166,13 @@ export default function TV() {
       </footer>
 
       {/* Notification Popup */}
-      {newVisit && <NotificationPopup visit={newVisit} onClose={() => setNewVisit(null)} />}
+      {newVisit && (
+        <NotificationPopup 
+          key={newVisit.id} 
+          visit={newVisit} 
+          onClose={() => setNewVisit(null)} 
+          durationMs={30000}
+        />
+      )}
     </div>;
 }

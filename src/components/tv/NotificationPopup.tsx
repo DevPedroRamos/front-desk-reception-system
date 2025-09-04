@@ -20,9 +20,10 @@ interface Visit {
 interface NotificationPopupProps {
   visit: Visit
   onClose: () => void
+  durationMs?: number
 }
 
-export function NotificationPopup({ visit, onClose }: NotificationPopupProps) {
+export function NotificationPopup({ visit, onClose, durationMs = 30000 }: NotificationPopupProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
 
@@ -33,11 +34,11 @@ export function NotificationPopup({ visit, onClose }: NotificationPopupProps) {
     // Show confetti effect
     setTimeout(() => setShowConfetti(true), 200)
 
-    // Auto close after 6 seconds
+    // Auto close after specified duration
     const timer = setTimeout(() => {
       setIsVisible(false)
       setTimeout(onClose, 500) // Wait for animation to complete
-    }, 6000)
+    }, durationMs)
 
     return () => clearTimeout(timer)
   }, [onClose])
