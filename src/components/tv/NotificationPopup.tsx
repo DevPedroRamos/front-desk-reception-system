@@ -20,10 +20,9 @@ interface Visit {
 interface NotificationPopupProps {
   visit: Visit
   onClose: () => void
-  durationMs?: number
 }
 
-export function NotificationPopup({ visit, onClose, durationMs = 30000 }: NotificationPopupProps) {
+export function NotificationPopup({ visit, onClose }: NotificationPopupProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
 
@@ -34,11 +33,11 @@ export function NotificationPopup({ visit, onClose, durationMs = 30000 }: Notifi
     // Show confetti effect
     setTimeout(() => setShowConfetti(true), 200)
 
-    // Auto close after specified duration
+    // Auto close after 6 seconds
     const timer = setTimeout(() => {
       setIsVisible(false)
       setTimeout(onClose, 500) // Wait for animation to complete
-    }, durationMs)
+    }, 6000)
 
     return () => clearTimeout(timer)
   }, [onClose])
@@ -97,13 +96,10 @@ export function NotificationPopup({ visit, onClose, durationMs = 30000 }: Notifi
               </div>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold mb-4 animate-pulse">🎉 NOVA VISITA! 🎉</h1>
+            <h1 className="text-5xl md:text-6xl font-bold mb-4 animate-pulse">NOVA VISITA!</h1>
 
             <div className="flex justify-center gap-4 mb-6">
-              <Badge className="bg-white/20 text-white border-white/30 px-4 py-2 text-lg">
-                <CheckCircle2 className="w-5 h-5 mr-2" />
-                REGISTRADA COM SUCESSO
-              </Badge>
+             
              
             </div>
           </div>
@@ -116,7 +112,7 @@ export function NotificationPopup({ visit, onClose, durationMs = 30000 }: Notifi
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                 <div className="flex items-center gap-3 mb-3">
                   <User className="w-6 h-6 text-yellow-400" />
-                  <span className="text-lg font-semibold opacity-90">Corretor Responsável</span>
+                  <span className="text-lg font-semibold opacity-90">Consultor</span>
                 </div>
                 <div className="text-3xl font-bold">{visit.corretor_nome}</div>
               </div>
@@ -137,7 +133,7 @@ export function NotificationPopup({ visit, onClose, durationMs = 30000 }: Notifi
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                 <div className="flex items-center gap-3 mb-3">
                   <MapPin className="w-6 h-6 text-blue-400" />
-                  <span className="text-lg font-semibold opacity-90">Ambiente</span>
+                  <span className="text-lg font-semibold opacity-90">Localização</span>
                 </div>
                 <div className="text-2xl font-bold mb-2">{visit.loja}</div>
                 <div className="text-xl opacity-90">
@@ -165,12 +161,24 @@ export function NotificationPopup({ visit, onClose, durationMs = 30000 }: Notifi
           <div className="mt-6 text-center">
             <div className="text-sm opacity-70 mb-2">Esta notificação será fechada automaticamente</div>
             <div className="w-full bg-white/20 rounded-full h-2">
-              <div className="bg-white h-2 rounded-full animate-pulse"></div>
+              <div
+                className="bg-white h-2 rounded-full transition-all duration-6000 ease-linear"
+                style={{
+                  animation: "progress 6s linear forwards",
+                  width: "0%",
+                }}
+              ></div>
             </div>
           </div>
         </div>
       </Card>
 
+      <style jsx>{`
+        @keyframes progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
     </div>
   )
 }
