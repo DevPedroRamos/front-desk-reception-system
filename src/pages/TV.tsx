@@ -76,15 +76,19 @@ export default function TV() {
           {/* Vídeo Institucional */}
           <div className="lg:col-span-2">
             <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-              <div className="bg-[#AD1010] text-white p-4 rounded-t-lg">
-                <div className="flex items-center gap-3">
-                  <Play className="w-6 h-6" />
-                  <h2 className="text-xl font-semibold">Vídeo Institucional</h2>
-                </div>
-                <p className="text-sm opacity-90 mt-1">Conheça nossa história de sucesso</p>
-              </div>
+             
               <CardContent className="p-6">
                 <YouTubeEmbed />
+                <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    <span>1.2M visualizações</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Star className="w-4 h-4 text-yellow-500" />
+                    <span>4.9/5 avaliação</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
