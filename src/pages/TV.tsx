@@ -57,10 +57,7 @@ export default function TV() {
               
             </div>
             <div className="flex items-center gap-4">
-              <Badge className="bg-white/20 text-white border-white/30 px-4 py-2 text-sm">
-                <Eye className="w-4 h-4 mr-2" />
-                AO VIVO
-              </Badge>
+              
               <div className="text-right">
                 <div className="text-sm opacity-80">Atualizado em tempo real</div>
                 <div className="text-xs opacity-60">{new Date().toLocaleTimeString("pt-BR")}</div>
