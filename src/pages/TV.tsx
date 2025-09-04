@@ -79,16 +79,7 @@ export default function TV() {
              
               <CardContent className="p-6">
                 <YouTubeEmbed />
-                <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4" />
-                    <span>1.2M visualizações</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="w-4 h-4 text-yellow-500" />
-                    <span>4.9/5 avaliação</span>
-                  </div>
-                </div>
+                
               </CardContent>
             </Card>
           </div>
