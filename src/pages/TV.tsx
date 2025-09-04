@@ -34,7 +34,7 @@ export default function TV() {
       // Auto-close popup after 3 seconds
       setTimeout(() => {
         setNewVisit(null);
-      }, 9000);
+      }, 30000);
     }).subscribe();
     return () => {
       supabase.removeChannel(channel);
