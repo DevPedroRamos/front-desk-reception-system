@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { VisitasTable } from "@/components/tv/VisitasTable";
 import { NotificationPopup } from "@/components/tv/NotificationPopup";
@@ -20,26 +20,79 @@ interface Visit {
 }
 export default function TV() {
   const [newVisit, setNewVisit] = useState<Visit | null>(null);
-  useEffect(() => {
-    // Subscribe to real-time changes in visits table
-    const channel = supabase.channel("visits-realtime").on("postgres_changes", {
-      event: "INSERT",
-      schema: "public",
-      table: "visits"
-    }, payload => {
-      console.log("Nova visita detectada:", payload);
-      const visit = payload.new as Visit;
-      setNewVisit(visit);
+  const [lastVisitId, setLastVisitId] = useState<string | null>(null);
+  const notifiedIds = useRef(new Set<string>());
 
-      // Auto-close popup after 3 seconds
-      setTimeout(() => {
-        setNewVisit(null);
-      }, 9000);
-    }).subscribe();
-    return () => {
-      supabase.removeChannel(channel);
+  useEffect(() => {
+    console.log("🔄 Configurando Realtime subscription para visitas...");
+    
+    // Subscribe to real-time changes in visits table
+    const channel = supabase
+      .channel("visits-realtime", {
+        config: {
+          broadcast: { self: false },
+          presence: { key: "tv-page" }
+        }
+      })
+      .on("postgres_changes", {
+        event: "INSERT", 
+        schema: "public",
+        table: "visits"
+      }, payload => {
+        console.log("🚨 NOVA VISITA DETECTADA (Realtime):", payload);
+        const visit = payload.new as Visit;
+        
+        if (!notifiedIds.current.has(visit.id)) {
+          notifiedIds.current.add(visit.id);
+          setNewVisit(visit);
+          setLastVisitId(visit.id);
+          
+          setTimeout(() => {
+            setNewVisit(null);
+          }, 9000);
+        }
+      })
+      .subscribe((status) => {
+        console.log("📡 Status do canal Realtime:", status);
+      });
+
+    // Fallback polling mechanism
+    const checkForNewVisits = async () => {
+      try {
+        const { data: latestVisit } = await supabase
+          .from('visits')
+          .select('id, corretor_nome, loja, andar, mesa, horario_entrada, cliente_nome')
+          .order('horario_entrada', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (latestVisit && latestVisit.id !== lastVisitId && !notifiedIds.current.has(latestVisit.id)) {
+          console.log("🔄 NOVA VISITA DETECTADA (Fallback Polling):", latestVisit);
+          notifiedIds.current.add(latestVisit.id);
+          setNewVisit(latestVisit);
+          setLastVisitId(latestVisit.id);
+          
+          setTimeout(() => {
+            setNewVisit(null);
+          }, 9000);
+        }
+      } catch (error) {
+        console.error("❌ Erro no fallback polling:", error);
+      }
     };
-  }, []);
+
+    // Poll every 10 seconds as fallback
+    const pollInterval = setInterval(checkForNewVisits, 10000);
+    
+    // Get initial latest visit
+    checkForNewVisits();
+    
+    return () => {
+      console.log("🧹 Limpando subscriptions...");
+      supabase.removeChannel(channel);
+      clearInterval(pollInterval);
+    };
+  }, [lastVisitId]);
   return <div className="min-h-screen bg-gray-100">
       {/* Header Promocional Metrocasa */}
       <div className="bg-[#AD1010] text-white relative overflow-hidden">

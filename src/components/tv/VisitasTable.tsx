@@ -30,7 +30,7 @@ export function VisitasTable() {
         .from('visits')
         .select('id, corretor_nome, loja, andar, mesa, horario_entrada, cliente_nome')
         .order('horario_entrada', { ascending: false })
-        .limit(4);
+        .limit(3);
 
       if (error) {
         console.error('Erro ao buscar visitas:', error);
