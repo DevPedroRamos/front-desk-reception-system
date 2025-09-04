@@ -164,24 +164,12 @@ export function NotificationPopup({ visit, onClose }: NotificationPopupProps) {
           <div className="mt-6 text-center">
             <div className="text-sm opacity-70 mb-2">Esta notificação será fechada automaticamente</div>
             <div className="w-full bg-white/20 rounded-full h-2">
-              <div
-                className="bg-white h-2 rounded-full transition-all duration-6000 ease-linear"
-                style={{
-                  animation: "progress 6s linear forwards",
-                  width: "0%",
-                }}
-              ></div>
+              <div className="bg-white h-2 rounded-full animate-pulse"></div>
             </div>
           </div>
         </div>
       </Card>
 
-      <style jsx>{`
-        @keyframes progress {
-          from { width: 0%; }
-          to { width: 100%; }
-        }
-      `}</style>
     </div>
   )
 }

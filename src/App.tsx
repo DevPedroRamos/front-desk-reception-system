@@ -65,7 +65,7 @@ function App() {
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/pesquisa-satisfacao" element={<PesquisaSatisfacao />} />
-              <Route path="/tv" element={<TV />} />
+              <Route path="/tv-corretor" element={<TV />} />
               <Route path="/*" element={<ProtectedRoutes />} />
             </Routes>
             <PWAInstallPrompt />
