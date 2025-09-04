@@ -43,7 +43,7 @@ export function AddClienteDialog({ open, onOpenChange, onClienteAdicionado }: Ad
       
       return data?.map(corretor => ({
         id: corretor.id,
-        name: `${corretor.name} (${corretor.apelido})`
+        name: corretor.apelido || corretor.name
       })) || [];
     }
   });

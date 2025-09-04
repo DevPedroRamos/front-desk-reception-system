@@ -40,7 +40,7 @@ export function TrocarCorretorDialog({ open, onOpenChange, cliente, onCorretorTr
       
       return data?.map(corretor => ({
         id: corretor.id,
-        name: `${corretor.name} (${corretor.apelido})`
+        name: corretor.apelido || corretor.name
       })) || [];
     }
   });
