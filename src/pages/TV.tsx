@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { VisitasTable } from "@/components/tv/VisitasTable";
 import { NotificationPopup } from "@/components/tv/NotificationPopup";
-import { YouTubeEmbed } from "@/components/tv/YouTubeEmbed";
+// import { YouTubeEmbed } from "@/components/tv/YouTubeEmbed"; // Commented for future use
+import { PromoCarousel } from "@/components/tv/PromoCarousel";
 import { PromoBanner } from "@/components/tv/PromoBanner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -123,7 +124,7 @@ export default function TV() {
             <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
              
               <CardContent className="p-6">
-                <YouTubeEmbed />
+                <PromoCarousel />
                 
               </CardContent>
             </Card>
