@@ -116,7 +116,7 @@ export default function TV() {
         </div>
       </div>
 
-      <div className="px-8 py-2 -mt-8 relative z-20 max-h-[800px] overflow-hidden">
+      <div className="px-8 py-2 -mt-8 relative z-20">
         {/* Seção Principal de Conteúdo */}
         <div className="grid lg:grid-cols-5 gap-8 mb-8">
           <div className="lg:col-span-3">
