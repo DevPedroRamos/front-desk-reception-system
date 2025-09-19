@@ -29,15 +29,15 @@ export function PromoCarousel() {
   }, [emblaApi, scrollNext]);
 
   return (
-    <Card className="overflow-hidden">
-      <div className="embla aspect-video" ref={emblaRef}>
-        <div className="embla__container flex">
+    <Card className="overflow-hidden h-full">
+      <div className="embla h-full" ref={emblaRef}>
+        <div className="embla__container flex h-full">
           {images.map((src, index) => (
-            <div className="embla__slide flex-[0_0_100%] min-w-0" key={index}>
+            <div className="embla__slide flex-[0_0_100%] min-w-0 h-full" key={index}>
               <img
                 src={src}
                 alt={`Imagem promocional ${index + 1}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
           ))}

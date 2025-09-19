@@ -119,11 +119,10 @@ export default function TV() {
       <div className="px-8 py-2 -mt-8 relative z-20 max-h-[800px] overflow-hidden">
         {/* Seção Principal de Conteúdo */}
         <div className="grid lg:grid-cols-5 gap-8 mb-8">
-          {/* Vídeo Institucional */}
           <div className="lg:col-span-3">
-            <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+            <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm h-full">
              
-              <CardContent className="p-6">
+              <CardContent className="p-6 h-full">
                 <PromoCarousel />
                 
               </CardContent>
