@@ -88,7 +88,7 @@ export default function TV() {
   }, [lastVisitId]);
   return <div className="min-h-screen bg-gray-100">
       {/* Header Promocional Metrocasa */}
-      <div className="bg-[#AD1010] text-white relative overflow-hidden">
+      {/* <div className="bg-[#AD1010] text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[#AD1010] via-red-600 to-[#AD1010] opacity-90"></div>
         <div className="absolute inset-0">
           <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
@@ -114,7 +114,7 @@ export default function TV() {
           {/* Hero Section */}
           
         </div>
-      </div>
+      </div> */}
 
       <div className="px-8 py-2 -mt-8 relative z-20">
         {/* Seção Principal de Conteúdo */}
