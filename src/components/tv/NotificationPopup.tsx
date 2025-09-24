@@ -23,7 +23,7 @@ interface NotificationPopupProps {
   durationMs?: number
 }
 
-export function NotificationPopup({ visit, onClose, durationMs = 15000 }: NotificationPopupProps) {
+export function NotificationPopup({ visit, onClose, durationMs = 30000 }: NotificationPopupProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
 
