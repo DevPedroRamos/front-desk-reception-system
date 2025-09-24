@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 
 export function YouTubeEmbed() {
   // Default YouTube video ID - you can change this to any video
-  const videoId = '_CHre138tkQ'; // Example video ID
+  const videoId = 'WOVjChSDXgk'; // Example video ID
   
   return (
     <Card className="overflow-hidden">
