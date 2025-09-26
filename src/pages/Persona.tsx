@@ -86,7 +86,7 @@ export default function Persona() {
       {/* Header */}
       <header className="bg-metrocasa-red py-4 px-6 shadow-lg">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <img src="/lovable-uploads/c1c1d076-9abb-4f71-b95c-abfbb74f4d43.png" alt="Metrocasa" className="h-10 md:h-12" />
+          <img src="/lovable-uploads/vc-perto-branco.png" alt="VC Perto" className="h-10 md:h-12" />
           
         </div>
       </header>
