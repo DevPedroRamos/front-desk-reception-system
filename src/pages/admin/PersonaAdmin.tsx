@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Download, FileText, Users, BarChart3 } from 'lucide-react';
 import { usePersonaAdminData, PersonaFilters, PersonaAdminData } from '@/hooks/usePersonaAdminData';
+import { usePersonaExport } from '@/hooks/usePersonaExport';
+import { generateCSV, downloadCSV, getExportFilename } from '@/lib/csvUtils';
 import { toast } from '@/hooks/use-toast';
 
 export default function PersonaAdmin() {
@@ -18,6 +20,7 @@ export default function PersonaAdmin() {
   const pageSize = 10;
 
   const { data, isLoading, error } = usePersonaAdminData(filters, currentPage, pageSize);
+  const { fetchAllPersonaData, isExporting, setIsExporting } = usePersonaExport();
 
   const handleClearFilters = () => {
     setFilters({});
@@ -29,39 +32,68 @@ export default function PersonaAdmin() {
   };
 
   const handleExportCSV = async (type: 'filtered' | 'all' | 'superintendencia' | 'gerente') => {
+    if (isExporting) return;
+
     try {
+      setIsExporting(true);
       let exportFilters = filters;
       
       if (type === 'all') {
         exportFilters = {};
-      } else if (type === 'superintendencia' && !filters.superintendencia) {
+      } else if (type === 'superintendencia') {
+        if (!filters.superintendencia) {
+          toast({
+            title: "Erro",
+            description: "Selecione uma superintendência para exportar.",
+            variant: "destructive"
+          });
+          return;
+        }
+        exportFilters = { superintendencia: filters.superintendencia };
+      } else if (type === 'gerente') {
+        if (!filters.gerente) {
+          toast({
+            title: "Erro", 
+            description: "Selecione um gerente para exportar.",
+            variant: "destructive"
+          });
+          return;
+        }
+        exportFilters = { gerente: filters.gerente };
+      }
+
+      // Fetch all data with applied filters
+      const allData = await fetchAllPersonaData(exportFilters);
+      
+      if (allData.length === 0) {
         toast({
-          title: "Erro",
-          description: "Selecione uma superintendência para exportar.",
-          variant: "destructive"
-        });
-        return;
-      } else if (type === 'gerente' && !filters.gerente) {
-        toast({
-          title: "Erro", 
-          description: "Selecione um gerente para exportar.",
+          title: "Aviso",
+          description: "Nenhum dado encontrado para exportar.",
           variant: "destructive"
         });
         return;
       }
 
-      // Here you would implement the actual CSV export logic
-      // For now, just show a success message
+      // Generate CSV
+      const csvContent = generateCSV(allData);
+      const filename = getExportFilename(type, filters);
+      
+      // Download file
+      downloadCSV(csvContent, filename);
+
       toast({
-        title: "Exportação iniciada",
-        description: "O arquivo CSV será baixado em breve.",
+        title: "Exportação concluída",
+        description: `${allData.length} registros exportados com sucesso.`,
       });
     } catch (error) {
+      console.error('Export error:', error);
       toast({
         title: "Erro na exportação",
         description: "Não foi possível exportar os dados. Tente novamente.",
         variant: "destructive"
       });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -111,36 +143,38 @@ export default function PersonaAdmin() {
             <Button
               variant="outline"
               onClick={() => handleExportCSV('filtered')}
+              disabled={isExporting}
               className="flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
-              Download CSV (Filtros Aplicados)
+              {isExporting ? 'Exportando...' : 'Download CSV (Filtros Aplicados)'}
             </Button>
             <Button
               variant="outline"
               onClick={() => handleExportCSV('all')}
+              disabled={isExporting}
               className="flex items-center gap-2"
             >
               <FileText className="h-4 w-4" />
-              Download CSV (Todos os Registros)
+              {isExporting ? 'Exportando...' : 'Download CSV (Todos os Registros)'}
             </Button>
             <Button
               variant="outline"
               onClick={() => handleExportCSV('superintendencia')}
+              disabled={isExporting || !filters.superintendencia}
               className="flex items-center gap-2"
-              disabled={!filters.superintendencia}
             >
               <Download className="h-4 w-4" />
-              Download por Superintendência
+              {isExporting ? 'Exportando...' : 'Download por Superintendência'}
             </Button>
             <Button
               variant="outline"
               onClick={() => handleExportCSV('gerente')}
+              disabled={isExporting || !filters.gerente}
               className="flex items-center gap-2"
-              disabled={!filters.gerente}
             >
               <Download className="h-4 w-4" />
-              Download por Gerente
+              {isExporting ? 'Exportando...' : 'Download por Gerente'}
             </Button>
           </div>
 
