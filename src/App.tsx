@@ -12,6 +12,7 @@ import PesquisaRelatorio from '@/pages/PesquisaRelatorio';
 import Integracao from '@/pages/Integracao';
 import TV from '@/pages/TV';
 import Persona from '@/pages/Persona';
+import PersonaAdmin from '@/pages/admin/PersonaAdmin';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
@@ -52,6 +53,7 @@ function ProtectedRoutes() {
       <Route path="/corretor" element={<Corretor />} />
       <Route path="/corretor/perfil" element={<PerfilCorretor />} />
       <Route path="/corretor/visitas" element={<VisitasCorretor />} />
+      <Route path="/admin/persona" element={<PersonaAdmin />} />
       <Route path="*" element={<div>404 - Página não encontrada</div>} />
     </Routes>
   );

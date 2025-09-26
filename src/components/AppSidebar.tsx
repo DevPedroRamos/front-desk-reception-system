@@ -10,16 +10,18 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { BarChart3, UserCheck, LogOut, Trophy, Clock, Calendar, Users, User, Gift, FileText, BookOpen } from "lucide-react";
+import { BarChart3, UserCheck, LogOut, Trophy, Clock, Calendar, Users, User, Gift, FileText, BookOpen, Settings, UserCog } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 
 export function AppSidebar() {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const { userProfile, loading } = useUserRole();
+  const { isAdmin } = useAdminRole();
 
   const handleLogout = async () => {
     console.log('Botão logout clicado');
@@ -34,8 +36,10 @@ export function AppSidebar() {
   const getMenuItems = () => {
     if (loading || !userProfile) return [];
 
+    const items = [];
+
     if (userProfile.role === 'corretor') {
-      return [
+      items.push(
         {
           title: "Minhas Visitas",
           url: "/corretor/visitas",
@@ -50,11 +54,11 @@ export function AppSidebar() {
           title: "Integração",
           url: "/integracao",
           icon: BookOpen,
-        },
-      ];
+        }
+      );
     } else {
       // Recepcionista ou outros roles
-      return [
+      items.push(
         {
           title: "Dashboard",
           url: "/",
@@ -89,12 +93,28 @@ export function AppSidebar() {
           title: "Integração",
           url: "/integracao",
           icon: BookOpen,
-        },
-      ];
+        }
+      );
     }
+
+    return items;
+  };
+
+  // Menu items administrativos
+  const getAdminMenuItems = () => {
+    if (!isAdmin) return [];
+    
+    return [
+      {
+        title: "Questionários de Persona",
+        url: "/admin/persona",
+        icon: UserCog,
+      },
+    ];
   };
 
   const menuItems = getMenuItems();
+  const adminMenuItems = getAdminMenuItems();
 
   if (loading) {
     return (
@@ -162,6 +182,36 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Admin Section */}
+        {isAdmin && adminMenuItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-slate-600 font-semibold text-xs lg:text-sm px-2 group-data-[collapsible=icon]:hidden">
+              <div className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Administração
+              </div>
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild
+                      isActive={location.pathname === item.url}
+                      className="h-9 lg:h-10"
+                    >
+                      <a href={item.url} className="flex items-center gap-3 px-2 lg:px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors">
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
         
         <SidebarGroup>
           <SidebarGroupContent>

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-export type UserRole = 'corretor' | 'recepcionista' | null;
+export type UserRole = 'corretor' | 'recepcionista' | 'admin' | null;
 
 interface UserProfile {
   role: UserRole;
