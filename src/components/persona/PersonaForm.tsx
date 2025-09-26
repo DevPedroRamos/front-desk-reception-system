@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { RadioQuestion } from './RadioQuestion';
 import { CheckboxQuestion } from './CheckboxQuestion';
 import { TextAreaQuestion } from './TextAreaQuestion';
+import { User, GraduationCap, Briefcase, Heart, Target, MessageSquare } from 'lucide-react';
 
 interface PersonaFormProps {
   userData: {
@@ -116,107 +118,115 @@ export function PersonaForm({ userData, onSubmit }: PersonaFormProps) {
   const currentQuestions = sections[currentSection].questions;
   const progress = ((currentSection + 1) / sections.length) * 100;
 
+  const getSectionIcon = (index: number) => {
+    const icons = [User, GraduationCap, Briefcase, Heart, Target, MessageSquare, User];
+    const Icon = icons[index] || User;
+    return <Icon className="w-6 h-6" />;
+  };
+
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* User Info Header */}
-      <div className="bg-card border rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-2">Dados do Corretor</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div>
-            <span className="font-medium">Nome:</span> {userData.name}
+    <div className="max-w-4xl mx-auto px-6 space-y-8">
+      {/* User Info */}
+      <div className="bg-card rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-metrocasa-red p-6">
+          <h2 className="text-2xl font-semibold text-white mb-2">
+            Olá, {userData.name}!
+          </h2>
+          <p className="text-white/90">
+            Complete o questionário abaixo para nos ajudar a conhecer melhor seu perfil.
+          </p>
+        </div>
+        
+        {/* Progress Bar */}
+        <div className="p-6 space-y-4">
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>Progresso do Questionário</span>
+            <span className="font-medium">{Math.round(progress)}%</span>
           </div>
-          <div>
-            <span className="font-medium">Apelido:</span> {userData.apelido}
-          </div>
-          <div>
-            <span className="font-medium">CPF:</span> {userData.cpf}
-          </div>
+          <Progress value={progress} className="h-3" />
+          <p className="text-sm text-muted-foreground text-center">
+            Seção {currentSection + 1} de {sections.length}: {sections[currentSection].title}
+          </p>
         </div>
       </div>
 
-      {/* Progress */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-xl font-semibold">{sections[currentSection].title}</h2>
-          <span className="text-sm text-muted-foreground">
-            Seção {currentSection + 1} de {sections.length}
-          </span>
+      {/* Questions Section */}
+      <div className="bg-card rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-metrocasa-red p-4">
+          <h3 className="text-xl font-semibold text-white flex items-center">
+            {getSectionIcon(currentSection)}
+            <span className="ml-3">{sections[currentSection].title}</span>
+          </h3>
         </div>
-        <div className="w-full bg-secondary rounded-full h-2 mb-4">
-          <div 
-            className="bg-primary h-2 rounded-full transition-all duration-300" 
-            style={{ width: `${progress}%` }}
-          />
+        
+        <div className="p-6 space-y-8">
+          {currentQuestions.map((question, index) => {
+            const key = `${currentSection}-${index}`;
+            
+            return (
+              <div key={question.id} className="space-y-4">
+                {question.type === 'radio' && (
+                  <RadioQuestion
+                    question={question.question}
+                    options={question.options || []}
+                    value={answers[question.id]}
+                    onChange={(value) => handleAnswerChange(question.id, value)}
+                    required={question.required}
+                  />
+                )}
+                
+                {question.type === 'checkbox' && (
+                  <CheckboxQuestion
+                    question={question.question}
+                    options={question.options || []}
+                    value={answers[question.id] || []}
+                    onChange={(value) => handleAnswerChange(question.id, value)}
+                    required={question.required}
+                  />
+                )}
+                
+                {question.type === 'textarea' && (
+                  <TextAreaQuestion
+                    question={question.question}
+                    value={answers[question.id] || ''}
+                    onChange={(value) => handleAnswerChange(question.id, value)}
+                    required={question.required}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
-      </div>
-
-      {/* Questions */}
-      <div className="space-y-6 mb-8">
-        {currentQuestions.map((question, index) => {
-          const key = `${currentSection}-${index}`;
-          
-          if (question.type === 'radio') {
-            return (
-              <RadioQuestion
-                key={key}
-                question={question.question}
-                options={question.options || []}
-                value={answers[question.id]}
-                onChange={(value) => handleAnswerChange(question.id, value)}
-                required={question.required}
-              />
-            );
-          }
-          
-          if (question.type === 'checkbox') {
-            return (
-              <CheckboxQuestion
-                key={key}
-                question={question.question}
-                options={question.options || []}
-                value={answers[question.id] || []}
-                onChange={(value) => handleAnswerChange(question.id, value)}
-                required={question.required}
-              />
-            );
-          }
-          
-          if (question.type === 'textarea') {
-            return (
-              <TextAreaQuestion
-                key={key}
-                question={question.question}
-                value={answers[question.id] || ''}
-                onChange={(value) => handleAnswerChange(question.id, value)}
-                required={question.required}
-              />
-            );
-          }
-          
-          return null;
-        })}
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <Button
+          type="button"
           variant="outline"
           onClick={handlePrevious}
           disabled={currentSection === 0}
+          className="px-6"
         >
-          Anterior
+          ← Anterior
         </Button>
         
-        {currentSection === sections.length - 1 ? (
+        {currentSection < sections.length - 1 ? (
           <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
+            type="button"
+            onClick={handleNext}
+            className="bg-metrocasa-red hover:bg-metrocasa-red-dark px-6"
           >
-            {isSubmitting ? 'Enviando...' : 'Finalizar Questionário'}
+            Próximo Passo →
           </Button>
         ) : (
-          <Button onClick={handleNext}>
-            Próxima
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="bg-green-600 hover:bg-green-700 px-6"
+          >
+            {isSubmitting ? 'Finalizando...' : 'Finalizar Questionário ✓'}
           </Button>
         )}
       </div>

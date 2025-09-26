@@ -17,20 +17,33 @@ export function TextAreaQuestion({
   required, 
   placeholder 
 }: TextAreaQuestionProps) {
+  const maxLength = 500;
+  const currentLength = value.length;
+
   return (
-    <div className="space-y-3">
-      <Label className="text-base font-medium">
+    <div className="space-y-4">
+      <Label className="text-lg font-medium text-metrocasa-gray">
         {question}
-        {required && <span className="text-destructive ml-1">*</span>}
+        {required && <span className="text-metrocasa-red ml-1">*</span>}
       </Label>
       
-      <Textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder || "Sua resposta..."}
-        rows={3}
-        required={required}
-      />
+      <div className="space-y-2">
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder || "Digite sua resposta aqui..."}
+          rows={4}
+          required={required}
+          maxLength={maxLength}
+          className="resize-none border-2 focus:border-metrocasa-red"
+        />
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>Seja específico em sua resposta</span>
+          <span className={currentLength > maxLength * 0.9 ? 'text-metrocasa-red' : ''}>
+            {currentLength}/{maxLength}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

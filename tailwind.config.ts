@@ -61,6 +61,13 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				metrocasa: {
+					red: 'hsl(var(--metrocasa-red))',
+					'red-dark': 'hsl(var(--metrocasa-red-dark))',
+					'red-light': 'hsl(var(--metrocasa-red-light))',
+					gray: 'hsl(var(--metrocasa-gray))',
+					'gray-light': 'hsl(var(--metrocasa-gray-light))'
 				}
 			},
 			borderRadius: {
