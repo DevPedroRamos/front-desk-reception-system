@@ -84,12 +84,7 @@ export default function Persona() {
   };
   return <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="bg-metrocasa-red py-4 px-6 shadow-lg">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <img src="/lovable-uploads/vc-perto-branco.png" alt="VC Perto" className="h-10 md:h-12" />
-          
-        </div>
-      </header>
+      
 
       {/* Content */}
       <main className="flex-1">
@@ -102,9 +97,7 @@ export default function Persona() {
                     <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                       <User className="w-8 h-8 text-white" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-2">
-                      Identificação
-                    </h2>
+                    <h2 className="text-2xl font-bold text-white mb-2">Persona Metrocasa</h2>
                     <p className="text-white/90">
                       Digite seu CPF para começar
                     </p>
@@ -112,9 +105,7 @@ export default function Persona() {
                   
                   <form onSubmit={handleCpfSubmit} className="p-6 space-y-6">
                     <div>
-                      <Label htmlFor="cpf" className="text-base font-medium">
-                        CPF do Corretor
-                      </Label>
+                      <Label htmlFor="cpf" className="text-base font-medium">Digite seu CPF</Label>
                       <Input id="cpf" type="text" value={cpf} onChange={e => setCpf(formatCpf(e.target.value))} placeholder="000.000.000-00" maxLength={14} required className="mt-2 h-12 text-lg" />
                     </div>
                     
