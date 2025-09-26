@@ -82,30 +82,18 @@ export default function Persona() {
       });
     }
   };
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
+  return <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="bg-metrocasa-red py-4 px-6 shadow-lg">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <img 
-            src="/lovable-uploads/c1c1d076-9abb-4f71-b95c-abfbb74f4d43.png" 
-            alt="Metrocasa" 
-            className="h-10 md:h-12" 
-          />
-          <Button 
-            variant="outline" 
-            className="border-white text-white hover:bg-white hover:text-metrocasa-red"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Fale Conosco
-          </Button>
+          <img src="/lovable-uploads/c1c1d076-9abb-4f71-b95c-abfbb74f4d43.png" alt="Metrocasa" className="h-10 md:h-12" />
+          
         </div>
       </header>
 
       {/* Content */}
       <main className="flex-1">
-        {step === 'cpf' && (
-          <>
+        {step === 'cpf' && <>
             <HeroSection />
             <div className="py-16 px-6">
               <div className="max-w-lg mx-auto">
@@ -127,50 +115,27 @@ export default function Persona() {
                       <Label htmlFor="cpf" className="text-base font-medium">
                         CPF do Corretor
                       </Label>
-                      <Input 
-                        id="cpf" 
-                        type="text" 
-                        value={cpf} 
-                        onChange={e => setCpf(formatCpf(e.target.value))} 
-                        placeholder="000.000.000-00" 
-                        maxLength={14} 
-                        required
-                        className="mt-2 h-12 text-lg"
-                      />
+                      <Input id="cpf" type="text" value={cpf} onChange={e => setCpf(formatCpf(e.target.value))} placeholder="000.000.000-00" maxLength={14} required className="mt-2 h-12 text-lg" />
                     </div>
                     
-                    {error && (
-                      <div className={`p-4 rounded-lg text-sm ${
-                        error.includes('cadastrado') 
-                          ? 'bg-destructive/10 text-destructive border border-destructive/20' 
-                          : 'bg-blue-50 text-blue-700 border border-blue-200'
-                      }`}>
+                    {error && <div className={`p-4 rounded-lg text-sm ${error.includes('cadastrado') ? 'bg-destructive/10 text-destructive border border-destructive/20' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
                         {error}
-                      </div>
-                    )}
+                      </div>}
                     
-                    <Button 
-                      type="submit" 
-                      className="w-full h-12 text-lg bg-metrocasa-red hover:bg-metrocasa-red-dark" 
-                      disabled={isLoading || isValidating || cpf.length < 14}
-                    >
+                    <Button type="submit" className="w-full h-12 text-lg bg-metrocasa-red hover:bg-metrocasa-red-dark" disabled={isLoading || isValidating || cpf.length < 14}>
                       {isLoading ? 'Validando...' : 'Continuar'}
                     </Button>
                   </form>
                 </div>
               </div>
             </div>
-          </>
-        )}
+          </>}
 
-        {step === 'form' && userData && (
-          <div className="py-8">
+        {step === 'form' && userData && <div className="py-8">
             <PersonaForm userData={userData} onSubmit={handleFormSubmit} />
-          </div>
-        )}
+          </div>}
 
-        {step === 'success' && (
-          <div className="py-16 px-6">
+        {step === 'success' && <div className="py-16 px-6">
             <div className="max-w-lg mx-auto">
               <div className="bg-card rounded-lg shadow-lg overflow-hidden">
                 <div className="bg-green-600 p-6 text-center">
@@ -191,20 +156,15 @@ export default function Persona() {
                     Em breve você receberá conteúdos personalizados 
                     baseados no seu perfil.
                   </p>
-                  <Button 
-                    onClick={() => window.location.href = '/'}
-                    className="bg-metrocasa-red hover:bg-metrocasa-red-dark"
-                  >
+                  <Button onClick={() => window.location.href = '/'} className="bg-metrocasa-red hover:bg-metrocasa-red-dark">
                     Voltar ao Início
                   </Button>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          </div>}
       </main>
 
       <Footer />
-    </div>
-  );
+    </div>;
 }
