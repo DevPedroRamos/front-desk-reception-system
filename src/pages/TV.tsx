@@ -6,6 +6,7 @@ import { VisitasTable } from "@/components/tv/VisitasTable";
 import { NotificationPopup } from "@/components/tv/NotificationPopup";
 import { YouTubeEmbed } from "@/components/tv/YouTubeEmbed";
 import { PromoBanner } from "@/components/tv/PromoBanner";
+import copaMetrocasaImage from "@/assets/copa-metrocasa-2025.png";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Users, TrendingUp, Star, Gift, Zap, Target, Award, Play, Eye, Clock, Sparkles } from "lucide-react";
@@ -123,8 +124,12 @@ export default function TV() {
             <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
              
               <CardContent className="p-6">
-                <YouTubeEmbed />
-                
+                {/* <YouTubeEmbed /> */}
+                <img 
+                  src={copaMetrocasaImage} 
+                  alt="Copa Metrocasa 2025 - Classificados para a Final" 
+                  className="w-full h-auto rounded-lg"
+                />
               </CardContent>
             </Card>
           </div>
