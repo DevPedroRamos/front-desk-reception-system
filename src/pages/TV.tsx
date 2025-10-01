@@ -124,12 +124,7 @@ export default function TV() {
             <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
              
               <CardContent className="p-6">
-                {/* <YouTubeEmbed /> */}
-                <img 
-                  src={copaMetrocasaImage} 
-                  alt="Copa Metrocasa 2025 - Classificados para a Final" 
-                  className="w-full h-auto rounded-lg"
-                />
+                <YouTubeEmbed />
               </CardContent>
             </Card>
           </div>
