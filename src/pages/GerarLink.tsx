@@ -67,7 +67,8 @@ export default function GerarLink() {
 
       if (insertError) throw insertError;
 
-      const link = `${window.location.origin}/agendar/${tokenData}`;
+      // Usar domínio configurado ao invés de window.location.origin
+      const link = `https://vcperto.com/agendar/${tokenData}`;
       setLinkGerado(link);
 
       toast({
