@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCpfValidation } from '@/hooks/useCpfValidation';
 import { QrCode, Loader2, CheckCircle } from 'lucide-react';
+
 export default function CheckIn() {
   const [step, setStep] = useState<'cpf' | 'dados' | 'sucesso'>('cpf');
   const [cpf, setCpf] = useState('');
@@ -18,12 +19,23 @@ export default function CheckIn() {
     andar: '',
     empreendimento: ''
   });
-  const {
-    toast
-  } = useToast();
-  const {
-    formatCpf
-  } = useCpfValidation();
+  const { toast } = useToast();
+  const { formatCpf } = useCpfValidation();
+
+  // Configuração das lojas (mesma configuração da recepção)
+  const lojasConfig = {
+    "Loja 1": { mesas: 22, temAndar: false },
+    "Loja 2": { mesas: 29, temAndar: true },
+    "Loja 3": { mesas: 10, temAndar: false },
+    "Loja Superior 37 andar": { mesas: 29, temAndar: false }
+  };
+
+  // Limpar andar quando trocar de loja
+  useEffect(() => {
+    if (checkInData.loja && !lojasConfig[checkInData.loja as keyof typeof lojasConfig]?.temAndar) {
+      setCheckInData(prev => ({ ...prev, andar: '' }));
+    }
+  }, [checkInData.loja]);
   const buscarAgendamento = async () => {
     if (!cpf || cpf.replace(/\D/g, '').length !== 11) {
       toast({
@@ -62,23 +74,45 @@ export default function CheckIn() {
     }
   };
   const realizarCheckIn = async () => {
-    if (!checkInData.loja || !checkInData.andar) {
+    // Validar campos obrigatórios
+    if (!checkInData.loja) {
       toast({
         title: 'Campos obrigatórios',
-        description: 'Por favor, preencha a loja e o andar',
+        description: 'Por favor, selecione a loja',
         variant: 'destructive'
       });
       return;
     }
+
+    // Validar andar apenas para Loja 2
+    if (checkInData.loja === "Loja 2" && !checkInData.andar) {
+      toast({
+        title: 'Andar obrigatório',
+        description: 'Para Loja 2, é necessário selecionar o andar',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      // Buscar mesa disponível
-      const {
-        data: mesasOcupadas
-      } = await supabase.from('visits').select('mesa').eq('status', 'ativo');
+      // Buscar mesas ocupadas considerando loja e andar
+      const lojaConfig = lojasConfig[checkInData.loja as keyof typeof lojasConfig];
+      const { data: visitasAtivas } = await supabase
+        .from('visits')
+        .select('mesa, loja, andar')
+        .eq('status', 'ativo')
+        .eq('loja', checkInData.loja);
+
+      // Filtrar por andar se aplicável
+      const mesasOcupadasData = visitasAtivas?.filter(visita => 
+        !checkInData.andar || visita.andar === checkInData.andar
+      ).map(v => v.mesa) || [];
+
+      // Gerar lista de mesas disponíveis baseado na configuração da loja
       const mesasDisponiveis = Array.from({
-        length: 30
-      }, (_, i) => i + 1).filter(mesa => !mesasOcupadas?.some(v => v.mesa === mesa));
+        length: lojaConfig.mesas
+      }, (_, i) => i + 1).filter(mesa => !mesasOcupadasData.includes(mesa));
       if (mesasDisponiveis.length === 0) {
         // Adicionar à lista de espera
         const {
@@ -198,27 +232,32 @@ export default function CheckIn() {
                     <SelectValue placeholder="Selecione a loja" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="viva-vista">Viva Vista</SelectItem>
-                    <SelectItem value="vc-perto">Viva Casa Perto</SelectItem>
+                    {Object.keys(lojasConfig).map((loja) => (
+                      <SelectItem key={loja} value={loja}>
+                        {loja}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="andar">Andar *</Label>
-                <Select value={checkInData.andar} onValueChange={value => setCheckInData({
-              ...checkInData,
-              andar: value
-            })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o andar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="terreo">Térreo</SelectItem>
-                    <SelectItem value="primeiro">Primeiro Andar</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {checkInData.loja === "Loja 2" && (
+                <div className="space-y-2">
+                  <Label htmlFor="andar">Andar *</Label>
+                  <Select value={checkInData.andar} onValueChange={value => setCheckInData({
+                ...checkInData,
+                andar: value
+              })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o andar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Térreo">Térreo</SelectItem>
+                      <SelectItem value="Mezanino">Mezanino</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               
 
