@@ -138,9 +138,9 @@ export default function Agendar() {
         description: 'Seu agendamento foi confirmado com sucesso. Até breve!',
       });
 
-      // Redirecionar após 2 segundos
+      // Redirecionar para o site principal após 2 segundos
       setTimeout(() => {
-        navigate('/');
+        window.location.href = 'https://metrocasa.com.br';
       }, 2000);
     } catch (error: any) {
       console.error('Erro ao confirmar agendamento:', error);
