@@ -75,6 +75,16 @@ export function AppSidebar() {
           icon: Clock,
         },
         {
+          title: "Gerar Link",
+          url: "/gerar-link",
+          icon: Calendar,
+        },
+        {
+          title: "Agendamentos",
+          url: "/agendamentos",
+          icon: Calendar,
+        },
+        {
           title: "Brindes",
           url: "/brindes",
           icon: Gift,

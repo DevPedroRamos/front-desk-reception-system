@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      agendamentos: {
+        Row: {
+          andar: string | null
+          checked_in_at: string | null
+          cliente_cpf: string | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          confirmed_at: string | null
+          corretor_cpf: string
+          corretor_id: string
+          corretor_nome: string
+          created_at: string | null
+          data_visita: string | null
+          empreendimento: string | null
+          expires_at: string | null
+          id: string
+          loja: string | null
+          mesa: number | null
+          status: string | null
+          token: string
+        }
+        Insert: {
+          andar?: string | null
+          checked_in_at?: string | null
+          cliente_cpf?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          confirmed_at?: string | null
+          corretor_cpf: string
+          corretor_id: string
+          corretor_nome: string
+          created_at?: string | null
+          data_visita?: string | null
+          empreendimento?: string | null
+          expires_at?: string | null
+          id?: string
+          loja?: string | null
+          mesa?: number | null
+          status?: string | null
+          token: string
+        }
+        Update: {
+          andar?: string | null
+          checked_in_at?: string | null
+          cliente_cpf?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          confirmed_at?: string | null
+          corretor_cpf?: string
+          corretor_id?: string
+          corretor_nome?: string
+          created_at?: string | null
+          data_visita?: string | null
+          empreendimento?: string | null
+          expires_at?: string | null
+          id?: string
+          loja?: string | null
+          mesa?: number | null
+          status?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamentos_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brindes: {
         Row: {
           cliente_cpf: string
@@ -60,6 +131,47 @@ export type Database = {
             columns: ["visit_id"]
             isOneToOne: false
             referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidatos: {
+        Row: {
+          cpf: string
+          created_at: string | null
+          curriculo_url: string | null
+          email: string
+          id: string
+          nome: string
+          vaga_id: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          cpf: string
+          created_at?: string | null
+          curriculo_url?: string | null
+          email: string
+          id?: string
+          nome: string
+          vaga_id?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          cpf?: string
+          created_at?: string | null
+          curriculo_url?: string | null
+          email?: string
+          id?: string
+          nome?: string
+          vaga_id?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidatos_vaga_id_fkey"
+            columns: ["vaga_id"]
+            isOneToOne: false
+            referencedRelation: "vagas"
             referencedColumns: ["id"]
           },
         ]
@@ -857,6 +969,54 @@ export type Database = {
         }
         Relationships: []
       }
+      vagas: {
+        Row: {
+          beneficios: string[] | null
+          created_at: string | null
+          descricao: string
+          empresa: string | null
+          id: string
+          local: string
+          requisitos: string[] | null
+          setor: string
+          status: string | null
+          tags: string[] | null
+          tipo: string | null
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          beneficios?: string[] | null
+          created_at?: string | null
+          descricao: string
+          empresa?: string | null
+          id?: string
+          local: string
+          requisitos?: string[] | null
+          setor: string
+          status?: string | null
+          tags?: string[] | null
+          tipo?: string | null
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          beneficios?: string[] | null
+          created_at?: string | null
+          descricao?: string
+          empresa?: string | null
+          id?: string
+          local?: string
+          requisitos?: string[] | null
+          setor?: string
+          status?: string | null
+          tags?: string[] | null
+          tipo?: string | null
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       visits: {
         Row: {
           andar: string
@@ -1444,6 +1604,10 @@ export type Database = {
       fix_user_relations: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      generate_scheduling_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       gerar_link_corretor: {
         Args: { corretor_uuid: string; link_titulo?: string }

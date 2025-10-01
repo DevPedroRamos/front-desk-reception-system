@@ -16,6 +16,10 @@ import PersonaAdmin from '@/pages/admin/PersonaAdmin';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import GerarLink from '@/pages/GerarLink';
+import Agendar from '@/pages/Agendar';
+import CheckIn from '@/pages/CheckIn';
+import Agendamentos from '@/pages/Agendamentos';
 
 const queryClient = new QueryClient();
 
@@ -47,6 +51,8 @@ function ProtectedRoutes() {
       <Route path="/brindes" element={<Brindes />} />
       <Route path="/pesquisa" element={<PesquisaRelatorio />} />
       <Route path="/integracao" element={<Integracao />} />
+      <Route path="/gerar-link" element={<GerarLink />} />
+      <Route path="/agendamentos" element={<Agendamentos />} />
       <Route path="/admin/persona" element={<PersonaAdmin />} />
       <Route path="*" element={<div>404 - Página não encontrada</div>} />
     </Routes>
@@ -64,6 +70,8 @@ function App() {
               <Route path="/pesquisa-satisfacao" element={<PesquisaSatisfacao />} />
               <Route path="/tv-corretor" element={<TV />} />
               <Route path="/persona" element={<Persona />} />
+              <Route path="/agendar/:token" element={<Agendar />} />
+              <Route path="/check-in" element={<CheckIn />} />
               <Route path="/*" element={<ProtectedRoutes />} />
             </Routes>
             <PWAInstallPrompt />
