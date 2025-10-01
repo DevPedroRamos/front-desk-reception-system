@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCpfValidation } from '@/hooks/useCpfValidation';
 import { Copy, Link as LinkIcon, Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function GerarLink() {
   const [cpf, setCpf] = useState('');
@@ -16,7 +14,6 @@ export default function GerarLink() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { formatCpf } = useCpfValidation();
-  const { user } = useAuth();
 
   const handleGerarLink = async () => {
     if (!cpf || cpf.replace(/\D/g, '').length !== 11) {
@@ -37,7 +34,7 @@ export default function GerarLink() {
         .from('users')
         .select('id, name, cpf')
         .eq('cpf', cpfLimpo)
-        .single();
+        .maybeSingle();
 
       if (userError || !userData) {
         toast({
@@ -45,17 +42,23 @@ export default function GerarLink() {
           description: 'CPF não cadastrado no sistema',
           variant: 'destructive',
         });
+        setLoading(false);
         return;
       }
 
-      // Gerar token único
-      const token = btoa(Math.random().toString()).substring(0, 32);
+      // Gerar token único usando a função SQL
+      const { data: tokenData, error: tokenError } = await supabase
+        .rpc('generate_scheduling_token');
+
+      if (tokenError || !tokenData) {
+        throw new Error('Erro ao gerar token');
+      }
 
       // Criar agendamento
       const { error: insertError } = await supabase
         .from('agendamentos')
         .insert({
-          token,
+          token: tokenData,
           corretor_id: userData.id,
           corretor_nome: userData.name,
           corretor_cpf: userData.cpf,
@@ -64,7 +67,7 @@ export default function GerarLink() {
 
       if (insertError) throw insertError;
 
-      const link = `${window.location.origin}/agendar/${token}`;
+      const link = `${window.location.origin}/agendar/${tokenData}`;
       setLinkGerado(link);
 
       toast({
@@ -92,8 +95,8 @@ export default function GerarLink() {
   };
 
   return (
-    <Layout>
-      <div className="container max-w-2xl py-8">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
+      <div className="container max-w-2xl">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -149,6 +152,6 @@ export default function GerarLink() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </div>
   );
 }
