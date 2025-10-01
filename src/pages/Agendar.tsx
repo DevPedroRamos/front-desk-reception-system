@@ -26,23 +26,41 @@ export default function Agendar() {
 
   useEffect(() => {
     const verificarToken = async () => {
-      if (!token) return;
+      if (!token) {
+        console.log('Token não fornecido');
+        setLoading(false);
+        return;
+      }
 
       try {
+        console.log('Verificando token:', token);
         const { data, error } = await supabase
           .from('agendamentos')
           .select('corretor_nome, status, expires_at')
           .eq('token', token)
-          .single();
+          .maybeSingle();
 
-        if (error || !data) {
+        if (error) {
+          console.error('Erro ao buscar agendamento:', error);
           toast({
-            title: 'Link inválido',
-            description: 'Este link de agendamento não existe ou expirou',
+            title: 'Erro ao buscar agendamento',
+            description: error.message,
             variant: 'destructive',
           });
           return;
         }
+
+        if (!data) {
+          console.log('Agendamento não encontrado para o token');
+          toast({
+            title: 'Link inválido',
+            description: 'Este link de agendamento não existe',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        console.log('Dados do agendamento:', data);
 
         if (data.status !== 'pendente') {
           toast({
@@ -65,6 +83,11 @@ export default function Agendar() {
         setCorretorNome(data.corretor_nome);
       } catch (error) {
         console.error('Erro ao verificar token:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível verificar o agendamento',
+          variant: 'destructive',
+        });
       } finally {
         setLoading(false);
       }
@@ -87,7 +110,10 @@ export default function Agendar() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      console.log('Confirmando agendamento com token:', token);
+      console.log('Dados do formulário:', formData);
+
+      const { data: updateResult, error } = await supabase
         .from('agendamentos')
         .update({
           cliente_nome: formData.clienteNome,
@@ -97,9 +123,15 @@ export default function Agendar() {
           status: 'confirmado',
           confirmed_at: new Date().toISOString(),
         })
-        .eq('token', token);
+        .eq('token', token)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro do Supabase:', error);
+        throw error;
+      }
+
+      console.log('Agendamento atualizado:', updateResult);
 
       toast({
         title: 'Agendamento confirmado!',
@@ -110,11 +142,11 @@ export default function Agendar() {
       setTimeout(() => {
         navigate('/');
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao confirmar agendamento:', error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível confirmar o agendamento',
+        title: 'Erro ao confirmar',
+        description: error.message || 'Não foi possível confirmar o agendamento',
         variant: 'destructive',
       });
     } finally {
