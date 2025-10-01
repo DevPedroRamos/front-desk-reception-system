@@ -16,9 +16,6 @@ import PersonaAdmin from '@/pages/admin/PersonaAdmin';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
-import Corretor from '@/pages/corretor';
-import PerfilCorretor from '@/pages/corretor/perfil';
-import VisitasCorretor from '@/pages/corretor/visitas';
 
 const queryClient = new QueryClient();
 
@@ -50,9 +47,6 @@ function ProtectedRoutes() {
       <Route path="/brindes" element={<Brindes />} />
       <Route path="/pesquisa" element={<PesquisaRelatorio />} />
       <Route path="/integracao" element={<Integracao />} />
-      <Route path="/corretor" element={<Corretor />} />
-      <Route path="/corretor/perfil" element={<PerfilCorretor />} />
-      <Route path="/corretor/visitas" element={<VisitasCorretor />} />
       <Route path="/admin/persona" element={<PersonaAdmin />} />
       <Route path="*" element={<div>404 - Página não encontrada</div>} />
     </Routes>
