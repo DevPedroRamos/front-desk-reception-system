@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
@@ -78,29 +78,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
-    
-    if (!error && data.user) {
-      // Buscar o papel do usuário para redirecionar corretamente
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-      
-      // Redirecionar baseado no papel do usuário
-      setTimeout(() => {
-        if (profileData?.role === 'corretor') {
-          window.location.href = '/corretor/visitas';
-        } else {
-          window.location.href = '/';
-        }
-      }, 100);
-    }
-    
+
     return { error };
   };
 

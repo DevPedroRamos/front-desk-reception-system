@@ -29,10 +29,12 @@ export function useUserRole() {
           .from('profiles')
           .select('role, name, cpf')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Erro ao buscar perfil do usuário:', error);
+          setUserProfile(null);
+        } else if (!data) {
           setUserProfile(null);
         } else {
           setUserProfile({
