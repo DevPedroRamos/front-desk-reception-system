@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,11 +17,17 @@ export default function Auth() {
   const [cpf, setCpf] = useState('');
   const [cpfValid, setCpfValid] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { validateCpf, formatCpf, isValidating } = useCpfValidation();
 
+  // Navega quando realmente autenticado e contexto finalizou
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate('/');
+    }
+  }, [authLoading, user, navigate]);
   const handleCpfChange = async (value: string) => {
     const formattedCpf = formatCpf(value);
     setCpf(formattedCpf);
@@ -65,7 +71,7 @@ export default function Auth() {
         });
       } else {
         if (isLogin) {
-          navigate('/');
+          // Navegação será realizada automaticamente quando a sessão estiver pronta
         } else {
           toast({
             title: "Cadastro realizado",
