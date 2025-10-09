@@ -35,7 +35,21 @@ export function useUserRole() {
           console.error('Erro ao buscar perfil do usuário:', error);
           setUserProfile(null);
         } else if (!data) {
-          setUserProfile(null);
+          // Fallback: usar metadados do usuário quando não existir perfil ainda
+          const meta: any = (user as any)?.user_metadata || {};
+          const metaRole = typeof meta.role === 'string' ? meta.role : null;
+          const allowedRoles = ['corretor', 'recepcionista', 'admin'] as const;
+          const fallbackRole = allowedRoles.includes(metaRole as any) ? (metaRole as UserRole) : null;
+
+          if (fallbackRole) {
+            setUserProfile({
+              role: fallbackRole,
+              name: meta.name || user.email?.split('@')[0] || 'Usuário',
+              cpf: meta.cpf || ''
+            });
+          } else {
+            setUserProfile(null);
+          }
         } else {
           setUserProfile({
             role: data.role as UserRole,
