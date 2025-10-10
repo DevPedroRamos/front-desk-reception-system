@@ -159,7 +159,10 @@ export default function CheckIn() {
         loja: checkInData.loja,
         andar: checkInData.andar,
         empreendimento: checkInData.empreendimento,
-        status: 'ativo'
+        status: 'ativo',
+        origem_registro: {
+          tipo: 'auto'
+        }
       });
       if (visitError) throw visitError;
 

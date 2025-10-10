@@ -12,10 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AutoSuggest } from "@/components/AutoSuggest";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Recepcao = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { userProfile } = useUserRole();
   const [formData, setFormData] = useState({
     cliente_nome: "",
     cliente_cpf: "",
@@ -174,7 +176,12 @@ const Recepcao = () => {
           loja: visitData.loja,
           andar: visitData.andar || 'N/A',
           mesa: parseInt(visitData.mesa),
-          status: 'ativo'
+          status: 'ativo',
+          origem_registro: {
+            tipo: 'manual',
+            role: userProfile?.role || 'recepcionista',
+            nome: userProfile?.name || 'Sistema'
+          }
         })
         .select()
         .single();

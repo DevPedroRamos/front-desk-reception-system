@@ -28,6 +28,7 @@ import {
   Download,
   Eye,
   UserX,
+  Copy,
 } from "lucide-react"
 
 interface DashboardStats {
@@ -45,6 +46,7 @@ interface Visit {
   cliente_whatsapp?: string
   corretor_nome: string
   corretor_id: string
+  origem_registro?: any
   empreendimento: string
   loja: string
   andar: string
@@ -265,6 +267,7 @@ export default function index() {
           cliente_cpf,
           corretor_nome,
           corretor_id,
+          origem_registro,
           empreendimento,
           loja,
           andar,
@@ -376,6 +379,46 @@ export default function index() {
       console.error("Error finishing visit:", error)
       toast.error("Erro ao finalizar visita")
     }
+  }
+
+  const copiarMensagemVisita = async (visit: Visit) => {
+    try {
+      // Buscar apelido do corretor
+      const { data: corretorData } = await supabase
+        .from('users')
+        .select('apelido')
+        .eq('id', visit.corretor_id)
+        .single()
+      
+      const apelidoCorretor = corretorData?.apelido || visit.corretor_nome
+      const primeiroNome = visit.cliente_nome.split(' ')[0]
+      
+      const mensagem = `Corretor ${apelidoCorretor} - Cliente ${primeiroNome} - ${visit.loja} - Mesa ${visit.mesa}`
+      
+      await navigator.clipboard.writeText(mensagem)
+      
+      toast.success("Mensagem copiada!", {
+        description: "A mensagem foi copiada para a área de transferência.",
+      })
+    } catch (error) {
+      console.error('Erro ao copiar:', error)
+      toast.error("Erro ao copiar mensagem")
+    }
+  }
+
+  const formatarOrigem = (origemRegistro: any) => {
+    if (!origemRegistro) return "N/A"
+    
+    if (origemRegistro.tipo === "auto") {
+      return "Auto Agendamento"
+    }
+    
+    // Formato: "Recepcionista - Rayane" ou "Corretor - João"
+    const role = origemRegistro.role || ""
+    const nome = origemRegistro.nome || ""
+    const roleCapitalizado = role.charAt(0).toUpperCase() + role.slice(1)
+    
+    return `${roleCapitalizado} - ${nome}`
   }
 
   const exportToCSV = () => {
@@ -674,7 +717,7 @@ export default function index() {
                     <TableRow>
                       <TableHead className="font-semibold">Cliente</TableHead>
                       <TableHead className="font-semibold">Corretor</TableHead>
-                      <TableHead className="font-semibold">Empreendimento</TableHead>
+                      <TableHead className="font-semibold">Origem</TableHead>
                       <TableHead className="font-semibold">Local</TableHead>
                       <TableHead className="font-semibold">Entrada</TableHead>
                       <TableHead className="font-semibold">Tempo</TableHead>
@@ -696,7 +739,9 @@ export default function index() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="text-gray-900">{visit.empreendimento || "-"}</span>
+                          <Badge variant="outline" className="bg-blue-50">
+                            {formatarOrigem(visit.origem_registro)}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
@@ -722,14 +767,25 @@ export default function index() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Button
-                            size="sm"
-                            onClick={() => finalizarVisita(visit.id)}
-                            className="bg-emerald-600 hover:bg-emerald-700"
-                          >
-                            <CheckCircle2 className="w-4 h-4 mr-1" />
-                            Finalizar
-                          </Button>
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => copiarMensagemVisita(visit)}
+                              className="hover:bg-blue-50"
+                            >
+                              <Copy className="w-4 h-4 mr-1" />
+                              Copiar
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => finalizarVisita(visit.id)}
+                              className="bg-emerald-600 hover:bg-emerald-700"
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-1" />
+                              Finalizar
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
