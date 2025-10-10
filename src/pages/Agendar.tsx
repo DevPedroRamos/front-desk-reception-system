@@ -27,21 +27,33 @@ export default function Agendar() {
   useEffect(() => {
     const verificarToken = async () => {
       if (!token) {
-        console.log('Token não fornecido');
+        console.log('❌ Token não fornecido na URL');
         setLoading(false);
         return;
       }
 
       try {
-        console.log('Verificando token:', token);
+        console.log('🔍 Verificando token recebido:', token);
+        console.log('📊 Tamanho do token:', token.length);
+        console.log('🔗 URL completa:', window.location.href);
+        
         const { data, error } = await supabase
           .from('agendamentos')
-          .select('corretor_nome, status, expires_at')
+          .select('corretor_nome, status, expires_at, token')
           .eq('token', token)
           .maybeSingle();
 
+        console.log('📦 Resposta do Supabase:');
+        console.log('  - Data:', data);
+        console.log('  - Error:', error);
+
         if (error) {
-          console.error('Erro ao buscar agendamento:', error);
+          console.error('❌ Erro do Supabase ao buscar agendamento:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          });
           toast({
             title: 'Erro ao buscar agendamento',
             description: error.message,
@@ -51,7 +63,8 @@ export default function Agendar() {
         }
 
         if (!data) {
-          console.log('Agendamento não encontrado para o token');
+          console.log('❌ Agendamento não encontrado para o token:', token);
+          console.log('💡 Verificar: política RLS, expiração, ou token incorreto');
           toast({
             title: 'Link inválido',
             description: 'Este link de agendamento não existe',
@@ -60,7 +73,12 @@ export default function Agendar() {
           return;
         }
 
-        console.log('Dados do agendamento:', data);
+        console.log('✅ Dados do agendamento encontrado:', {
+          corretor: data.corretor_nome,
+          status: data.status,
+          expires_at: data.expires_at,
+          token_match: data.token === token
+        });
 
         if (data.status !== 'pendente') {
           toast({
