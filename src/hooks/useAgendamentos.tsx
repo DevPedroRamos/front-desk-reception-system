@@ -8,6 +8,7 @@ interface Agendamento {
   corretor_id: string;
   corretor_nome: string;
   corretor_cpf: string;
+  corretor_apelido?: string;
   cliente_nome?: string;
   cliente_cpf?: string;
   cliente_telefone?: string;
@@ -32,11 +33,20 @@ export function useAgendamentos() {
     try {
       const { data, error } = await supabase
         .from('agendamentos')
-        .select('*')
+        .select(`
+          *,
+          users!agendamentos_corretor_id_fkey(apelido)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAgendamentos((data || []) as Agendamento[]);
+      
+      const agendamentosComApelido = (data || []).map((agendamento: any) => ({
+        ...agendamento,
+        corretor_apelido: agendamento.users?.apelido || agendamento.corretor_nome
+      }));
+      
+      setAgendamentos(agendamentosComApelido as Agendamento[]);
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
       toast({

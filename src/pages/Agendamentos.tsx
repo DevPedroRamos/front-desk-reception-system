@@ -52,7 +52,7 @@ export default function Agendamentos() {
                 <CardDescription>
                   <div className="flex items-center gap-1">
                     <User className="h-3 w-3" />
-                    {agendamento.corretor_nome}
+                    {agendamento.corretor_apelido || agendamento.corretor_nome}
                   </div>
                 </CardDescription>
               </CardHeader>
