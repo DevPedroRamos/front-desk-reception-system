@@ -11,6 +11,7 @@ import PesquisaSatisfacao from '@/pages/PesquisaSatisfacao';
 import PesquisaRelatorio from '@/pages/PesquisaRelatorio';
 import Integracao from '@/pages/Integracao';
 import TV from '@/pages/TV';
+import MKT from '@/pages/MKT';
 import Persona from '@/pages/Persona';
 import PersonaAdmin from '@/pages/admin/PersonaAdmin';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -68,6 +69,7 @@ function App() {
               <Route path="/auth" element={<Auth />} />
               <Route path="/pesquisa-satisfacao" element={<PesquisaSatisfacao />} />
               <Route path="/tv-corretor" element={<TV />} />
+              <Route path="/mkt" element={<MKT />} />
               <Route path="/persona" element={<Persona />} />
               <Route path="/gerar-link" element={<GerarLink />} />
               <Route path="/agendar/:token" element={<Agendar />} />
