@@ -39,7 +39,13 @@ export default function Agendar() {
         
         const { data, error } = await supabase
           .from('agendamentos')
-          .select('corretor_nome, status, expires_at, token')
+          .select(`
+            corretor_nome, 
+            status, 
+            expires_at, 
+            token,
+            users!agendamentos_corretor_id_fkey(apelido)
+          `)
           .eq('token', token)
           .maybeSingle();
 
@@ -98,7 +104,7 @@ export default function Agendar() {
           return;
         }
 
-        setCorretorNome(data.corretor_nome);
+        setCorretorNome(data.users?.apelido || data.corretor_nome);
       } catch (error) {
         console.error('Erro ao verificar token:', error);
         toast({
