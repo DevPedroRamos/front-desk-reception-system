@@ -10,7 +10,21 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { BarChart3, UserCheck, LogOut, Trophy, Clock, Calendar, Users, User, Gift, FileText, BookOpen, Settings, UserCog } from "lucide-react";
+import {
+  BarChart3,
+  UserCheck,
+  LogOut,
+  Trophy,
+  Clock,
+  Calendar,
+  Users,
+  User,
+  Gift,
+  FileText,
+  BookOpen,
+  Settings,
+  UserCog,
+} from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -24,11 +38,11 @@ export function AppSidebar() {
   const { isAdmin } = useAdminRole();
 
   const handleLogout = async () => {
-    console.log('Botão logout clicado');
+    console.log("Botão logout clicado");
     try {
       await signOut();
     } catch (error) {
-      console.error('Erro no handleLogout:', error);
+      console.error("Erro no handleLogout:", error);
     }
   };
 
@@ -38,7 +52,7 @@ export function AppSidebar() {
 
     const items = [];
 
-    if (userProfile.role === 'corretor') {
+    if (userProfile.role === "corretor") {
       items.push(
         {
           title: "Minhas Visitas",
@@ -54,7 +68,7 @@ export function AppSidebar() {
           title: "Integração",
           url: "/integracao",
           icon: BookOpen,
-        }
+        },
       );
     } else {
       // Recepcionista ou outros roles
@@ -73,11 +87,6 @@ export function AppSidebar() {
           title: "Lista de Espera",
           url: "/lista-espera",
           icon: Clock,
-        },
-        {
-          title: "Gerar Link",
-          url: "/gerar-link",
-          icon: Calendar,
         },
         {
           title: "Agendamentos",
@@ -103,7 +112,7 @@ export function AppSidebar() {
           title: "Integração",
           url: "/integracao",
           icon: BookOpen,
-        }
+        },
       );
     }
 
@@ -113,7 +122,7 @@ export function AppSidebar() {
   // Menu items administrativos
   const getAdminMenuItems = () => {
     if (!isAdmin) return [];
-    
+
     return [
       {
         title: "Questionários de Persona",
@@ -131,9 +140,9 @@ export function AppSidebar() {
       <Sidebar className="border-r border-slate-200">
         <SidebarHeader className="p-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-            <img src="/icons/icon-192x192.png" alt="Front Desk" className="w-10 h-10 rounded-lg" />
-          </div>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+              <img src="/icons/icon-192x192.png" alt="Front Desk" className="w-10 h-10 rounded-lg" />
+            </div>
             <div>
               <h1 className="font-bold text-lg text-slate-900">Front Desk</h1>
               <p className="text-sm text-slate-500">Carregando...</p>
@@ -162,12 +171,12 @@ export function AppSidebar() {
           <div className="min-w-0 hidden lg:block group-data-[collapsible=icon]:hidden">
             <h1 className="font-bold text-base lg:text-lg text-slate-900 truncate">Front Desk</h1>
             <p className="text-xs lg:text-sm text-slate-500 truncate">
-              {userProfile?.role === 'corretor' ? 'Portal do Corretor' : 'Sistema de Recepção'}
+              {userProfile?.role === "corretor" ? "Portal do Corretor" : "Sistema de Recepção"}
             </p>
           </div>
         </div>
       </SidebarHeader>
-      
+
       <SidebarContent className="px-2 lg:px-4">
         <SidebarGroup>
           <SidebarGroupLabel className="text-slate-600 font-semibold text-xs lg:text-sm px-2 group-data-[collapsible=icon]:hidden">
@@ -177,12 +186,11 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild
-                    isActive={location.pathname === item.url}
-                    className="h-9 lg:h-10"
-                  >
-                    <a href={item.url} className="flex items-center gap-3 px-2 lg:px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors">
+                  <SidebarMenuButton asChild isActive={location.pathname === item.url} className="h-9 lg:h-10">
+                    <a
+                      href={item.url}
+                      className="flex items-center gap-3 px-2 lg:px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+                    >
                       <item.icon className="h-4 w-4 flex-shrink-0" />
                       <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
                     </a>
@@ -206,12 +214,11 @@ export function AppSidebar() {
               <SidebarMenu>
                 {adminMenuItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild
-                      isActive={location.pathname === item.url}
-                      className="h-9 lg:h-10"
-                    >
-                      <a href={item.url} className="flex items-center gap-3 px-2 lg:px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors">
+                    <SidebarMenuButton asChild isActive={location.pathname === item.url} className="h-9 lg:h-10">
+                      <a
+                        href={item.url}
+                        className="flex items-center gap-3 px-2 lg:px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+                      >
                         <item.icon className="h-4 w-4 flex-shrink-0" />
                         <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
                       </a>
@@ -222,7 +229,7 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
-        
+
         <SidebarGroup>
           <SidebarGroupContent>
             <div className="px-2 lg:px-3 py-2">
