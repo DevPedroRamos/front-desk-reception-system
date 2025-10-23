@@ -730,6 +730,80 @@ export type Database = {
         }
         Relationships: []
       }
+      recebimentos: {
+        Row: {
+          cliente_cpf: string | null
+          cliente_nome: string
+          corretor_apelido: string
+          corretor_gerente: string | null
+          corretor_id: string
+          corretor_superintendente: string | null
+          created_at: string | null
+          data_hora: string
+          empreendimento: string | null
+          finalizado_em: string | null
+          finalizado_por: string | null
+          id: string
+          observacoes: string | null
+          status: string
+          unidade: string | null
+          updated_at: string | null
+          valor_entrada: number
+          valor_pago: number | null
+          visit_id: string | null
+        }
+        Insert: {
+          cliente_cpf?: string | null
+          cliente_nome: string
+          corretor_apelido: string
+          corretor_gerente?: string | null
+          corretor_id: string
+          corretor_superintendente?: string | null
+          created_at?: string | null
+          data_hora?: string
+          empreendimento?: string | null
+          finalizado_em?: string | null
+          finalizado_por?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          unidade?: string | null
+          updated_at?: string | null
+          valor_entrada: number
+          valor_pago?: number | null
+          visit_id?: string | null
+        }
+        Update: {
+          cliente_cpf?: string | null
+          cliente_nome?: string
+          corretor_apelido?: string
+          corretor_gerente?: string | null
+          corretor_id?: string
+          corretor_superintendente?: string | null
+          created_at?: string | null
+          data_hora?: string
+          empreendimento?: string | null
+          finalizado_em?: string | null
+          finalizado_por?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          unidade?: string | null
+          updated_at?: string | null
+          valor_entrada?: number
+          valor_pago?: number | null
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimentos_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referrals: {
         Row: {
           created_at: string
@@ -1574,10 +1648,6 @@ export type Database = {
       }
     }
     Functions: {
-      binary_quantize: {
-        Args: { "": string } | { "": unknown }
-        Returns: unknown
-      }
       buscar_cliente_por_cpf: {
         Args: { p_cpf: string }
         Returns: {
@@ -1592,26 +1662,14 @@ export type Database = {
         Args: { p_andar: string; p_loja: string; p_mesa: number }
         Returns: boolean
       }
-      check_tempo_espera: {
-        Args: { created_time: string }
-        Returns: boolean
-      }
+      check_tempo_espera: { Args: { created_time: string }; Returns: boolean }
       delete_category_reassign_articles: {
         Args: { p_category_id: string }
         Returns: number
       }
-      finalizar_visita: {
-        Args: { visit_id: string }
-        Returns: undefined
-      }
-      fix_user_relations: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      generate_scheduling_token: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      finalizar_visita: { Args: { visit_id: string }; Returns: undefined }
+      fix_user_relations: { Args: never; Returns: undefined }
+      generate_scheduling_token: { Args: never; Returns: string }
       gerar_link_corretor: {
         Args: { corretor_uuid: string; link_titulo?: string }
         Returns: string
@@ -1665,7 +1723,7 @@ export type Database = {
         }[]
       }
       get_current_period: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           end: string
           id: number
@@ -1673,7 +1731,7 @@ export type Database = {
         }[]
       }
       get_dashboard_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           mesas_ocupadas: number
           total_visitas_hoje: number
@@ -1737,22 +1795,6 @@ export type Database = {
           visitas_count: number
         }[]
       }
-      halfvec_avg: {
-        Args: { "": number[] }
-        Returns: unknown
-      }
-      halfvec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      halfvec_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      halfvec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1760,45 +1802,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      hnsw_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_sparsevec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnswhandler: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
       increment_article_views: {
         Args: { article_id: string }
         Returns: undefined
-      }
-      ivfflat_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflat_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflathandler: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      l2_norm: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: number
-      }
-      l2_normalize: {
-        Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: unknown
       }
       match_documents: {
         Args: { filter?: Json; match_count?: number; query_embedding: string }
@@ -1820,45 +1826,9 @@ export type Database = {
           title: string
         }[]
       }
-      sparsevec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      sparsevec_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      sparsevec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
       validate_cpf_and_create_profile: {
         Args: { user_cpf: string }
         Returns: boolean
-      }
-      vector_avg: {
-        Args: { "": number[] }
-        Returns: string
-      }
-      vector_dims: {
-        Args: { "": string } | { "": unknown }
-        Returns: number
-      }
-      vector_norm: {
-        Args: { "": string }
-        Returns: number
-      }
-      vector_out: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      vector_send: {
-        Args: { "": string }
-        Returns: string
-      }
-      vector_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
       }
     }
     Enums: {
