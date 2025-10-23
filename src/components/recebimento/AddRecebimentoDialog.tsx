@@ -25,8 +25,10 @@ interface AddRecebimentoDialogProps {
 export function AddRecebimentoDialog({ onSubmit, isSubmitting }: AddRecebimentoDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedCorretor, setSelectedCorretor] = useState<any>(null);
+  const [corretorInputValue, setCorretorInputValue] = useState('');
   const [selectedVisit, setSelectedVisit] = useState<any>(null);
   const [empreendimento, setEmpreendimento] = useState('');
+  const [empreendimentoInputValue, setEmpreendimentoInputValue] = useState('');
   const [unidade, setUnidade] = useState('');
   const [valorEntrada, setValorEntrada] = useState('');
 
@@ -54,8 +56,10 @@ export function AddRecebimentoDialog({ onSubmit, isSubmitting }: AddRecebimentoD
 
   const handleReset = () => {
     setSelectedCorretor(null);
+    setCorretorInputValue('');
     setSelectedVisit(null);
     setEmpreendimento('');
+    setEmpreendimentoInputValue('');
     setUnidade('');
     setValorEntrada('');
   };
@@ -106,11 +110,28 @@ export function AddRecebimentoDialog({ onSubmit, isSubmitting }: AddRecebimentoD
           <AutoSuggest
             label="Apelido do Corretor"
             options={corretores.map((c) => ({ id: c.id, name: c.name }))}
-            value={selectedCorretor?.name || ''}
+            value={corretorInputValue}
             onValueChange={(value) => {
+              // Sempre atualizar o valor do input
+              setCorretorInputValue(value);
+              
+              // Limpar seleção se campo estiver vazio
+              if (value === '') {
+                setSelectedCorretor(null);
+                setSelectedVisit(null);
+                return;
+              }
+              
+              // Procurar corretor que corresponda exatamente
               const corretor = corretores.find((c) => c.name === value);
-              setSelectedCorretor(corretor);
-              setSelectedVisit(null);
+              if (corretor) {
+                setSelectedCorretor(corretor);
+                setSelectedVisit(null);
+              } else {
+                // Se não encontrar, limpar apenas a seleção mas manter o texto
+                setSelectedCorretor(null);
+                setSelectedVisit(null);
+              }
             }}
             placeholder="Digite o apelido do corretor..."
             required
@@ -170,8 +191,13 @@ export function AddRecebimentoDialog({ onSubmit, isSubmitting }: AddRecebimentoD
               <AutoSuggest
                 label="Empreendimento"
                 options={empreendimentos.map((e, idx) => ({ id: String(idx), name: e }))}
-                value={empreendimento}
-                onValueChange={setEmpreendimento}
+                value={empreendimentoInputValue}
+                onValueChange={(value) => {
+                  // Sempre atualizar o valor do input
+                  setEmpreendimentoInputValue(value);
+                  // Atualizar o empreendimento selecionado
+                  setEmpreendimento(value);
+                }}
                 placeholder="Digite o empreendimento..."
               />
 
