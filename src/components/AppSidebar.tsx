@@ -24,6 +24,7 @@ import {
   BookOpen,
   Settings,
   UserCog,
+  Wallet,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -92,6 +93,11 @@ export function AppSidebar() {
           title: "Agendamentos",
           url: "/agendamentos",
           icon: Calendar,
+        },
+        {
+          title: "Recebimentos",
+          url: "/recebimento",
+          icon: Wallet,
         },
         {
           title: "Brindes",
