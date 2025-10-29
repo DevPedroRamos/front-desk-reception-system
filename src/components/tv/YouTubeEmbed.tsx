@@ -1,9 +1,9 @@
-import { Card } from '@/components/ui/card';
+import { Card } from "@/components/ui/card";
 
 export function YouTubeEmbed() {
   // Default YouTube video ID - you can change this to any video
-  const videoId = '4NjNGEBtoXM'; // Video ID
-  
+  const videoId = "dQTdiTnJIaM"; // Video ID
+
   return (
     <Card className="overflow-hidden">
       <div className="aspect-video">
