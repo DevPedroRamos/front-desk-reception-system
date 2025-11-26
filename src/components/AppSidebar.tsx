@@ -110,11 +110,6 @@ export function AppSidebar() {
           icon: FileText,
         },
         {
-          title: "Pódio",
-          url: "/podio",
-          icon: Trophy,
-        },
-        {
           title: "Integração",
           url: "/integracao",
           icon: BookOpen,
