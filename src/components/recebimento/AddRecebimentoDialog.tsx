@@ -27,6 +27,8 @@ export function AddRecebimentoDialog({ onSubmit, isSubmitting }: AddRecebimentoD
   const [selectedCorretor, setSelectedCorretor] = useState<any>(null);
   const [corretorInputValue, setCorretorInputValue] = useState('');
   const [selectedVisit, setSelectedVisit] = useState<any>(null);
+  const [clienteNome, setClienteNome] = useState('');
+  const [clienteCpf, setClienteCpf] = useState('');
   const [empreendimento, setEmpreendimento] = useState('');
   const [empreendimentoInputValue, setEmpreendimentoInputValue] = useState('');
   const [unidade, setUnidade] = useState('');
@@ -58,6 +60,8 @@ export function AddRecebimentoDialog({ onSubmit, isSubmitting }: AddRecebimentoD
     setSelectedCorretor(null);
     setCorretorInputValue('');
     setSelectedVisit(null);
+    setClienteNome('');
+    setClienteCpf('');
     setEmpreendimento('');
     setEmpreendimentoInputValue('');
     setUnidade('');
@@ -67,7 +71,14 @@ export function AddRecebimentoDialog({ onSubmit, isSubmitting }: AddRecebimentoD
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedCorretor || !selectedVisit || !valorEntrada) {
+    if (!selectedCorretor || !valorEntrada) {
+      return;
+    }
+
+    // Validar cliente (da visita OU manual)
+    const temClienteVisita = selectedVisit?.cliente_nome;
+    const temClienteManual = clienteNome.trim();
+    if (!temClienteVisita && !temClienteManual) {
       return;
     }
 
@@ -77,13 +88,13 @@ export function AddRecebimentoDialog({ onSubmit, isSubmitting }: AddRecebimentoD
     }
 
     onSubmit({
-      visit_id: selectedVisit.id,
+      visit_id: selectedVisit?.id || null,
       corretor_id: selectedCorretor.id,
       corretor_apelido: selectedCorretor.name,
       corretor_gerente: selectedCorretor.gerente,
       corretor_superintendente: selectedCorretor.superintendente,
-      cliente_nome: selectedVisit.cliente_nome,
-      cliente_cpf: selectedVisit.cliente_cpf,
+      cliente_nome: selectedVisit?.cliente_nome || clienteNome,
+      cliente_cpf: selectedVisit?.cliente_cpf || clienteCpf || null,
       empreendimento: empreendimento || null,
       unidade: unidade || null,
       valor_entrada: valor,
@@ -151,43 +162,64 @@ export function AddRecebimentoDialog({ onSubmit, isSubmitting }: AddRecebimentoD
                 </div>
               </div>
 
-              {/* Seleção do Cliente (se múltiplas visitas) */}
-              {visits.length > 1 && (
-                <div className="space-y-2">
-                  <Label>Cliente *</Label>
-                  <Select
-                    value={selectedVisit?.id || ''}
-                    onValueChange={(value) => {
-                      const visit = visits.find((v) => v.id === value);
-                      setSelectedVisit(visit);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o cliente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {visits.map((visit) => (
-                        <SelectItem key={visit.id} value={visit.id}>
-                          {visit.cliente_nome} - Mesa {visit.mesa}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* SE TEM visitas ativas → mostra seleção de cliente */}
+              {visits.length > 0 ? (
+                <>
+                  {visits.length > 1 && (
+                    <div className="space-y-2">
+                      <Label>Cliente *</Label>
+                      <Select
+                        value={selectedVisit?.id || ''}
+                        onValueChange={(value) => {
+                          const visit = visits.find((v) => v.id === value);
+                          setSelectedVisit(visit);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o cliente" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {visits.map((visit) => (
+                            <SelectItem key={visit.id} value={visit.id}>
+                              {visit.cliente_nome} - Mesa {visit.mesa}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {visits.length === 1 && selectedVisit && (
+                    <div className="space-y-2">
+                      <Label>Cliente</Label>
+                      <Input value={`${selectedVisit.cliente_nome} - Mesa ${selectedVisit.mesa}`} disabled />
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* SE NÃO TEM visitas → mostra campos manuais */
+                <>
+                  <div className="space-y-2">
+                    <Label>Nome do Cliente *</Label>
+                    <Input
+                      value={clienteNome}
+                      onChange={(e) => setClienteNome(e.target.value)}
+                      placeholder="Nome completo do cliente"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CPF do Cliente</Label>
+                    <Input
+                      value={clienteCpf}
+                      onChange={(e) => setClienteCpf(e.target.value)}
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
+                </>
               )}
 
-              {visits.length === 1 && selectedVisit && (
-                <div className="space-y-2">
-                  <Label>Cliente</Label>
-                  <Input value={`${selectedVisit.cliente_nome} - Mesa ${selectedVisit.mesa}`} disabled />
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Campos Manuais */}
-          {selectedVisit && (
-            <>
+              {/* Campos de empreendimento, unidade, valor - sempre disponíveis */}
               <AutoSuggest
                 label="Empreendimento"
                 options={empreendimentos.map((e, idx) => ({ id: String(idx), name: e }))}
@@ -229,7 +261,15 @@ export function AddRecebimentoDialog({ onSubmit, isSubmitting }: AddRecebimentoD
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting || !selectedCorretor || !selectedVisit || !valorEntrada}>
+            <Button
+              type="submit"
+              disabled={
+                isSubmitting ||
+                !selectedCorretor ||
+                !valorEntrada ||
+                (!selectedVisit && !clienteNome.trim())
+              }
+            >
               {isSubmitting ? 'Registrando...' : 'Registrar'}
             </Button>
           </DialogFooter>

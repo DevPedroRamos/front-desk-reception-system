@@ -282,6 +282,36 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboards: {
+        Row: {
+          created_at: string
+          description: string | null
+          embed_url: string
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          embed_url: string
+          id?: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          embed_url?: string
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       empreendimentos: {
         Row: {
           address: string | null
@@ -906,6 +936,39 @@ export type Database = {
         }
         Relationships: []
       }
+      treinamento_candidatos: {
+        Row: {
+          comprovante_residencia_url: string
+          cpf: string
+          created_at: string | null
+          documento_rg_url: string
+          email: string
+          expires_at: string | null
+          id: string
+          nome_completo: string
+        }
+        Insert: {
+          comprovante_residencia_url: string
+          cpf: string
+          created_at?: string | null
+          documento_rg_url: string
+          email: string
+          expires_at?: string | null
+          id?: string
+          nome_completo: string
+        }
+        Update: {
+          comprovante_residencia_url?: string
+          cpf?: string
+          created_at?: string | null
+          documento_rg_url?: string
+          email?: string
+          expires_at?: string | null
+          id?: string
+          nome_completo?: string
+        }
+        Relationships: []
+      }
       unidades: {
         Row: {
           bloco: string
@@ -1013,6 +1076,7 @@ export type Database = {
           ban: boolean
           cpf: string
           created_at: string | null
+          diretor: string
           gerente: string
           id: string
           name: string
@@ -1024,6 +1088,7 @@ export type Database = {
           ban?: boolean
           cpf: string
           created_at?: string | null
+          diretor?: string
           gerente: string
           id?: string
           name: string
@@ -1035,6 +1100,7 @@ export type Database = {
           ban?: boolean
           cpf?: string
           created_at?: string | null
+          diretor?: string
           gerente?: string
           id?: string
           name?: string
@@ -1215,15 +1281,19 @@ export type Database = {
           comissao_integral_extra_gerente: number | null
           comissao_integral_extra_superintendente: number | null
           comissao_integral_sinal: number | null
+          comissao_integral_sinal_coord: number | null
           comissao_integral_sinal_gerente: number | null
           comissao_integral_sinal_superintendente: number | null
           comissao_integral_vgv_pre_chaves: number | null
+          comissao_integral_vgv_pre_chaves_coord: number | null
           comissao_integral_vgv_pre_chaves_gerente: number | null
           comissao_integral_vgv_pre_chaves_superintendente: number | null
           comissao_sinal_perc: number | null
+          comissao_sinal_perc_coord: number | null
           comissao_sinal_perc_gerente: number | null
           comissao_sinal_perc_superintendente: number | null
           comissao_vgv_pre_chaves_perc: number | null
+          comissao_vgv_pre_chaves_perc_coord: number | null
           comissao_vgv_pre_chaves_perc_gerente: number | null
           comissao_vgv_pre_chaves_perc_superintendente: number | null
           created_at: string | null
@@ -1243,6 +1313,7 @@ export type Database = {
           receber: number | null
           recebido: number | null
           recebido_de_sinal: number | null
+          sinal_comissao_extra_coord: number | null
           sinal_comissao_extra_vendedor: number | null
           sinal_comissao_extra_vendedor_gerente: number | null
           sinal_comissao_extra_vendedor_superintendente: number | null
@@ -1270,15 +1341,19 @@ export type Database = {
           comissao_integral_extra_gerente?: number | null
           comissao_integral_extra_superintendente?: number | null
           comissao_integral_sinal?: number | null
+          comissao_integral_sinal_coord?: number | null
           comissao_integral_sinal_gerente?: number | null
           comissao_integral_sinal_superintendente?: number | null
           comissao_integral_vgv_pre_chaves?: number | null
+          comissao_integral_vgv_pre_chaves_coord?: number | null
           comissao_integral_vgv_pre_chaves_gerente?: number | null
           comissao_integral_vgv_pre_chaves_superintendente?: number | null
           comissao_sinal_perc?: number | null
+          comissao_sinal_perc_coord?: number | null
           comissao_sinal_perc_gerente?: number | null
           comissao_sinal_perc_superintendente?: number | null
           comissao_vgv_pre_chaves_perc?: number | null
+          comissao_vgv_pre_chaves_perc_coord?: number | null
           comissao_vgv_pre_chaves_perc_gerente?: number | null
           comissao_vgv_pre_chaves_perc_superintendente?: number | null
           created_at?: string | null
@@ -1298,6 +1373,7 @@ export type Database = {
           receber?: number | null
           recebido?: number | null
           recebido_de_sinal?: number | null
+          sinal_comissao_extra_coord?: number | null
           sinal_comissao_extra_vendedor?: number | null
           sinal_comissao_extra_vendedor_gerente?: number | null
           sinal_comissao_extra_vendedor_superintendente?: number | null
@@ -1325,15 +1401,19 @@ export type Database = {
           comissao_integral_extra_gerente?: number | null
           comissao_integral_extra_superintendente?: number | null
           comissao_integral_sinal?: number | null
+          comissao_integral_sinal_coord?: number | null
           comissao_integral_sinal_gerente?: number | null
           comissao_integral_sinal_superintendente?: number | null
           comissao_integral_vgv_pre_chaves?: number | null
+          comissao_integral_vgv_pre_chaves_coord?: number | null
           comissao_integral_vgv_pre_chaves_gerente?: number | null
           comissao_integral_vgv_pre_chaves_superintendente?: number | null
           comissao_sinal_perc?: number | null
+          comissao_sinal_perc_coord?: number | null
           comissao_sinal_perc_gerente?: number | null
           comissao_sinal_perc_superintendente?: number | null
           comissao_vgv_pre_chaves_perc?: number | null
+          comissao_vgv_pre_chaves_perc_coord?: number | null
           comissao_vgv_pre_chaves_perc_gerente?: number | null
           comissao_vgv_pre_chaves_perc_superintendente?: number | null
           created_at?: string | null
@@ -1353,6 +1433,7 @@ export type Database = {
           receber?: number | null
           recebido?: number | null
           recebido_de_sinal?: number | null
+          sinal_comissao_extra_coord?: number | null
           sinal_comissao_extra_vendedor?: number | null
           sinal_comissao_extra_vendedor_gerente?: number | null
           sinal_comissao_extra_vendedor_superintendente?: number | null
@@ -1522,6 +1603,7 @@ export type Database = {
           id: string | null
           outras: number | null
           outros: number | null
+          pagamento: string | null
           pagar: number | null
           periodo_id: number | null
           premio: number | null
@@ -1541,6 +1623,7 @@ export type Database = {
           id?: string | null
           outras?: number | null
           outros?: number | null
+          pagamento?: string | null
           pagar?: number | null
           periodo_id?: number | null
           premio?: number | null
@@ -1560,6 +1643,7 @@ export type Database = {
           id?: string | null
           outras?: number | null
           outros?: number | null
+          pagamento?: string | null
           pagar?: number | null
           periodo_id?: number | null
           premio?: number | null
@@ -1583,12 +1667,26 @@ export type Database = {
           created_at: string | null
           empreendimento: string | null
           gerente: string | null
+          gerente_comissao_extra_perc: number | null
+          gerente_comissao_sinal_perc: number | null
+          gerente_comissao_sinal_valor: number | null
+          gerente_comissao_vgv_perc: number | null
+          gerente_comissao_vgv_valor: number | null
+          gerente_premio_repasse_fiador_valor: number | null
+          gerente_vgv_valor: number | null
           gestor: string | null
           id: number | null
           periodo_id: number | null
           premio_repasse_fiador_valor: number | null
           subtotal: number | null
           superintendente: string | null
+          superintendente_comissao_extra_perc: number | null
+          superintendente_comissao_sinal_perc: number | null
+          superintendente_comissao_sinal_valor: number | null
+          superintendente_comissao_vgv_perc: number | null
+          superintendente_comissao_vgv_valor: number | null
+          superintendente_premio_repasse_fiador_valor: number | null
+          superintendente_vgv_valor: number | null
           supervisor_coord_parceiro: string | null
           total: number | null
           unid: string | null
@@ -1607,12 +1705,26 @@ export type Database = {
           created_at?: string | null
           empreendimento?: string | null
           gerente?: string | null
+          gerente_comissao_extra_perc?: number | null
+          gerente_comissao_sinal_perc?: number | null
+          gerente_comissao_sinal_valor?: number | null
+          gerente_comissao_vgv_perc?: number | null
+          gerente_comissao_vgv_valor?: number | null
+          gerente_premio_repasse_fiador_valor?: number | null
+          gerente_vgv_valor?: number | null
           gestor?: string | null
           id?: number | null
           periodo_id?: number | null
           premio_repasse_fiador_valor?: number | null
           subtotal?: number | null
           superintendente?: string | null
+          superintendente_comissao_extra_perc?: number | null
+          superintendente_comissao_sinal_perc?: number | null
+          superintendente_comissao_sinal_valor?: number | null
+          superintendente_comissao_vgv_perc?: number | null
+          superintendente_comissao_vgv_valor?: number | null
+          superintendente_premio_repasse_fiador_valor?: number | null
+          superintendente_vgv_valor?: number | null
           supervisor_coord_parceiro?: string | null
           total?: number | null
           unid?: string | null
@@ -1631,12 +1743,26 @@ export type Database = {
           created_at?: string | null
           empreendimento?: string | null
           gerente?: string | null
+          gerente_comissao_extra_perc?: number | null
+          gerente_comissao_sinal_perc?: number | null
+          gerente_comissao_sinal_valor?: number | null
+          gerente_comissao_vgv_perc?: number | null
+          gerente_comissao_vgv_valor?: number | null
+          gerente_premio_repasse_fiador_valor?: number | null
+          gerente_vgv_valor?: number | null
           gestor?: string | null
           id?: number | null
           periodo_id?: number | null
           premio_repasse_fiador_valor?: number | null
           subtotal?: number | null
           superintendente?: string | null
+          superintendente_comissao_extra_perc?: number | null
+          superintendente_comissao_sinal_perc?: number | null
+          superintendente_comissao_sinal_valor?: number | null
+          superintendente_comissao_vgv_perc?: number | null
+          superintendente_comissao_vgv_valor?: number | null
+          superintendente_premio_repasse_fiador_valor?: number | null
+          superintendente_vgv_valor?: number | null
           supervisor_coord_parceiro?: string | null
           total?: number | null
           unid?: string | null
@@ -1663,16 +1789,34 @@ export type Database = {
         Returns: boolean
       }
       check_tempo_espera: { Args: { created_time: string }; Returns: boolean }
+      create_periodo: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          created_at: string
+          end: string
+          id: number
+          start: string
+        }[]
+      }
       delete_category_reassign_articles: {
         Args: { p_category_id: string }
         Returns: number
       }
+      delete_periodo: { Args: { p_id: number }; Returns: undefined }
       finalizar_visita: { Args: { visit_id: string }; Returns: undefined }
       fix_user_relations: { Args: never; Returns: undefined }
       generate_scheduling_token: { Args: never; Returns: string }
       gerar_link_corretor: {
         Args: { corretor_uuid: string; link_titulo?: string }
         Returns: string
+      }
+      get_all_periodos: {
+        Args: never
+        Returns: {
+          end: string
+          id: number
+          start: string
+        }[]
       }
       get_champions_ranking: {
         Args: {
@@ -1824,6 +1968,15 @@ export type Database = {
           id: string
           relevance: number
           title: string
+        }[]
+      }
+      update_periodo: {
+        Args: { p_end: string; p_id: number; p_start: string }
+        Returns: {
+          created_at: string
+          end: string
+          id: number
+          start: string
         }[]
       }
       validate_cpf_and_create_profile: {
