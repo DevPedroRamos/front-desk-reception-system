@@ -389,14 +389,14 @@ export default function index() {
         .select('apelido')
         .eq('id', visit.corretor_id)
         .single()
-      
+
       const apelidoCorretor = corretorData?.apelido || visit.corretor_nome
       const primeiroNome = visit.cliente_nome.split(' ')[0]
-      
+
       const mensagem = `Corretor ${apelidoCorretor} - Cliente ${primeiroNome} - ${visit.loja} - Mesa ${visit.mesa}`
-      
+
       await navigator.clipboard.writeText(mensagem)
-      
+
       toast.success("Mensagem copiada!", {
         description: "A mensagem foi copiada para a área de transferência.",
       })
@@ -408,16 +408,16 @@ export default function index() {
 
   const formatarOrigem = (origemRegistro: any) => {
     if (!origemRegistro) return "N/A"
-    
+
     if (origemRegistro.tipo === "auto") {
       return "Auto Agendamento"
     }
-    
+
     // Formato: "Recepcionista - Rayane" ou "Corretor - João"
     const role = origemRegistro.role || ""
     const nome = origemRegistro.nome || ""
     const roleCapitalizado = role.charAt(0).toUpperCase() + role.slice(1)
-    
+
     return `${roleCapitalizado} - ${nome}`
   }
 
@@ -566,7 +566,7 @@ export default function index() {
                 <Button
                   variant={
                     startDate === format(startOfMonth(new Date()), "yyyy-MM-dd") &&
-                    endDate === format(endOfMonth(new Date()), "yyyy-MM-dd")
+                      endDate === format(endOfMonth(new Date()), "yyyy-MM-dd")
                       ? "default"
                       : "outline"
                   }
@@ -829,8 +829,9 @@ export default function index() {
                 <Table>
                   <TableHeader className="bg-gray-50">
                     <TableRow>
-                      <TableHead className="font-semibold">Cliente</TableHead>
                       <TableHead className="font-semibold">Corretor</TableHead>
+                      <TableHead className="font-semibold">Cliente</TableHead>
+                      <TableHead className="font-semibold">Whatsapp</TableHead>
                       <TableHead className="font-semibold">Empreendimento</TableHead>
                       <TableHead className="font-semibold">Local</TableHead>
                       <TableHead className="font-semibold">Entrada</TableHead>
@@ -841,16 +842,21 @@ export default function index() {
                     {finishedVisits.slice(0, 50).map((visit) => (
                       <TableRow key={visit.id} className="hover:bg-gray-50/50">
                         <TableCell>
+                          <Badge variant="outline" className="font-medium">
+                            {visit.corretor_nome}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
                           <div className="space-y-1">
                             <p className="font-medium text-gray-900">{visit.cliente_nome}</p>
                             <p className="text-sm text-gray-500">{visit.cliente_cpf}</p>
                           </div>
                         </TableCell>
+
                         <TableCell>
-                          <Badge variant="outline" className="font-medium">
-                            {visit.corretor_nome}
-                          </Badge>
+                          <span className="text-gray-900">{visit.cliente_whatsapp || "-"}</span>
                         </TableCell>
+                        
                         <TableCell>
                           <span className="text-gray-900">{visit.empreendimento || "-"}</span>
                         </TableCell>
