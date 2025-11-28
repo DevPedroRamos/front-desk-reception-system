@@ -6,18 +6,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, MapPin, Clock, Copy } from "lucide-react";
+import { UserPlus, MapPin, Clock, Copy, AlertTriangle, ListTodo } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AutoSuggest } from "@/components/AutoSuggest";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Recepcao = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { userProfile } = useUserRole();
+  const navigate = useNavigate();
+  const [showLojaLotadaAlert, setShowLojaLotadaAlert] = useState(false);
   const [formData, setFormData] = useState({
     cliente_nome: "",
     cliente_cpf: "",
@@ -233,12 +246,30 @@ const Recepcao = () => {
       (formData.andar === '' || visita.andar === formData.andar || formData.andar === 'N/A'))
     .map(visita => visita.mesa);
 
+  // Função para obter o número máximo de mesas
+  const getMaxMesas = () => {
+    if (!formData.loja) return 0;
+    return lojasConfig[formData.loja as keyof typeof lojasConfig]?.mesas || 0;
+  };
+
+  // Calcular se todas as mesas estão ocupadas na loja selecionada
+  const todasMesasOcupadas = formData.loja && 
+    getMaxMesas() > 0 && 
+    mesasOcupadas.length >= getMaxMesas();
+
   // Limpar andar quando trocar de loja
   useEffect(() => {
     if (formData.loja && !lojasConfig[formData.loja as keyof typeof lojasConfig]?.temAndar) {
       setFormData(prev => ({ ...prev, andar: "" }));
     }
   }, [formData.loja]);
+
+  // Mostrar alerta quando todas as mesas estiverem ocupadas
+  useEffect(() => {
+    if (todasMesasOcupadas) {
+      setShowLojaLotadaAlert(true);
+    }
+  }, [todasMesasOcupadas]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -295,11 +326,6 @@ const Recepcao = () => {
         </div>
       </SelectItem>
     );
-  };
-
-  const getMaxMesas = () => {
-    if (!formData.loja) return 0;
-    return lojasConfig[formData.loja as keyof typeof lojasConfig]?.mesas || 0;
   };
 
   return (
@@ -492,6 +518,26 @@ const Recepcao = () => {
               <p className="text-slate-500">Selecione a loja para ver o status das mesas.</p>
             ) : (
               <>
+                {todasMesasOcupadas && (
+                  <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-amber-800 font-medium">Todas as mesas estão ocupadas!</p>
+                      <p className="text-amber-700 text-sm">
+                        Recomendamos utilizar a Lista de Espera para registrar novos clientes.
+                      </p>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => navigate('/lista-espera')}
+                      className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                    >
+                      <ListTodo className="h-4 w-4 mr-1" />
+                      Lista de Espera
+                    </Button>
+                  </div>
+                )}
                 <div className="grid grid-cols-5 md:grid-cols-10 gap-3">
                   {Array.from({ length: getMaxMesas() }, (_, i) => i + 1).map((mesa) => {
                     const isOcupada = mesasOcupadas.includes(mesa);
@@ -526,6 +572,45 @@ const Recepcao = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pop-up de Loja Lotada */}
+      <AlertDialog open={showLojaLotadaAlert} onOpenChange={setShowLojaLotadaAlert}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-amber-600" />
+              </div>
+              <AlertDialogTitle className="text-xl">
+                Todas as Mesas Ocupadas
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-base">
+              <span className="font-semibold text-slate-900">{formData.loja}</span>
+              {formData.andar && <span> - {formData.andar}</span>} está com todas as 
+              <span className="font-semibold text-red-600"> {getMaxMesas()} mesas ocupadas</span>.
+              <br /><br />
+              <span className="text-slate-700">
+                💡 <strong>Recomendação:</strong> Utilize a <strong>Lista de Espera</strong> para 
+                registrar o cliente. Assim que uma mesa ficar disponível, você poderá iniciar 
+                o atendimento rapidamente.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>
+              Fechar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => navigate('/lista-espera')}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <ListTodo className="h-4 w-4 mr-2" />
+              Ir para Lista de Espera
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 };
