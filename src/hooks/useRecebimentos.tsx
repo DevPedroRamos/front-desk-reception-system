@@ -253,38 +253,25 @@ export function useRecebimentos(filters?: RecebimentoFilters) {
   };
 }
 
-// Hook para buscar corretores com visitas ativas
+// Hook para buscar todos os corretores ativos da tabela users
 export function useCorretoresAtivos() {
   return useQuery({
     queryKey: ['corretores-ativos'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('visits')
-        .select(
-          `
-          corretor_id,
-          corretor_nome,
-          users!visits_corretor_id_fkey(apelido, gerente, superintendente)
-        `
-        )
-        .eq('status', 'ativo');
+        .from('users')
+        .select('id, apelido, gerente, superintendente')
+        .eq('ban', false)
+        .order('apelido');
 
       if (error) throw error;
 
-      // Remover duplicatas por corretor_id
-      const uniqueMap = new Map();
-      data?.forEach((v: any) => {
-        if (!uniqueMap.has(v.corretor_id)) {
-          uniqueMap.set(v.corretor_id, {
-            id: v.corretor_id,
-            name: v.users?.apelido || v.corretor_nome,
-            gerente: v.users?.gerente,
-            superintendente: v.users?.superintendente,
-          });
-        }
-      });
-
-      return Array.from(uniqueMap.values());
+      return data?.map((user) => ({
+        id: user.id,
+        name: user.apelido,
+        gerente: user.gerente,
+        superintendente: user.superintendente,
+      })) || [];
     },
   });
 }
