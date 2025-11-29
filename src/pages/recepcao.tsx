@@ -174,14 +174,30 @@ const Recepcao = () => {
       // Buscar ID do corretor se foi informado
       let corretor_id = null;
       if (visitData.corretor_nome) {
-        const { data: corretorData } = await supabase
-          .from('users')
-          .select('id')
-          .or(`name.ilike.%${visitData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${visitData.corretor_nome}%`)
-          .limit(1)
-          .single();
+        // Verificar se é um corretor novo (formato "Novo - apelido")
+        const isCorretorNovo = visitData.corretor_nome.toLowerCase().startsWith("novo - ");
         
-        corretor_id = corretorData?.id || null;
+        if (isCorretorNovo) {
+          // Buscar o ID do corretor "NOVO" que está cadastrado na base
+          const { data: corretorNovoData } = await supabase
+            .from('users')
+            .select('id')
+            .ilike('apelido', 'NOVO')
+            .limit(1)
+            .maybeSingle();
+          
+          corretor_id = corretorNovoData?.id || null;
+        } else {
+          // Busca normal para outros corretores
+          const { data: corretorData } = await supabase
+            .from('users')
+            .select('id')
+            .or(`name.ilike.%${visitData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${visitData.corretor_nome}%`)
+            .limit(1)
+            .maybeSingle();
+          
+          corretor_id = corretorData?.id || null;
+        }
       }
 
       // Usar CPF padrão se não foi preenchido
