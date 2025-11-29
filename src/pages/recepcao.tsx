@@ -24,6 +24,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Recepcao = () => {
   const { toast } = useToast();
@@ -31,6 +39,8 @@ const Recepcao = () => {
   const { userProfile } = useUserRole();
   const navigate = useNavigate();
   const [showLojaLotadaAlert, setShowLojaLotadaAlert] = useState(false);
+  const [showNovoCorretorDialog, setShowNovoCorretorDialog] = useState(false);
+  const [apelidoNovoCorretor, setApelidoNovoCorretor] = useState("");
   const [formData, setFormData] = useState({
     cliente_nome: "",
     cliente_cpf: "",
@@ -365,7 +375,12 @@ const Recepcao = () => {
                     options={corretores}
                     value={formData.corretor_nome}
                     onValueChange={(value) => {
-                      setFormData(prev => ({ ...prev, corretor_nome: value }));
+                      if (value.toUpperCase() === "NOVO") {
+                        setShowNovoCorretorDialog(true);
+                        setApelidoNovoCorretor("");
+                      } else {
+                        setFormData(prev => ({ ...prev, corretor_nome: value }));
+                      }
                     }}
                   />
                   
@@ -611,6 +626,69 @@ const Recepcao = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog para Apelido do Corretor Novo */}
+      <Dialog open={showNovoCorretorDialog} onOpenChange={setShowNovoCorretorDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-blue-600" />
+              Corretor Novo
+            </DialogTitle>
+            <DialogDescription>
+              Digite o apelido do corretor que ainda não está cadastrado no sistema.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="apelido_novo_corretor">Apelido do Corretor *</Label>
+              <Input
+                id="apelido_novo_corretor"
+                placeholder="Ex: João, Maria, Pedro..."
+                value={apelidoNovoCorretor}
+                onChange={(e) => setApelidoNovoCorretor(e.target.value)}
+                autoFocus
+              />
+            </div>
+            
+            {apelidoNovoCorretor && (
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-700">
+                  <span className="font-medium">Preview:</span> Corretor será exibido como{" "}
+                  <span className="font-bold">Novo - {apelidoNovoCorretor}</span>
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowNovoCorretorDialog(false);
+                setApelidoNovoCorretor("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (apelidoNovoCorretor.trim()) {
+                  const nomeCompleto = `Novo - ${apelidoNovoCorretor.trim()}`;
+                  setFormData(prev => ({ ...prev, corretor_nome: nomeCompleto }));
+                  setShowNovoCorretorDialog(false);
+                  setApelidoNovoCorretor("");
+                }
+              }}
+              disabled={!apelidoNovoCorretor.trim()}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
