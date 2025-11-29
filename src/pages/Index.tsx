@@ -77,6 +77,7 @@ export default function index() {
   const [endDate, setEndDate] = useState(format(hoje, "yyyy-MM-dd"))
   const [selectedSuperintendente, setSelectedSuperintendente] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
+  const [searchTermFinished, setSearchTermFinished] = useState("")
 
   const loadSuperintendentes = async () => {
     const { data } = await supabase.from("users").select("superintendente").not("superintendente", "is", null)
@@ -265,6 +266,7 @@ export default function index() {
           id,
           cliente_nome,
           cliente_cpf,
+          cliente_whatsapp,
           corretor_nome,
           corretor_id,
           origem_registro,
@@ -455,6 +457,7 @@ export default function index() {
     setEndDate(hoje)
     setSelectedSuperintendente("all")
     setSearchTerm("")
+    setSearchTermFinished("")
   }
 
   const refreshData = async () => {
@@ -466,9 +469,28 @@ export default function index() {
     toast.success("Dados atualizados!")
   }
 
-  const filteredActiveVisits = activeVisits.filter((visit) =>
-    visit.corretor_nome.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const filteredActiveVisits = activeVisits.filter((visit) => {
+    if (!searchTerm.trim()) return true
+    const term = searchTerm.toLowerCase()
+    return (
+      visit.corretor_nome.toLowerCase().includes(term) ||
+      visit.cliente_nome.toLowerCase().includes(term) ||
+      (visit.cliente_whatsapp && visit.cliente_whatsapp.includes(searchTerm)) ||
+      (visit.cliente_cpf && visit.cliente_cpf.includes(searchTerm))
+    )
+  })
+
+  const filteredFinishedVisits = finishedVisits.filter((visit) => {
+    if (!searchTermFinished.trim()) return true
+    const term = searchTermFinished.toLowerCase()
+    return (
+      visit.corretor_nome.toLowerCase().includes(term) ||
+      visit.cliente_nome.toLowerCase().includes(term) ||
+      (visit.cliente_whatsapp && visit.cliente_whatsapp.includes(searchTermFinished)) ||
+      (visit.cliente_cpf && visit.cliente_cpf.includes(searchTermFinished)) ||
+      (visit.empreendimento && visit.empreendimento.toLowerCase().includes(term))
+    )
+  })
 
   const getTempoAtendimento = (horarioEntrada: string) => {
     const entrada = new Date(horarioEntrada)
@@ -698,10 +720,10 @@ export default function index() {
                   <div className="relative">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <Input
-                      placeholder="Pesquisar por corretor..."
+                      placeholder="Pesquisar por corretor, cliente, telefone..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-64"
+                      className="pl-10 w-72"
                     />
                   </div>
                   <Badge variant="secondary" className="text-sm px-3 py-1">
@@ -716,6 +738,7 @@ export default function index() {
                   <TableHeader className="bg-gray-50">
                     <TableRow>
                       <TableHead className="font-semibold">Cliente</TableHead>
+                      <TableHead className="font-semibold">Telefone</TableHead>
                       <TableHead className="font-semibold">Corretor</TableHead>
                       <TableHead className="font-semibold">Origem</TableHead>
                       <TableHead className="font-semibold">Local</TableHead>
@@ -732,6 +755,9 @@ export default function index() {
                             <p className="font-medium text-gray-900">{visit.cliente_nome}</p>
                             <p className="text-sm text-gray-500">{visit.cliente_cpf}</p>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-gray-900">{visit.cliente_whatsapp || "-"}</span>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-medium">
@@ -814,8 +840,17 @@ export default function index() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <Input
+                      placeholder="Pesquisar por corretor, cliente, telefone..."
+                      value={searchTermFinished}
+                      onChange={(e) => setSearchTermFinished(e.target.value)}
+                      className="pl-10 w-72"
+                    />
+                  </div>
                   <Badge variant="secondary" className="text-sm px-3 py-1">
-                    {finishedVisits.length} finalizada{finishedVisits.length !== 1 ? "s" : ""}
+                    {filteredFinishedVisits.length} finalizada{filteredFinishedVisits.length !== 1 ? "s" : ""}
                   </Badge>
                   <Button onClick={exportToCSV} variant="outline" className="hover:bg-green-50 hover:border-green-200">
                     <Download className="w-4 h-4 mr-2" />
@@ -839,7 +874,7 @@ export default function index() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {finishedVisits.slice(0, 50).map((visit) => (
+                    {filteredFinishedVisits.slice(0, 50).map((visit) => (
                       <TableRow key={visit.id} className="hover:bg-gray-50/50">
                         <TableCell>
                           <Badge variant="outline" className="font-medium">
