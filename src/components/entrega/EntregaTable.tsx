@@ -58,7 +58,6 @@ export function EntregaTable({ entregas, onRetirar, isLoading }: EntregaTablePro
             <TableHead>Remetente</TableHead>
             <TableHead>Destinatário</TableHead>
             <TableHead>Loja</TableHead>
-            <TableHead>Andar</TableHead>
             <TableHead>Registrado Por</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -73,7 +72,6 @@ export function EntregaTable({ entregas, onRetirar, isLoading }: EntregaTablePro
               <TableCell className="font-medium">{entrega.remetente}</TableCell>
               <TableCell className="font-medium">{entrega.destinatario}</TableCell>
               <TableCell>{entrega.loja}</TableCell>
-              <TableCell>{entrega.andar || "-"}</TableCell>
               <TableCell>{entrega.usuario_registro_nome}</TableCell>
               <TableCell>
                 <Badge variant={getStatusVariant(entrega.status)}>

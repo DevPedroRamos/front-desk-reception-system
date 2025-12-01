@@ -33,7 +33,6 @@ export function AddEntregaDialog({ onSubmit, isLoading }: AddEntregaDialogProps)
   const [remetente, setRemetente] = useState("");
   const [destinatario, setDestinatario] = useState("");
   const [loja, setLoja] = useState("");
-  const [andar, setAndar] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +45,6 @@ export function AddEntregaDialog({ onSubmit, isLoading }: AddEntregaDialogProps)
       remetente,
       destinatario,
       loja,
-      andar: andar || undefined,
       usuario_registro_id: user.id,
       usuario_registro_nome: userProfile.name,
     });
@@ -54,7 +52,6 @@ export function AddEntregaDialog({ onSubmit, isLoading }: AddEntregaDialogProps)
     setRemetente("");
     setDestinatario("");
     setLoja("");
-    setAndar("");
     setOpen(false);
   };
 
@@ -100,20 +97,12 @@ export function AddEntregaDialog({ onSubmit, isLoading }: AddEntregaDialogProps)
                 <SelectValue placeholder="Selecione a loja" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Loja Metrô">Loja Metrô</SelectItem>
-                <SelectItem value="Loja Leopoldina">Loja Leopoldina</SelectItem>
+                <SelectItem value="Loja 1">Loja 1</SelectItem>
+                <SelectItem value="Loja 2">Loja 2</SelectItem>
+                <SelectItem value="Loja 3">Loja 3</SelectItem>
+                <SelectItem value="Loja Superior 37 andar">Loja Superior 37 andar</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="andar">Andar</Label>
-            <Input
-              id="andar"
-              value={andar}
-              onChange={(e) => setAndar(e.target.value)}
-              placeholder="Andar (opcional)"
-            />
           </div>
 
           <div className="space-y-2">

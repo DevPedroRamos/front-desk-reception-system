@@ -11,7 +11,6 @@ export default function Entregas() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("todos");
-  const [andar, setAndar] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
   const {
@@ -25,7 +24,6 @@ export default function Entregas() {
     startDate,
     endDate,
     status,
-    andar,
     searchTerm,
   });
 
@@ -33,7 +31,6 @@ export default function Entregas() {
     setStartDate("");
     setEndDate("");
     setStatus("todos");
-    setAndar("");
     setSearchTerm("");
   };
 
@@ -59,12 +56,10 @@ export default function Entregas() {
           startDate={startDate}
           endDate={endDate}
           status={status}
-          andar={andar}
           searchTerm={searchTerm}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onStatusChange={setStatus}
-          onAndarChange={setAndar}
           onSearchChange={setSearchTerm}
           onClear={handleClearFilters}
           onExport={exportToCSV}
