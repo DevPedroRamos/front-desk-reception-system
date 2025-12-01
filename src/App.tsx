@@ -14,6 +14,7 @@ import TV from '@/pages/TV';
 import MKT from '@/pages/MKT';
 import Persona from '@/pages/Persona';
 import Recebimento from '@/pages/Recebimento';
+import Entregas from '@/pages/Entregas';
 import PersonaAdmin from '@/pages/admin/PersonaAdmin';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -55,6 +56,7 @@ function ProtectedRoutes() {
       <Route path="/integracao" element={<Integracao />} />
       <Route path="/agendamentos" element={<Agendamentos />} />
       <Route path="/recebimento" element={<Recebimento />} />
+      <Route path="/entregas" element={<Entregas />} />
       <Route path="/admin/persona" element={<PersonaAdmin />} />
       <Route path="*" element={<div>404 - Página não encontrada</div>} />
     </Routes>
