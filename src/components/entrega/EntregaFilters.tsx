@@ -14,12 +14,10 @@ interface EntregaFiltersProps {
   startDate: string;
   endDate: string;
   status: string;
-  andar: string;
   searchTerm: string;
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
   onStatusChange: (value: string) => void;
-  onAndarChange: (value: string) => void;
   onSearchChange: (value: string) => void;
   onClear: () => void;
   onExport: () => void;
@@ -29,12 +27,10 @@ export function EntregaFilters({
   startDate,
   endDate,
   status,
-  andar,
   searchTerm,
   onStartDateChange,
   onEndDateChange,
   onStatusChange,
-  onAndarChange,
   onSearchChange,
   onClear,
   onExport,
@@ -58,7 +54,7 @@ export function EntregaFilters({
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Data Início</label>
             <Input
@@ -79,26 +75,17 @@ export function EntregaFilters({
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
-            <Select value={status} onValueChange={onStatusChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="aguardando_retirada">Aguardando</SelectItem>
-                <SelectItem value="finalizado">Finalizados</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Andar</label>
             <div className="flex gap-2">
-              <Input
-                placeholder="Filtrar por andar"
-                value={andar}
-                onChange={(e) => onAndarChange(e.target.value)}
-              />
+              <Select value={status} onValueChange={onStatusChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="aguardando_retirada">Aguardando</SelectItem>
+                  <SelectItem value="finalizado">Finalizados</SelectItem>
+                </SelectContent>
+              </Select>
               <Button
                 variant="outline"
                 size="icon"

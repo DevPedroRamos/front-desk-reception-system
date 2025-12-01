@@ -27,7 +27,6 @@ export interface CreateEntregaData {
   usuario_registro_id: string;
   usuario_registro_nome: string;
   loja: string;
-  andar?: string;
 }
 
 export interface RetirarEntregaData {
@@ -41,7 +40,6 @@ export interface EntregaFilters {
   startDate: string;
   endDate: string;
   status: string;
-  andar: string;
   searchTerm: string;
 }
 
@@ -64,15 +62,11 @@ export function useEntregas(filters: EntregaFilters) {
         query = query.lte("data_hora_registro", filters.endDate);
       }
 
-      if (filters.status && filters.status !== "todos") {
-        query = query.eq("status", filters.status);
-      }
+    if (filters.status && filters.status !== "todos") {
+      query = query.eq("status", filters.status);
+    }
 
-      if (filters.andar) {
-        query = query.eq("andar", filters.andar);
-      }
-
-      if (filters.searchTerm) {
+    if (filters.searchTerm) {
         query = query.or(
           `remetente.ilike.%${filters.searchTerm}%,destinatario.ilike.%${filters.searchTerm}%`
         );
@@ -181,7 +175,6 @@ export function useEntregas(filters: EntregaFilters) {
       "Remetente",
       "Destinatário",
       "Loja",
-      "Andar",
       "Registrado Por",
       "Status",
       "Quem Retirou",
@@ -194,7 +187,6 @@ export function useEntregas(filters: EntregaFilters) {
       entrega.remetente,
       entrega.destinatario,
       entrega.loja,
-      entrega.andar || "-",
       entrega.usuario_registro_nome,
       entrega.status === "aguardando_retirada" ? "Aguardando" : "Finalizado",
       entrega.quem_retirou || "-",
