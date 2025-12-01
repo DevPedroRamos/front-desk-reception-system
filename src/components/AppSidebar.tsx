@@ -25,6 +25,7 @@ import {
   Settings,
   UserCog,
   Wallet,
+  Package,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -98,6 +99,11 @@ export function AppSidebar() {
           title: "Recebimentos",
           url: "/recebimento",
           icon: Wallet,
+        },
+        {
+          title: "Entregas",
+          url: "/entregas",
+          icon: Package,
         },
         {
           title: "Brindes",

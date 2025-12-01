@@ -339,6 +339,60 @@ export type Database = {
         }
         Relationships: []
       }
+      entregas: {
+        Row: {
+          andar: string | null
+          created_at: string | null
+          data_hora_registro: string
+          data_hora_retirada: string | null
+          destinatario: string
+          id: string
+          loja: string
+          observacoes: string | null
+          quem_retirou: string | null
+          quem_retirou_cpf: string | null
+          remetente: string
+          status: string
+          updated_at: string | null
+          usuario_registro_id: string
+          usuario_registro_nome: string
+        }
+        Insert: {
+          andar?: string | null
+          created_at?: string | null
+          data_hora_registro?: string
+          data_hora_retirada?: string | null
+          destinatario: string
+          id?: string
+          loja: string
+          observacoes?: string | null
+          quem_retirou?: string | null
+          quem_retirou_cpf?: string | null
+          remetente: string
+          status?: string
+          updated_at?: string | null
+          usuario_registro_id: string
+          usuario_registro_nome: string
+        }
+        Update: {
+          andar?: string | null
+          created_at?: string | null
+          data_hora_registro?: string
+          data_hora_retirada?: string | null
+          destinatario?: string
+          id?: string
+          loja?: string
+          observacoes?: string | null
+          quem_retirou?: string | null
+          quem_retirou_cpf?: string | null
+          remetente?: string
+          status?: string
+          updated_at?: string | null
+          usuario_registro_id?: string
+          usuario_registro_nome?: string
+        }
+        Relationships: []
+      }
       faq_articles: {
         Row: {
           category_id: string
