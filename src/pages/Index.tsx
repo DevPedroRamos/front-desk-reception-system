@@ -29,7 +29,19 @@ import {
   Eye,
   UserX,
   Copy,
+  Film,
+  Flame,
+  Wine,
+  XCircle,
+  Gift,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface DashboardStats {
   total_visitas_hoje: number
@@ -78,6 +90,9 @@ export default function index() {
   const [selectedSuperintendente, setSelectedSuperintendente] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [searchTermFinished, setSearchTermFinished] = useState("")
+  const [showBrindeDialog, setShowBrindeDialog] = useState(false)
+  const [visitaParaFinalizar, setVisitaParaFinalizar] = useState<Visit | null>(null)
+  const [finalizandoVisita, setFinalizandoVisita] = useState(false)
 
   const loadSuperintendentes = async () => {
     const { data } = await supabase.from("users").select("superintendente").not("superintendente", "is", null)
@@ -363,24 +378,61 @@ export default function index() {
     }
   }
 
-  const finalizarVisita = async (visitId: string) => {
+  const finalizarComBrinde = async (tipoBrinde: string | null) => {
+    if (!visitaParaFinalizar) return
+
+    setFinalizandoVisita(true)
     try {
-      const { error } = await supabase.rpc("finalizar_visita", { visit_id: visitId })
+      // Se houver brinde selecionado, inserir na tabela
+      if (tipoBrinde) {
+        const { error: brindeError } = await supabase.from("brindes").insert({
+          visit_id: visitaParaFinalizar.id,
+          cliente_nome: visitaParaFinalizar.cliente_nome,
+          cliente_cpf: visitaParaFinalizar.cliente_cpf,
+          corretor_nome: visitaParaFinalizar.corretor_nome,
+          tipo_brinde: tipoBrinde,
+          validado: true,
+          data_validacao: new Date().toISOString(),
+        })
+
+        if (brindeError) {
+          console.error("Erro ao salvar brinde:", brindeError)
+          toast.error("Erro ao salvar brinde")
+          setFinalizandoVisita(false)
+          return
+        }
+      }
+
+      // Finalizar a visita
+      const { error } = await supabase.rpc("finalizar_visita", { visit_id: visitaParaFinalizar.id })
 
       if (error) {
-        console.error('Erro ao finalizar visita:', error)
+        console.error("Erro ao finalizar visita:", error)
         toast.error("Erro ao finalizar visita")
+        setFinalizandoVisita(false)
         return
       }
 
-      toast.success("Visita finalizada com sucesso!")
+      toast.success(
+        tipoBrinde ? `Visita finalizada com brinde ${tipoBrinde}!` : "Visita finalizada com sucesso!"
+      )
+      
+      setShowBrindeDialog(false)
+      setVisitaParaFinalizar(null)
       loadActiveVisits()
       loadFinishedVisits()
       loadDashboardStats()
     } catch (error) {
       console.error("Error finishing visit:", error)
       toast.error("Erro ao finalizar visita")
+    } finally {
+      setFinalizandoVisita(false)
     }
+  }
+
+  const abrirDialogFinalizacao = (visit: Visit) => {
+    setVisitaParaFinalizar(visit)
+    setShowBrindeDialog(true)
   }
 
   const copiarMensagemVisita = async (visit: Visit) => {
@@ -805,7 +857,7 @@ export default function index() {
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => finalizarVisita(visit.id)}
+                              onClick={() => abrirDialogFinalizacao(visit)}
                               className="bg-emerald-600 hover:bg-emerald-700"
                             >
                               <CheckCircle2 className="w-4 h-4 mr-1" />
@@ -942,6 +994,84 @@ export default function index() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Dialog de Seleção de Brinde */}
+        <Dialog open={showBrindeDialog} onOpenChange={setShowBrindeDialog}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-2xl">
+                <Gift className="w-7 h-7 text-purple-600" />
+                Retirada de Brinde
+              </DialogTitle>
+              <DialogDescription className="text-base">
+                O cliente {visitaParaFinalizar?.cliente_nome} deseja retirar algum brinde?
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <Button
+                onClick={() => finalizarComBrinde("Cinemark")}
+                disabled={finalizandoVisita}
+                className="h-24 flex flex-col gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                {finalizandoVisita ? (
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                ) : (
+                  <>
+                    <Film className="w-8 h-8" />
+                    <span className="text-lg font-semibold">Cinemark</span>
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={() => finalizarComBrinde("Churrasqueira")}
+                disabled={finalizandoVisita}
+                className="h-24 flex flex-col gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                {finalizandoVisita ? (
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                ) : (
+                  <>
+                    <Flame className="w-8 h-8" />
+                    <span className="text-lg font-semibold">Churrasqueira</span>
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={() => finalizarComBrinde("Vinho")}
+                disabled={finalizandoVisita}
+                className="h-24 flex flex-col gap-2 bg-red-600 hover:bg-red-700 text-white"
+              >
+                {finalizandoVisita ? (
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                ) : (
+                  <>
+                    <Wine className="w-8 h-8" />
+                    <span className="text-lg font-semibold">Vinho</span>
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={() => finalizarComBrinde(null)}
+                disabled={finalizandoVisita}
+                variant="outline"
+                className="h-24 flex flex-col gap-2 border-2 hover:bg-gray-50"
+              >
+                {finalizandoVisita ? (
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                ) : (
+                  <>
+                    <XCircle className="w-8 h-8 text-gray-600" />
+                    <span className="text-base font-semibold text-gray-700">Não possui retirada de brinde</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   )
