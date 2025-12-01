@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client"
 import { format, startOfMonth, endOfMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
+import { useAdminRole } from "@/hooks/useAdminRole"
 import {
   Calendar,
   Users,
@@ -29,6 +30,7 @@ import {
   Eye,
   UserX,
   Copy,
+  Edit,
   Film,
   Flame,
   Wine,
@@ -93,6 +95,9 @@ export default function index() {
   const [showBrindeDialog, setShowBrindeDialog] = useState(false)
   const [visitaParaFinalizar, setVisitaParaFinalizar] = useState<Visit | null>(null)
   const [finalizandoVisita, setFinalizandoVisita] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [editVisit, setEditVisit] = useState<Visit | null>(null)
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const loadSuperintendentes = async () => {
     const { data } = await supabase.from("users").select("superintendente").not("superintendente", "is", null)
@@ -457,6 +462,68 @@ export default function index() {
     } catch (error) {
       console.error('Erro ao copiar:', error)
       toast.error("Erro ao copiar mensagem")
+    }
+  }
+
+  const { isAdmin } = useAdminRole()
+
+  const abrirDialogEdicao = (visit: Visit) => {
+    if (!isAdmin) return
+    setEditVisit(visit)
+    setShowEditDialog(true)
+  }
+
+  const handleEditChange = (field: keyof Visit, value: any) => {
+    setEditVisit((prev) => (prev ? { ...prev, [field]: value } : prev))
+  }
+
+  const salvarEdicaoVisita = async () => {
+    if (!editVisit) return
+
+    setSavingEdit(true)
+    try {
+      const payload: any = {
+        cliente_nome: editVisit.cliente_nome,
+        cliente_cpf: editVisit.cliente_cpf,
+        cliente_whatsapp: editVisit.cliente_whatsapp,
+        corretor_nome: editVisit.corretor_nome,
+        empreendimento: editVisit.empreendimento,
+        loja: editVisit.loja,
+        andar: editVisit.andar,
+        mesa: editVisit.mesa,
+        status: editVisit.status,
+      }
+
+      // Converter horários se estiverem no formato datetime-local / ISO
+      if (editVisit.horario_entrada) {
+        const entrada = new Date(editVisit.horario_entrada)
+        payload.horario_entrada = entrada.toISOString()
+      }
+      if (editVisit.horario_saida) {
+        const saida = new Date(editVisit.horario_saida)
+        payload.horario_saida = saida.toISOString()
+      }
+
+      const { error } = await supabase.from('visits').update(payload).eq('id', editVisit.id)
+
+      if (error) {
+        console.error('Erro ao salvar edição:', error)
+        toast.error('Erro ao salvar alterações')
+        setSavingEdit(false)
+        return
+      }
+
+      toast.success('Visita atualizada com sucesso')
+      setShowEditDialog(false)
+      setEditVisit(null)
+      await loadFinishedVisits()
+      await loadActiveVisits()
+      await loadDashboardStats()
+    } catch (error) {
+      console.error('Erro ao salvar edição:', error)
+      toast.error('Erro ao salvar alterações')
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -923,6 +990,7 @@ export default function index() {
                       <TableHead className="font-semibold">Local</TableHead>
                       <TableHead className="font-semibold">Entrada</TableHead>
                       <TableHead className="font-semibold">Saída</TableHead>
+                      <TableHead className="font-semibold text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -977,6 +1045,23 @@ export default function index() {
                             </div>
                           ) : (
                             <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {isAdmin ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => abrirDialogEdicao(visit)}
+                                className="hover:bg-gray-50"
+                              >
+                                <Edit className="w-4 h-4 mr-1" />
+                                Editar
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -1068,6 +1153,141 @@ export default function index() {
                     <span className="text-base font-semibold text-gray-700">Não possui retirada de brinde</span>
                   </>
                 )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        {/* Dialog de Edição de Visita (somente admin) */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Editar Visita</DialogTitle>
+              <DialogDescription className="text-base">
+                Edite as informações da visita. Alterações serão salvas para todos.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Cliente</label>
+                <Input
+                  value={editVisit?.cliente_nome || ""}
+                  onChange={(e) => handleEditChange('cliente_nome', e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">CPF</label>
+                <Input
+                  value={editVisit?.cliente_cpf || ""}
+                  onChange={(e) => handleEditChange('cliente_cpf', e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Whatsapp</label>
+                <Input
+                  value={editVisit?.cliente_whatsapp || ""}
+                  onChange={(e) => handleEditChange('cliente_whatsapp', e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Corretor</label>
+                <Input
+                  value={editVisit?.corretor_nome || ""}
+                  onChange={(e) => handleEditChange('corretor_nome', e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Empreendimento</label>
+                <Input
+                  value={editVisit?.empreendimento || ""}
+                  onChange={(e) => handleEditChange('empreendimento', e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Loja</label>
+                <Input
+                  value={editVisit?.loja || ""}
+                  onChange={(e) => handleEditChange('loja', e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Andar</label>
+                <Input
+                  value={editVisit?.andar || ""}
+                  onChange={(e) => handleEditChange('andar', e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Mesa</label>
+                <Input
+                  type="number"
+                  value={editVisit?.mesa ?? ''}
+                  onChange={(e) => handleEditChange('mesa', Number(e.target.value))}
+                  className="h-11"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Entrada</label>
+                <Input
+                  type="datetime-local"
+                  value={
+                    editVisit?.horario_entrada
+                      ? new Date(editVisit.horario_entrada).toISOString().slice(0, 16)
+                      : ""
+                  }
+                  onChange={(e) => handleEditChange('horario_entrada', e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Saída</label>
+                <Input
+                  type="datetime-local"
+                  value={
+                    editVisit?.horario_saida ? new Date(editVisit.horario_saida).toISOString().slice(0, 16) : ""
+                  }
+                  onChange={(e) => handleEditChange('horario_saida', e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-gray-700">Status</label>
+                <Select value={editVisit?.status || ""} onValueChange={(v) => handleEditChange('status', v)}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Selecione status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="finalizado">Finalizado</SelectItem>
+                    <SelectItem value="ativo">Ativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => { setShowEditDialog(false); setEditVisit(null) }}>
+                Cancelar
+              </Button>
+              <Button onClick={salvarEdicaoVisita} disabled={savingEdit} className="bg-emerald-600 hover:bg-emerald-700">
+                {savingEdit ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Salvar
               </Button>
             </div>
           </DialogContent>

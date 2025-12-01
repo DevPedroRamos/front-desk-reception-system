@@ -16,17 +16,33 @@ export function useAdminRole() {
       }
 
       try {
+        // Primeiro, tentar verificar via RPC
         const { data, error } = await supabase
           .rpc('has_role', { 
             _user_id: user.id, 
             _role: 'admin' 
           });
 
-        if (error) {
-          console.error('Erro ao verificar role admin:', error);
-          setIsAdmin(false);
+        if (!error && data) {
+          console.log('Admin verificado via RPC');
+          setIsAdmin(true);
+          setLoading(false);
+          return;
+        }
+
+        // Fallback: verificar profiles.role
+        console.log('RPC falhou ou retornou false, verificando profiles...');
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (!profileError && profileData?.role === 'admin') {
+          console.log('Admin verificado via profiles');
+          setIsAdmin(true);
         } else {
-          setIsAdmin(data || false);
+          setIsAdmin(false);
         }
       } catch (error) {
         console.error('Erro ao verificar admin:', error);
