@@ -442,14 +442,20 @@ export default function index() {
 
   const copiarMensagemVisita = async (visit: Visit) => {
     try {
-      // Buscar apelido do corretor
-      const { data: corretorData } = await supabase
-        .from('users')
-        .select('apelido')
-        .eq('id', visit.corretor_id)
-        .single()
+      // Use the name already present on the visit row; normalize it for display.
+      const normalizeName = (raw?: string) => {
+        if (!raw) return ''
+        // remove anything after ' - ' or ' (' which are used for metadata
+        const cleaned = raw.split(' - ')[0].split(' (')[0].trim()
+        return cleaned
+          .toLowerCase()
+          .split(' ')
+          .filter(Boolean)
+          .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+          .join(' ')
+      }
 
-      const apelidoCorretor = corretorData?.apelido || visit.corretor_nome
+      const apelidoCorretor = normalizeName(visit.corretor_nome)
       const primeiroNome = visit.cliente_nome.split(' ')[0]
 
       const mensagem = `Corretor ${apelidoCorretor} - Cliente ${primeiroNome} - ${visit.loja} - Mesa ${visit.mesa}`

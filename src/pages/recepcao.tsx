@@ -123,18 +123,19 @@ const Recepcao = () => {
   // Função para copiar mensagem para clipboard
   const copyMessageToClipboard = async (visitData: typeof formData) => {
     try {
-      // Buscar apelido do corretor
-      let apelidoCorretor = visitData.corretor_nome;
-      if (visitData.corretor_nome) {
-        const { data: corretorData } = await supabase
-          .from('users')
-          .select('apelido')
-          .or(`name.ilike.%${visitData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${visitData.corretor_nome}%`)
-          .limit(1)
-          .single();
-        
-        apelidoCorretor = corretorData?.apelido || visitData.corretor_nome;
+      // Use the corretor name supplied in the form to avoid ambiguous DB lookups
+      const normalizeName = (raw?: string) => {
+        if (!raw) return ''
+        const cleaned = raw.split(' - ')[0].split(' (')[0].trim()
+        return cleaned
+          .toLowerCase()
+          .split(' ')
+          .filter(Boolean)
+          .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+          .join(' ')
       }
+
+      const apelidoCorretor = normalizeName(visitData.corretor_nome)
 
       // Extrair primeiro nome do cliente
       const primeiroNome = visitData.cliente_nome.split(' ')[0];
