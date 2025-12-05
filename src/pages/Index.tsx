@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Layout } from "@/components/Layout";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -704,17 +705,37 @@ export default function index() {
     return `${minutes}m`;
   };
 
+  const isInitialLoad = useRef(true);
+
+  // Carga inicial - apenas uma vez
   useEffect(() => {
-    const loadData = async () => {
+    const loadInitialData = async () => {
       setLoading(true);
       await loadSuperintendentes();
       await loadDashboardStats();
       await loadActiveVisits();
       await loadFinishedVisits();
       setLoading(false);
+      isInitialLoad.current = false;
     };
+    loadInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    loadData();
+  // Atualização quando filtros mudam (após carga inicial)
+  useEffect(() => {
+    // Pular a primeira execução (carga inicial já fez isso)
+    if (isInitialLoad.current) return;
+    
+    const updateData = async () => {
+      setRefreshing(true);
+      await loadDashboardStats();
+      await loadActiveVisits();
+      await loadFinishedVisits();
+      setRefreshing(false);
+    };
+    updateData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate, selectedSuperintendente]);
 
   if (loading) {
@@ -876,7 +897,10 @@ export default function index() {
           </Card>
 
           {/* Cards de Estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className={cn(
+            "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 transition-opacity duration-200",
+            refreshing && "opacity-60 pointer-events-none"
+          )}>
             <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium opacity-90">
