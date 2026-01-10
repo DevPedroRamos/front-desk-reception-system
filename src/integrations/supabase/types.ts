@@ -282,6 +282,35 @@ export type Database = {
         }
         Relationships: []
       }
+      corretores_online: {
+        Row: {
+          corretor_id: string
+          created_at: string
+          id: string
+          last_seen: string
+        }
+        Insert: {
+          corretor_id: string
+          created_at?: string
+          id?: string
+          last_seen?: string
+        }
+        Update: {
+          corretor_id?: string
+          created_at?: string
+          id?: string
+          last_seen?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corretores_online_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboards: {
         Row: {
           created_at: string
@@ -512,6 +541,90 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_historico: {
+        Row: {
+          corretor_id: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          status_anterior: string | null
+          status_novo: string
+        }
+        Insert: {
+          corretor_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          status_anterior?: string | null
+          status_novo: string
+        }
+        Update: {
+          corretor_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          status_anterior?: string | null
+          status_novo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_historico_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_historico_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_metrocasa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_observacoes: {
+        Row: {
+          autor_id: string | null
+          autor_nome: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          observacao: string
+        }
+        Insert: {
+          autor_id?: string | null
+          autor_nome?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          observacao: string
+        }
+        Update: {
+          autor_id?: string | null
+          autor_nome?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          observacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_observacoes_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_observacoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_metrocasa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lista_espera: {
         Row: {
           cliente_cpf: string
@@ -702,6 +815,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      parceiros_metrocasa: {
+        Row: {
+          corretor_responsavel_id: string | null
+          created_at: string
+          distribuido_em: string | null
+          email: string
+          id: string
+          nome_completo: string
+          status: string | null
+          telefone: string
+          tipo: string
+        }
+        Insert: {
+          corretor_responsavel_id?: string | null
+          created_at?: string
+          distribuido_em?: string | null
+          email: string
+          id?: string
+          nome_completo: string
+          status?: string | null
+          telefone: string
+          tipo: string
+        }
+        Update: {
+          corretor_responsavel_id?: string | null
+          created_at?: string
+          distribuido_em?: string | null
+          email?: string
+          id?: string
+          nome_completo?: string
+          status?: string | null
+          telefone?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parceiros_metrocasa_corretor_responsavel_id_fkey"
+            columns: ["corretor_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       persona_respostas: {
         Row: {
@@ -1210,6 +1367,57 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      visitas_parceiros: {
+        Row: {
+          corretor_id: string | null
+          created_at: string
+          data_visita: string
+          hora_visita: string
+          id: string
+          lead_id: string
+          local: string | null
+          observacao: string | null
+          status: string | null
+        }
+        Insert: {
+          corretor_id?: string | null
+          created_at?: string
+          data_visita: string
+          hora_visita: string
+          id?: string
+          lead_id: string
+          local?: string | null
+          observacao?: string | null
+          status?: string | null
+        }
+        Update: {
+          corretor_id?: string | null
+          created_at?: string
+          data_visita?: string
+          hora_visita?: string
+          id?: string
+          lead_id?: string
+          local?: string | null
+          observacao?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visitas_parceiros_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visitas_parceiros_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_metrocasa"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       visits: {
         Row: {
@@ -1828,6 +2036,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_user_cascade: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       buscar_cliente_por_cpf: {
         Args: { p_cpf: string }
         Returns: {
@@ -1951,6 +2163,26 @@ export type Database = {
           visitas_finalizadas_hoje: number
         }[]
       }
+      get_leads_by_hierarchy: {
+        Args: { p_apelido: string; p_role: string; p_user_id: string }
+        Returns: {
+          corretor_responsavel_id: string | null
+          created_at: string
+          distribuido_em: string | null
+          email: string
+          id: string
+          nome_completo: string
+          status: string | null
+          telefone: string
+          tipo: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "parceiros_metrocasa"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_payment_history: {
         Args: { current_period_id: number; user_cpf: string }
         Returns: {
@@ -1991,6 +2223,74 @@ export type Database = {
           user_superintendente: string
           vendas_count: number
           visitas_count: number
+        }[]
+      }
+      get_team_members_by_hierarchy: {
+        Args: { p_apelido: string; p_role: string; p_user_id: string }
+        Returns: {
+          corretor_apelido: string
+          corretor_avatar_url: string
+          corretor_id: string
+          corretor_name: string
+          is_online: boolean
+          last_seen: string
+        }[]
+      }
+      get_team_stats_by_hierarchy: {
+        Args: {
+          p_apelido: string
+          p_end_date: string
+          p_role: string
+          p_start_date: string
+          p_user_id: string
+        }
+        Returns: {
+          corretor_avatar_url: string
+          corretor_id: string
+          corretor_name: string
+          leads_conversando: number
+          leads_em_contato: number
+          leads_novo: number
+          leads_venda: number
+          leads_visita: number
+          total_leads: number
+        }[]
+      }
+      get_team_summary_by_hierarchy: {
+        Args: {
+          p_apelido: string
+          p_end_date: string
+          p_role: string
+          p_start_date: string
+          p_user_id: string
+        }
+        Returns: {
+          corretores_online: number
+          leads_conversando: number
+          leads_em_contato: number
+          leads_novo: number
+          leads_venda: number
+          leads_visita: number
+          total_corretores: number
+          total_leads: number
+        }[]
+      }
+      get_visitas_by_hierarchy: {
+        Args: { p_apelido: string; p_role: string; p_user_id: string }
+        Returns: {
+          corretor_id: string
+          corretor_nome: string
+          created_at: string
+          data_visita: string
+          hora_visita: string
+          id: string
+          lead_email: string
+          lead_id: string
+          lead_nome_completo: string
+          lead_telefone: string
+          local: string
+          observacao: string
+          status: string
         }[]
       }
       has_role: {

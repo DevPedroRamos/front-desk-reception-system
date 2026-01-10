@@ -16,6 +16,7 @@ import Persona from '@/pages/Persona';
 import Recebimento from '@/pages/Recebimento';
 import Entregas from '@/pages/Entregas';
 import PersonaAdmin from '@/pages/admin/PersonaAdmin';
+import BannedUser from '@/pages/BannedUser';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
@@ -23,13 +24,15 @@ import GerarLink from '@/pages/GerarLink';
 import Agendar from '@/pages/Agendar';
 import CheckIn from '@/pages/CheckIn';
 import Agendamentos from '@/pages/Agendamentos';
+import { useBanCheck } from '@/hooks/useBanCheck';
 
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
+  const { isBanned, loading: banLoading } = useBanCheck();
 
-  if (loading) {
+  if (loading || banLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -42,6 +45,10 @@ function ProtectedRoutes() {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (isBanned) {
+    return <Navigate to="/banned" replace />;
   }
 
   return (
@@ -71,6 +78,7 @@ function App() {
           <div className="min-h-screen bg-background font-sans antialiased">
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/banned" element={<BannedUser />} />
               <Route path="/pesquisa-satisfacao" element={<PesquisaSatisfacao />} />
               <Route path="/tv-corretor" element={<TV />} />
               <Route path="/mkt" element={<MKT />} />
