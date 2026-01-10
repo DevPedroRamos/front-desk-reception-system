@@ -60,6 +60,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
+    // Verificar se o CPF está banido
+    const { data: banCheck } = await supabase
+      .from('users')
+      .select('ban')
+      .eq('cpf', cleanCpf)
+      .single();
+
+    if (banCheck?.ban === true) {
+      return { 
+        error: { 
+          message: 'Este CPF está suspenso e não pode se cadastrar. Entre em contato com o administrador.' 
+        } 
+      };
+    }
+
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -79,12 +94,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
-    return { error };
+    if (error) {
+      return { error };
+    }
+
+    // Verificar se o usuário está banido
+    const cpf = data.user?.user_metadata?.cpf;
+    
+    if (cpf) {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('ban')
+        .eq('cpf', cpf)
+        .single();
+
+      if (!userError && userData?.ban === true) {
+        // Fazer logout imediato se banido
+        await supabase.auth.signOut();
+        return { 
+          error: { 
+            message: 'Sua conta foi suspensa. Entre em contato com o administrador.' 
+          } 
+        };
+      }
+    } else {
+      // Tentar buscar CPF na tabela profiles
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('cpf')
+        .eq('id', data.user?.id)
+        .single();
+
+      if (profileData?.cpf) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('ban')
+          .eq('cpf', profileData.cpf)
+          .single();
+
+        if (!userError && userData?.ban === true) {
+          await supabase.auth.signOut();
+          return { 
+            error: { 
+              message: 'Sua conta foi suspensa. Entre em contato com o administrador.' 
+            } 
+          };
+        }
+      }
+    }
+
+    return { error: null };
   };
 
   const signOut = async () => {
