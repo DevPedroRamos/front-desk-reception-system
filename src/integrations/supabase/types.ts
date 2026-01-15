@@ -1180,6 +1180,54 @@ export type Database = {
         }
         Relationships: []
       }
+      uber: {
+        Row: {
+          codigo_despesa: string | null
+          created_at: string | null
+          data_transacao: string | null
+          endereco_destino: string | null
+          endereco_partida: string | null
+          id: string
+          nome_convidado: string | null
+          nome_solicitante: string | null
+          periodo_id: number | null
+          sobrenome_convidado: string | null
+          trip_id: string
+          valor: number | null
+          venda_info: string | null
+        }
+        Insert: {
+          codigo_despesa?: string | null
+          created_at?: string | null
+          data_transacao?: string | null
+          endereco_destino?: string | null
+          endereco_partida?: string | null
+          id?: string
+          nome_convidado?: string | null
+          nome_solicitante?: string | null
+          periodo_id?: number | null
+          sobrenome_convidado?: string | null
+          trip_id: string
+          valor?: number | null
+          venda_info?: string | null
+        }
+        Update: {
+          codigo_despesa?: string | null
+          created_at?: string | null
+          data_transacao?: string | null
+          endereco_destino?: string | null
+          endereco_partida?: string | null
+          id?: string
+          nome_convidado?: string | null
+          nome_solicitante?: string | null
+          periodo_id?: number | null
+          sobrenome_convidado?: string | null
+          trip_id?: string
+          valor?: number | null
+          venda_info?: string | null
+        }
+        Relationships: []
+      }
       unidades: {
         Row: {
           bloco: string
@@ -2166,22 +2214,18 @@ export type Database = {
       get_leads_by_hierarchy: {
         Args: { p_apelido: string; p_role: string; p_user_id: string }
         Returns: {
-          corretor_responsavel_id: string | null
+          corretor_avatar_url: string
+          corretor_name: string
+          corretor_responsavel_id: string
           created_at: string
-          distribuido_em: string | null
+          distribuido_em: string
           email: string
           id: string
           nome_completo: string
-          status: string | null
+          status: string
           telefone: string
           tipo: string
         }[]
-        SetofOptions: {
-          from: "*"
-          to: "parceiros_metrocasa"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       get_payment_history: {
         Args: { current_period_id: number; user_cpf: string }
