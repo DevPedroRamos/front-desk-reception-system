@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { VisitasTable } from "@/components/tv/VisitasTable";
 import { NotificationPopup } from "@/components/tv/NotificationPopup";
-// import { YouTubeEmbed } from "@/components/tv/YouTubeEmbed";
+import { YouTubeEmbed } from "@/components/tv/YouTubeEmbed";
 import { PromoBanner } from "@/components/tv/PromoBanner";
 import copaMetrocasaImage from "@/assets/copa-metrocasa-2025.png";
 import { Card, CardContent } from "@/components/ui/card";
@@ -117,25 +117,50 @@ export default function TV() {
       </div>
 
       <div className="px-8 py-2 -mt-8 relative z-20">
-        {/* Tabela de Visitas - Full Width */}
-        <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm mb-8">
-          <div className="bg-[#AD1010] text-white p-4 rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Clock className="w-6 h-6" />
-                <h2 className="text-xl font-semibold">Últimas Visitas</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-8">
+          {/* Vídeo Institucional */}
+          <div className="lg:col-span-3">
+            <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm h-full">
+              <div className="bg-[#AD1010] text-white p-4 rounded-t-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Play className="w-6 h-6" />
+                    <h2 className="text-xl font-semibold">Vídeo Institucional</h2>
+                  </div>
+                  <Badge className="bg-white/20 text-white border-white/30">
+                    <Eye className="w-3 h-3 mr-1" />
+                    Ao Vivo
+                  </Badge>
+                </div>
               </div>
-              <Badge className="bg-white/20 text-white border-white/30">
-                <Zap className="w-3 h-3 mr-1" />
-                Tempo Real
-              </Badge>
-            </div>
-            <p className="text-sm opacity-90 mt-1">Acompanhe os atendimentos em andamento</p>
+              <CardContent className="p-4">
+                <YouTubeEmbed />
+              </CardContent>
+            </Card>
           </div>
-          <CardContent className="p-6">
-            <VisitasTable />
-          </CardContent>
-        </Card>
+
+          {/* Tabela de Visitas */}
+          <div className="lg:col-span-2">
+            <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm h-full">
+              <div className="bg-[#AD1010] text-white p-4 rounded-t-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-6 h-6" />
+                    <h2 className="text-xl font-semibold">Últimas Visitas</h2>
+                  </div>
+                  <Badge className="bg-white/20 text-white border-white/30">
+                    <Zap className="w-3 h-3 mr-1" />
+                    Tempo Real
+                  </Badge>
+                </div>
+                <p className="text-sm opacity-90 mt-1">Acompanhe os atendimentos em andamento</p>
+              </div>
+              <CardContent className="p-6">
+                <VisitasTable />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         {/* Banner Promocional */}
         <Card className="shadow-xl border-0 bg-gradient-to-r from-[#AD1010] via-red-600 to-[#AD1010] text-white overflow-hidden">

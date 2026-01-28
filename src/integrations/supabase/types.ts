@@ -2088,6 +2088,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      assign_lead_to_broker: {
+        Args: { p_broker_id: string; p_lead_id: string }
+        Returns: undefined
+      }
       buscar_cliente_por_cpf: {
         Args: { p_cpf: string }
         Returns: {
@@ -2124,12 +2128,38 @@ export type Database = {
         Args: { corretor_uuid: string; link_titulo?: string }
         Returns: string
       }
+      get_all_leads: {
+        Args: never
+        Returns: {
+          corretor_avatar_url: string
+          corretor_name: string
+          corretor_responsavel_id: string
+          created_at: string
+          distribuido_em: string
+          email: string
+          id: string
+          nome_completo: string
+          status: string
+          telefone: string
+          tipo: string
+        }[]
+      }
       get_all_periodos: {
         Args: never
         Returns: {
           end: string
           id: number
           start: string
+        }[]
+      }
+      get_available_brokers: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          id: string
+          is_online: boolean
+          leads_this_month: number
+          name: string
         }[]
       }
       get_champions_ranking: {
@@ -2368,6 +2398,7 @@ export type Database = {
           title: string
         }[]
       }
+      send_lead_to_roulette: { Args: { p_lead_id: string }; Returns: string }
       update_periodo: {
         Args: { p_end: string; p_id: number; p_start: string }
         Returns: {
