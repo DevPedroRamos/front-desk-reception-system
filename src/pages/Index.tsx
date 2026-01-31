@@ -45,7 +45,6 @@ import {
   Timer,
   Building2,
   Loader2,
-  RefreshCw,
   Download,
   Eye,
   UserX,
@@ -56,6 +55,7 @@ import {
   Wine,
   XCircle,
   Gift,
+  Zap,
 } from "lucide-react";
 import {
   Dialog,
@@ -104,6 +104,9 @@ export default function index() {
   const [superintendentes, setSuperintendentes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Refs para controle de notificações em tempo real
+  const notifiedVisitIds = useRef(new Set<string>());
 
   // Inicializar filtros com data atual
   const hoje = new Date();
@@ -738,6 +741,61 @@ export default function index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate, selectedSuperintendente]);
 
+  // Realtime subscription para atualizações automáticas
+  useEffect(() => {
+    // Aguardar carga inicial
+    if (isInitialLoad.current) return;
+
+    console.log("🔄 Configurando Realtime subscription para dashboard...");
+
+    const channel = supabase
+      .channel("dashboard-visits-realtime")
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "visits"
+      }, (payload) => {
+        console.log("🚨 NOVA VISITA DETECTADA (Dashboard Realtime):", payload);
+        const newVisit = payload.new as Visit;
+        
+        // Verificar se já foi notificado para evitar duplicatas
+        if (!notifiedVisitIds.current.has(newVisit.id)) {
+          notifiedVisitIds.current.add(newVisit.id);
+          
+          // Notificação toast
+          toast.success("Novo Atendimento!", {
+            description: `${newVisit.cliente_nome} com ${newVisit.corretor_nome}`,
+            duration: 5000,
+          });
+          
+          // Atualizar dados
+          loadActiveVisits();
+          loadDashboardStats();
+        }
+      })
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "visits"
+      }, (payload) => {
+        console.log("📝 VISITA ATUALIZADA (Dashboard Realtime):", payload);
+        // Quando visita for finalizada, atualizar todas as listas
+        loadActiveVisits();
+        loadFinishedVisits();
+        loadDashboardStats();
+      })
+      .subscribe((status) => {
+        console.log("📡 Status do canal Realtime Dashboard:", status);
+      });
+
+    // Cleanup ao desmontar
+    return () => {
+      console.log("🧹 Limpando subscription do dashboard...");
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]); // Dependência em loading para garantir que execute após carga inicial
+
   if (loading) {
     return (
       <Layout>
@@ -767,26 +825,21 @@ export default function index() {
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-6 py-8">
             <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                  Dashboard
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Visão geral dos atendimentos em tempo real
-                </p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                    Dashboard
+                  </h1>
+                  <p className="text-gray-600 text-lg">
+                    Visão geral dos atendimentos em tempo real
+                  </p>
+                </div>
+                <Badge className="bg-green-100 text-green-700 border-green-300 h-fit">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2" />
+                  <Zap className="w-3 h-3 mr-1" />
+                  Tempo Real
+                </Badge>
               </div>
-              <Button
-                onClick={refreshData}
-                disabled={refreshing}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {refreshing ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                )}
-                Atualizar
-              </Button>
             </div>
           </div>
         </div>
