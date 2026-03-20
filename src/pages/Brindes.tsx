@@ -18,6 +18,7 @@ import {
   Package,
   Loader2,
   Filter,
+  Citrus,
 } from "lucide-react"
 import { Layout } from "@/components/Layout"
 import { supabase } from "@/integrations/supabase/client"
@@ -109,6 +110,8 @@ const Brindes = () => {
     switch (tipo) {
       case "Cinemark":
         return <Film className="w-5 h-5 text-purple-600" />
+      case "Mixer":
+        return <Citrus className="w-5 h-5 text-purple-600" />
       case "Churrasqueira":
         return <Flame className="w-5 h-5 text-orange-600" />
       case "Vinho":
@@ -122,6 +125,8 @@ const Brindes = () => {
     switch (tipo) {
       case "Cinemark":
         return "bg-purple-100 text-purple-800 border-purple-200"
+      case "Mixer":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200"
       case "Churrasqueira":
         return "bg-orange-100 text-orange-800 border-orange-200"
       case "Vinho":
@@ -134,6 +139,7 @@ const Brindes = () => {
   // Calcular estatísticas
   const totalBrindes = brindes.length
   const brindesCinemark = brindes.filter((b) => b.tipo_brinde === "Cinemark").length
+  const brindesMixer = brindes.filter((b) => b.tipo_brinde === "Mixer").length
   const brindesChurrasqueira = brindes.filter((b) => b.tipo_brinde === "Churrasqueira").length
   const brindesVinho = brindes.filter((b) => b.tipo_brinde === "Vinho").length
 
@@ -157,7 +163,7 @@ const Brindes = () => {
 
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
           {/* Cards de Estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -178,6 +184,18 @@ const Brindes = () => {
                     <div className="text-3xl font-bold mt-1">{brindesCinemark}</div>
                   </div>
                   <Film className="w-8 h-8 opacity-80" />
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-medium opacity-90">Mixer</CardTitle>
+                    <div className="text-3xl font-bold mt-1">{brindesMixer}</div>
+                  </div>
+                  <Citrus className="w-8 h-8 opacity-80" />
                 </div>
               </CardHeader>
             </Card>
@@ -255,6 +273,7 @@ const Brindes = () => {
                     <SelectContent>
                       <SelectItem value="all">Todos</SelectItem>
                       <SelectItem value="Cinemark">Cinemark</SelectItem>
+                      <SelectItem value="Mixer">Mixer</SelectItem>
                       <SelectItem value="Churrasqueira">Churrasqueira</SelectItem>
                       <SelectItem value="Vinho">Vinho</SelectItem>
                     </SelectContent>

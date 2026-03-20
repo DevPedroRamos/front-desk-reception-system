@@ -51,6 +51,7 @@ import {
   Copy,
   Edit,
   Film,
+  Citrus,
   Flame,
   Wine,
   XCircle,
@@ -1389,6 +1390,21 @@ export default function index() {
                   <>
                     <Film className="w-8 h-8" />
                     <span className="text-lg font-semibold">Cinemark</span>
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={() => finalizarComBrinde("Mixer")}
+                disabled={finalizandoVisita}
+                className="h-24 flex flex-col gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {finalizandoVisita ? (
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                ) : (
+                  <>
+                    <Citrus className="w-8 h-8" />
+                    <span className="text-lg font-semibold">Mixer</span>
                   </>
                 )}
               </Button>
