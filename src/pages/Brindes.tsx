@@ -12,13 +12,12 @@ import {
   Calendar,
   Download,
   Gift,
-  Film,
-  Flame,
-  Wine,
   Package,
   Loader2,
   Filter,
-  Citrus,
+  GlassWater,
+  Snowflake,
+  UtensilsCrossed,
 } from "lucide-react"
 import { Layout } from "@/components/Layout"
 import { supabase } from "@/integrations/supabase/client"
@@ -108,14 +107,12 @@ const Brindes = () => {
 
   const getBrindeIcon = (tipo: string) => {
     switch (tipo) {
-      case "Cinemark":
-        return <Film className="w-5 h-5 text-purple-600" />
-      case "Mixer":
-        return <Citrus className="w-5 h-5 text-purple-600" />
-      case "Churrasqueira":
-        return <Flame className="w-5 h-5 text-orange-600" />
-      case "Vinho":
-        return <Wine className="w-5 h-5 text-red-600" />
+      case "Copo":
+        return <GlassWater className="w-5 h-5 text-blue-600" />
+      case "Cooler":
+        return <Snowflake className="w-5 h-5 text-cyan-600" />
+      case "Kit Fondue":
+        return <UtensilsCrossed className="w-5 h-5 text-amber-600" />
       default:
         return <Gift className="w-5 h-5 text-gray-600" />
     }
@@ -123,14 +120,12 @@ const Brindes = () => {
 
   const getBrindeColor = (tipo: string) => {
     switch (tipo) {
-      case "Cinemark":
-        return "bg-purple-100 text-purple-800 border-purple-200"
-      case "Mixer":
-        return "bg-emerald-100 text-emerald-800 border-emerald-200"
-      case "Churrasqueira":
-        return "bg-orange-100 text-orange-800 border-orange-200"
-      case "Vinho":
-        return "bg-red-100 text-red-800 border-red-200"
+      case "Copo":
+        return "bg-blue-100 text-blue-800 border-blue-200"
+      case "Cooler":
+        return "bg-cyan-100 text-cyan-800 border-cyan-200"
+      case "Kit Fondue":
+        return "bg-amber-100 text-amber-800 border-amber-200"
       default:
         return "bg-gray-100 text-gray-800 border-gray-200"
     }
@@ -138,10 +133,9 @@ const Brindes = () => {
 
   // Calcular estatísticas
   const totalBrindes = brindes.length
-  const brindesCinemark = brindes.filter((b) => b.tipo_brinde === "Cinemark").length
-  const brindesMixer = brindes.filter((b) => b.tipo_brinde === "Mixer").length
-  const brindesChurrasqueira = brindes.filter((b) => b.tipo_brinde === "Churrasqueira").length
-  const brindesVinho = brindes.filter((b) => b.tipo_brinde === "Vinho").length
+  const brindesCopo = brindes.filter((b) => b.tipo_brinde === "Copo").length
+  const brindesCooler = brindes.filter((b) => b.tipo_brinde === "Cooler").length
+  const brindesKitFondue = brindes.filter((b) => b.tipo_brinde === "Kit Fondue").length
 
   return (
     <Layout>
@@ -163,7 +157,7 @@ const Brindes = () => {
 
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
           {/* Cards de Estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -176,50 +170,38 @@ const Brindes = () => {
               </CardHeader>
             </Card>
 
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-400 to-blue-500 text-white">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-sm font-medium opacity-90">Cinemark</CardTitle>
-                    <div className="text-3xl font-bold mt-1">{brindesCinemark}</div>
+                    <CardTitle className="text-sm font-medium opacity-90">Copo</CardTitle>
+                    <div className="text-3xl font-bold mt-1">{brindesCopo}</div>
                   </div>
-                  <Film className="w-8 h-8 opacity-80" />
+                  <GlassWater className="w-8 h-8 opacity-80" />
                 </div>
               </CardHeader>
             </Card>
 
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-sm font-medium opacity-90">Mixer</CardTitle>
-                    <div className="text-3xl font-bold mt-1">{brindesMixer}</div>
+                    <CardTitle className="text-sm font-medium opacity-90">Cooler</CardTitle>
+                    <div className="text-3xl font-bold mt-1">{brindesCooler}</div>
                   </div>
-                  <Citrus className="w-8 h-8 opacity-80" />
+                  <Snowflake className="w-8 h-8 opacity-80" />
                 </div>
               </CardHeader>
             </Card>
 
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-amber-500 to-amber-600 text-white">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-sm font-medium opacity-90">Churrasqueira</CardTitle>
-                    <div className="text-3xl font-bold mt-1">{brindesChurrasqueira}</div>
+                    <CardTitle className="text-sm font-medium opacity-90">Kit Fondue</CardTitle>
+                    <div className="text-3xl font-bold mt-1">{brindesKitFondue}</div>
                   </div>
-                  <Flame className="w-8 h-8 opacity-80" />
-                </div>
-              </CardHeader>
-            </Card>
-
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-red-500 to-red-600 text-white">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm font-medium opacity-90">Vinho</CardTitle>
-                    <div className="text-3xl font-bold mt-1">{brindesVinho}</div>
-                  </div>
-                  <Wine className="w-8 h-8 opacity-80" />
+                  <UtensilsCrossed className="w-8 h-8 opacity-80" />
                 </div>
               </CardHeader>
             </Card>
@@ -272,10 +254,9 @@ const Brindes = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="Cinemark">Cinemark</SelectItem>
-                      <SelectItem value="Mixer">Mixer</SelectItem>
-                      <SelectItem value="Churrasqueira">Churrasqueira</SelectItem>
-                      <SelectItem value="Vinho">Vinho</SelectItem>
+                      <SelectItem value="Copo">Copo</SelectItem>
+                      <SelectItem value="Cooler">Cooler</SelectItem>
+                      <SelectItem value="Kit Fondue">Kit Fondue</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

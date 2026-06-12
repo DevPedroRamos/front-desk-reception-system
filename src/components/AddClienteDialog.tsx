@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AutoSuggest } from "@/components/AutoSuggest";
+import { GlassWater } from "lucide-react";
 
 interface AddClienteDialogProps {
   open: boolean;
@@ -189,6 +190,14 @@ export function AddClienteDialog({ open, onOpenChange, onClienteAdicionado }: Ad
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Indicativo Brinde Copo */}
+          <div className="flex items-center gap-3 rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
+            <GlassWater className="h-5 w-5 text-blue-600 shrink-0" />
+            <p className="text-sm font-medium text-blue-800">
+              Este cliente receberá um <strong>Copo</strong> de brinde quando a visita for iniciada.
+            </p>
+          </div>
+
           {/* Dados do Cliente */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-slate-900 border-b border-slate-200 pb-2">

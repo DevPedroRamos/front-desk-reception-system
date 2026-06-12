@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { AutoSuggest } from '@/components/AutoSuggest';
+import { GlassWater } from 'lucide-react';
 
 interface Cliente {
   id: string;
@@ -209,7 +210,7 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
       }
 
       // Criar a visita
-      const { error: visitError } = await supabase
+      const { data: novaVisita, error: visitError } = await supabase
         .from('visits')
         .insert({
           cliente_nome: cliente.nome,
@@ -222,7 +223,9 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
           mesa: parseInt(mesa),
           empreendimento: empreendimento || null,
           status: 'ativo'
-        });
+        })
+        .select()
+        .single();
 
       if (visitError) {
         console.error('Erro ao iniciar visita:', visitError);
@@ -233,6 +236,21 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
         });
         setLoading(false);
         return;
+      }
+
+      // Registrar Copo automaticamente
+      try {
+        await supabase.from('brindes').insert({
+          visit_id: novaVisita.id,
+          cliente_nome: cliente.nome,
+          cliente_cpf: cliente.cpf,
+          corretor_nome: cliente.corretor_nome || '',
+          tipo_brinde: 'Copo',
+          validado: true,
+          data_validacao: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error('Erro ao registrar Copo:', e);
       }
 
       // Atualizar status na lista de espera
@@ -273,6 +291,13 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex items-center gap-3 rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
+            <GlassWater className="h-5 w-5 text-blue-600 shrink-0" />
+            <p className="text-sm font-medium text-blue-800">
+              Este cliente receberá um <strong>Copo</strong> de brinde ao iniciar a visita.
+            </p>
+          </div>
+
           <div>
             <Label>Cliente</Label>
             <Input 
