@@ -508,6 +508,230 @@ export type Database = {
         }
         Relationships: []
       }
+      gallery_albums: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gallery_photos: {
+        Row: {
+          album_id: string
+          caption: string | null
+          created_at: string
+          display_order: number
+          file_name: string | null
+          file_type: string
+          id: string
+          image_url: string
+        }
+        Insert: {
+          album_id: string
+          caption?: string | null
+          created_at?: string
+          display_order?: number
+          file_name?: string | null
+          file_type?: string
+          id?: string
+          image_url: string
+        }
+        Update: {
+          album_id?: string
+          caption?: string | null
+          created_at?: string
+          display_order?: number
+          file_name?: string | null
+          file_type?: string
+          id?: string
+          image_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_photos_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_albums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_quotes: {
+        Row: {
+          author: string
+          created_at: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          role: string
+          text: string
+          updated_at: string | null
+        }
+        Insert: {
+          author?: string
+          created_at?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          role?: string
+          text: string
+          updated_at?: string | null
+        }
+        Update: {
+          author?: string
+          created_at?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          role?: string
+          text?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      intranet_articles: {
+        Row: {
+          author_id: string
+          author_name: string
+          category_id: string
+          content: Json
+          created_at: string
+          description: string
+          featured_image_url: string | null
+          id: string
+          is_featured: boolean
+          is_published: boolean
+          published_at: string | null
+          reading_time_minutes: number | null
+          slug: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          author_id: string
+          author_name: string
+          category_id: string
+          content?: Json
+          created_at?: string
+          description: string
+          featured_image_url?: string | null
+          id?: string
+          is_featured?: boolean
+          is_published?: boolean
+          published_at?: string | null
+          reading_time_minutes?: number | null
+          slug: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          author_id?: string
+          author_name?: string
+          category_id?: string
+          content?: Json
+          created_at?: string
+          description?: string
+          featured_image_url?: string | null
+          id?: string
+          is_featured?: boolean
+          is_published?: boolean
+          published_at?: string | null
+          reading_time_minutes?: number | null
+          slug?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intranet_articles_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intranet_articles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "intranet_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intranet_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          css_class: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          css_class?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          css_class?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoice_uploads: {
         Row: {
           created_at: string | null
@@ -860,6 +1084,39 @@ export type Database = {
           },
         ]
       }
+      partnerships: {
+        Row: {
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       persona_respostas: {
         Row: {
           cpf: string
@@ -1153,6 +1410,7 @@ export type Database = {
           cpf: string
           created_at: string | null
           documento_rg_url: string
+          documento_rg_verso_url: string | null
           email: string
           expires_at: string | null
           id: string
@@ -1163,6 +1421,7 @@ export type Database = {
           cpf: string
           created_at?: string | null
           documento_rg_url: string
+          documento_rg_verso_url?: string | null
           email: string
           expires_at?: string | null
           id?: string
@@ -1173,6 +1432,7 @@ export type Database = {
           cpf?: string
           created_at?: string | null
           documento_rg_url?: string
+          documento_rg_verso_url?: string | null
           email?: string
           expires_at?: string | null
           id?: string
@@ -2297,6 +2557,15 @@ export type Database = {
           user_superintendente: string
           vendas_count: number
           visitas_count: number
+        }[]
+      }
+      get_team_brokers_for_assignment: {
+        Args: { p_apelido: string; p_role: string }
+        Returns: {
+          avatar_url: string
+          id: string
+          is_online: boolean
+          name: string
         }[]
       }
       get_team_members_by_hierarchy: {
