@@ -1428,7 +1428,7 @@ export default function index() {
                   <>
                     <XCircle className="w-8 h-8 text-gray-600" />
                     <span className="text-base font-semibold text-gray-700">
-                      Não possui retirada de brinde
+                      Sem brinde adicional
                     </span>
                   </>
                 )}

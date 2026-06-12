@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, MapPin, Clock, Copy, AlertTriangle, ListTodo } from "lucide-react";
+import { UserPlus, MapPin, Clock, Copy, AlertTriangle, ListTodo, GlassWater } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -234,6 +234,21 @@ const Recepcao = () => {
       return data;
     },
     onSuccess: async (data) => {
+      // Registrar Copo automaticamente como brinde
+      try {
+        await supabase.from('brindes').insert({
+          visit_id: data.id,
+          cliente_nome: data.cliente_nome,
+          cliente_cpf: data.cliente_cpf,
+          corretor_nome: data.corretor_nome,
+          tipo_brinde: 'Copo',
+          validado: true,
+          data_validacao: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error('Erro ao registrar Copo:', e);
+      }
+
       toast({
         title: "Visita registrada!",
         description: `Cliente ${data.cliente_nome} foi registrado na mesa ${data.mesa}.`,
@@ -379,6 +394,14 @@ const Recepcao = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Indicativo Brinde Copo */}
+              <div className="flex items-center gap-3 rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
+                <GlassWater className="h-5 w-5 text-blue-600 shrink-0" />
+                <p className="text-sm font-medium text-blue-800">
+                  Este cliente receberá um <strong>Copo</strong> de brinde ao registrar a visita.
+                </p>
+              </div>
+
               {/* Dados do Cliente */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-slate-900 border-b border-slate-200 pb-2">
