@@ -1,0 +1,2 @@
+ALTER TABLE public.brindes DROP CONSTRAINT IF EXISTS brindes_tipo_brinde_check;
+ALTER TABLE public.brindes ADD CONSTRAINT brindes_tipo_brinde_check CHECK (tipo_brinde IN ('Cooler', 'Copo', 'Kit Fondue')) NOT VALID;
