@@ -1378,63 +1378,40 @@ export default function index() {
               </DialogDescription>
             </DialogHeader>
 
+            <div className="rounded-lg border-2 border-green-300 bg-green-50 p-3 my-2 flex items-center gap-2">
+              <span className="text-green-700 text-sm font-medium">
+                ✓ Copo já foi entregue ao cliente no início da visita
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground -mt-2">Deseja entregar um brinde adicional?</p>
+
             <div className="grid grid-cols-2 gap-4 py-4">
               <Button
-                onClick={() => finalizarComBrinde("Cinemark")}
+                onClick={() => finalizarComBrinde("Cooler")}
                 disabled={finalizandoVisita}
-                className="h-24 flex flex-col gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                className="h-24 flex flex-col gap-2 bg-cyan-600 hover:bg-cyan-700 text-white"
               >
                 {finalizandoVisita ? (
                   <Loader2 className="w-8 h-8 animate-spin" />
                 ) : (
                   <>
-                    <Film className="w-8 h-8" />
-                    <span className="text-lg font-semibold">Cinemark</span>
+                    <Gift className="w-8 h-8" />
+                    <span className="text-lg font-semibold">Cooler</span>
                   </>
                 )}
               </Button>
 
               <Button
-                onClick={() => finalizarComBrinde("Mixer")}
+                onClick={() => finalizarComBrinde("Kit Fondue")}
                 disabled={finalizandoVisita}
-                className="h-24 flex flex-col gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="h-24 flex flex-col gap-2 bg-amber-600 hover:bg-amber-700 text-white"
               >
                 {finalizandoVisita ? (
                   <Loader2 className="w-8 h-8 animate-spin" />
                 ) : (
                   <>
-                    <Citrus className="w-8 h-8" />
-                    <span className="text-lg font-semibold">Mixer</span>
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={() => finalizarComBrinde("Churrasqueira")}
-                disabled={finalizandoVisita}
-                className="h-24 flex flex-col gap-2 bg-orange-600 hover:bg-orange-700 text-white"
-              >
-                {finalizandoVisita ? (
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                ) : (
-                  <>
-                    <Flame className="w-8 h-8" />
-                    <span className="text-lg font-semibold">Churrasqueira</span>
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={() => finalizarComBrinde("Vinho")}
-                disabled={finalizandoVisita}
-                className="h-24 flex flex-col gap-2 bg-red-600 hover:bg-red-700 text-white"
-              >
-                {finalizandoVisita ? (
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                ) : (
-                  <>
-                    <Wine className="w-8 h-8" />
-                    <span className="text-lg font-semibold">Vinho</span>
+                    <Gift className="w-8 h-8" />
+                    <span className="text-lg font-semibold">Kit Fondue</span>
                   </>
                 )}
               </Button>
