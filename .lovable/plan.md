@@ -1,69 +1,33 @@
-## Plano: Gestão de Brindes via Painel Admin
+## Diagnóstico
 
-### Objetivo
-Substituir os brindes hard-coded (Cooler, Copo, Kit Fondue) por um cadastro dinâmico gerenciável em uma nova página administrativa, com controle de estoque e entrega automática configurável.
+As policies RLS da tabela `tipos_brinde` estão corretas e usam `has_role(auth.uid(), 'admin')`, que consulta a tabela `public.user_roles`. Porém, o usuário admin atual (`pedro.silva@metrocasa.com.br`) **não tem registro em `user_roles`** — a permissão de admin do app está armazenada apenas em `profiles.role`. Por isso, qualquer INSERT/UPDATE/DELETE em `tipos_brinde` é bloqueado silenciosamente pelo RLS, mesmo o usuário sendo admin na UI.
 
-### Banco de Dados
+Os logs confirmam: `"RPC falhou ou retornou false, verificando profiles..."` → `"Admin verificado via profiles"`. O frontend faz fallback, mas o Postgres não.
 
-Nova tabela `tipos_brinde`:
+## Plano de correção
 
-| Campo              | Tipo      | Descrição                                          |
-|--------------------|-----------|----------------------------------------------------|
-| id                 | uuid      | PK                                                 |
-| nome               | text      | Nome único do brinde                               |
-| ativo              | boolean   | Liga/desliga sem excluir (default true)            |
-| entrega_automatica | boolean   | Se entregue ao iniciar visita (default false)      |
-| icone_url          | text      | URL da imagem/ícone (storage)                      |
-| estoque            | integer   | Quantidade disponível (default 0)                  |
-| created_at/updated_at | timestamp |                                                |
+### 1. Backfill de `user_roles` a partir de `profiles`
+Inserir em `user_roles` todos os usuários que hoje têm `profiles.role = 'admin'` (e demais roles existentes), evitando duplicatas via `ON CONFLICT`.
 
-- RLS: somente admins (via `has_role(auth.uid(),'admin')`) podem INSERT/UPDATE/DELETE; SELECT liberado a `authenticated` (recepção e dashboard precisam ler).
-- Bucket de storage `brindes-icones` (público) para upload das imagens.
-- Seed inicial: inserir Cooler, Kit Fondue (entrega_automatica=false) e Copo (entrega_automatica=true), preservando registros antigos da tabela `brindes`.
-- Remover o CHECK constraint `brindes_tipo_brinde_check` para que `brindes.tipo_brinde` aceite qualquer nome cadastrado dinamicamente (mantém histórico intacto).
+### 2. Trigger de sincronização
+Criar trigger `AFTER INSERT OR UPDATE OF role` em `profiles` que mantém `user_roles` sincronizado automaticamente:
+- Quando `profiles.role` muda para `admin` (ou outro valor válido do enum `app_role`), insere/garante o registro em `user_roles`.
+- Quando muda para algo que não é mais admin, remove o registro antigo.
 
-### Trigger de Estoque
-Trigger `AFTER INSERT` em `brindes` que decrementa `tipos_brinde.estoque` em 1 quando um brinde validado é entregue (apenas se estoque > 0; senão não bloqueia, só não decrementa abaixo de zero).
+Isso garante que qualquer alteração futura no painel continue funcionando sem precisar mexer em duas tabelas.
 
-### Frontend
+### 3. Melhorar feedback de erro no frontend
+Hoje os botões de criar/editar/excluir/toggle em `BrindesAdmin.tsx` provavelmente falham sem mostrar mensagem clara. Adicionar `toast.error` com a mensagem retornada pelo Supabase em todas as mutações (`handleSave`, `handleDelete`, `handleToggleAtivo`, `handleToggleAutomatica`) para que erros de RLS futuros fiquem visíveis em vez de silenciosos.
 
-**Nova página** `src/pages/admin/BrindesAdmin.tsx` (rota `/admin/brindes`):
-- Listagem em tabela com colunas: ícone, nome, estoque, entrega automática (switch), ativo (switch), ações.
-- Botão "Novo Brinde" abre dialog com: nome, upload de ícone, estoque inicial, switches.
-- Editar/excluir inline.
-- Cards de resumo no topo: total de tipos, ativos, estoque total.
-- Proteção via `AdminProtectedRoute`.
+## Arquivos afetados
 
-**Sidebar** (`src/components/AppSidebar.tsx`): adicionar item "Brindes (Admin)" com ícone `Gift` na seção Administração.
+- **Migração nova**: backfill + função + trigger de sincronização `profiles.role` → `user_roles`.
+- **`src/pages/admin/BrindesAdmin.tsx`**: tratamento de erro nas mutações com `toast.error`.
 
-**Rota** em `src/App.tsx`: `/admin/brindes` dentro de `ProtectedRoutes`.
+## Resultado esperado
 
-**Refatoração das telas existentes** para consumir `tipos_brinde` dinamicamente em vez de listas fixas:
-- `src/pages/Index.tsx` — dialog de finalização carrega opções de `tipos_brinde` onde `ativo=true AND entrega_automatica=false`.
-- `src/pages/recepcao.tsx` e `src/components/IniciarVisitaDialog.tsx` — ao criar visita, inserir um registro em `brindes` para CADA tipo com `entrega_automatica=true AND ativo=true` (hoje hard-coded "Copo").
-- `src/components/AddClienteDialog.tsx`, `IniciarVisitaDialog.tsx`, `recepcao.tsx` — banner informativo lista dinamicamente os brindes de entrega automática.
-- `src/pages/Brindes.tsx` — filtros, ícones e cores derivados de `tipos_brinde` (com fallback para tipos legados ainda presentes em histórico).
-
-### Fluxo
-
-```text
-Admin cadastra "Cooler" (estoque=20, ativo=true, automatico=false)
-   |
-   v
-Recepção registra visita -> insere 1 brinde de cada tipo "automatico=true"
-   |
-   v
-Trigger decrementa estoque dos automáticos
-   |
-   v
-Finalização: dropdown mostra apenas tipos ativos não-automáticos
-   |
-   v
-Brinde escolhido inserido em `brindes` -> trigger decrementa estoque
-```
-
-### Resumo de Arquivos
-
-- **Migração**: cria `tipos_brinde`, RLS, bucket storage, trigger de estoque, remove CHECK antigo, seed inicial.
-- **Novos**: `src/pages/admin/BrindesAdmin.tsx`, `src/components/admin/BrindeFormDialog.tsx`, `src/hooks/useTiposBrinde.tsx`.
-- **Editados**: `src/App.tsx`, `src/components/AppSidebar.tsx`, `src/pages/Index.tsx`, `src/pages/recepcao.tsx`, `src/pages/Brindes.tsx`, `src/components/IniciarVisitaDialog.tsx`, `src/components/AddClienteDialog.tsx`.
+Após aprovar:
+- Pedro (e demais admins) passam a ter linha em `user_roles` com role `admin`.
+- `has_role()` retorna `true` → as policies liberam INSERT/UPDATE/DELETE.
+- Adicionar, excluir, ativar/desativar e alternar entrega automática funcionam imediatamente.
+- Erros futuros aparecem em toast em vez de falhar em silêncio.
