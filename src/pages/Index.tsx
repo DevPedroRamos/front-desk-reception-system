@@ -533,6 +533,9 @@ export default function index() {
   };
 
   const { isAdmin } = useAdminRole();
+  const { data: tiposBrinde = [] } = useTiposBrindeAtivos();
+  const brindesAutomaticos = tiposBrinde.filter((t) => t.entrega_automatica);
+  const brindesOpcionais = tiposBrinde.filter((t) => !t.entrega_automatica);
 
   const abrirDialogEdicao = (visit: Visit) => {
     if (!isAdmin) return;
