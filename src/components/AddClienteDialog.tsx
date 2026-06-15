@@ -193,13 +193,16 @@ export function AddClienteDialog({ open, onOpenChange, onClienteAdicionado }: Ad
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Indicativo Brinde Copo */}
-          <div className="flex items-center gap-3 rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
-            <GlassWater className="h-5 w-5 text-blue-600 shrink-0" />
-            <p className="text-sm font-medium text-blue-800">
-              Este cliente receberá um <strong>Copo</strong> de brinde quando a visita for iniciada.
-            </p>
-          </div>
+          {/* Indicativo Brindes Automáticos */}
+          {brindesAutomaticos.length > 0 && (
+            <div className="flex items-center gap-3 rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
+              <GlassWater className="h-5 w-5 text-blue-600 shrink-0" />
+              <p className="text-sm font-medium text-blue-800">
+                Este cliente receberá quando a visita for iniciada:{" "}
+                <strong>{brindesAutomaticos.map((b) => b.nome).join(", ")}</strong>.
+              </p>
+            </div>
+          )}
 
           {/* Dados do Cliente */}
           <div className="space-y-4">
