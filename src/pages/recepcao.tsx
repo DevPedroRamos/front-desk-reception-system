@@ -237,19 +237,23 @@ const Recepcao = () => {
       return data;
     },
     onSuccess: async (data) => {
-      // Registrar Copo automaticamente como brinde
-      try {
-        await supabase.from('brindes').insert({
-          visit_id: data.id,
-          cliente_nome: data.cliente_nome,
-          cliente_cpf: data.cliente_cpf,
-          corretor_nome: data.corretor_nome,
-          tipo_brinde: 'Copo',
-          validado: true,
-          data_validacao: new Date().toISOString(),
-        });
-      } catch (e) {
-        console.error('Erro ao registrar Copo:', e);
+      // Registrar brindes de entrega automática
+      if (brindesAutomaticos.length > 0) {
+        try {
+          await supabase.from('brindes').insert(
+            brindesAutomaticos.map((b) => ({
+              visit_id: data.id,
+              cliente_nome: data.cliente_nome,
+              cliente_cpf: data.cliente_cpf,
+              corretor_nome: data.corretor_nome,
+              tipo_brinde: b.nome,
+              validado: true,
+              data_validacao: new Date().toISOString(),
+            }))
+          );
+        } catch (e) {
+          console.error('Erro ao registrar brindes automáticos:', e);
+        }
       }
 
       toast({
