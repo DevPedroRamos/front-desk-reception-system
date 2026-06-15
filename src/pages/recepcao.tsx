@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AutoSuggest } from "@/components/AutoSuggest";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useTiposBrindeAtivos } from "@/hooks/useTiposBrinde";
 import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
@@ -38,6 +39,8 @@ const Recepcao = () => {
   const queryClient = useQueryClient();
   const { userProfile } = useUserRole();
   const navigate = useNavigate();
+  const { data: tiposBrinde = [] } = useTiposBrindeAtivos();
+  const brindesAutomaticos = tiposBrinde.filter((t) => t.entrega_automatica);
   const [showLojaLotadaAlert, setShowLojaLotadaAlert] = useState(false);
   const [showNovoCorretorDialog, setShowNovoCorretorDialog] = useState(false);
   const [apelidoNovoCorretor, setApelidoNovoCorretor] = useState("");
