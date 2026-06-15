@@ -16,6 +16,7 @@ import Persona from '@/pages/Persona';
 import Recebimento from '@/pages/Recebimento';
 import Entregas from '@/pages/Entregas';
 import PersonaAdmin from '@/pages/admin/PersonaAdmin';
+import BrindesAdmin from '@/pages/admin/BrindesAdmin';
 import BannedUser from '@/pages/BannedUser';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -65,6 +66,7 @@ function ProtectedRoutes() {
       <Route path="/recebimento" element={<Recebimento />} />
       <Route path="/entregas" element={<Entregas />} />
       <Route path="/admin/persona" element={<PersonaAdmin />} />
+      <Route path="/admin/brindes" element={<BrindesAdmin />} />
       <Route path="*" element={<div>404 - Página não encontrada</div>} />
     </Routes>
   );
