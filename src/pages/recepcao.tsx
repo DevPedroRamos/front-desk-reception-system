@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AutoSuggest } from "@/components/AutoSuggest";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useTiposBrindeAtivos } from "@/hooks/useTiposBrinde";
 import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
@@ -38,6 +39,8 @@ const Recepcao = () => {
   const queryClient = useQueryClient();
   const { userProfile } = useUserRole();
   const navigate = useNavigate();
+  const { data: tiposBrinde = [] } = useTiposBrindeAtivos();
+  const brindesAutomaticos = tiposBrinde.filter((t) => t.entrega_automatica);
   const [showLojaLotadaAlert, setShowLojaLotadaAlert] = useState(false);
   const [showNovoCorretorDialog, setShowNovoCorretorDialog] = useState(false);
   const [apelidoNovoCorretor, setApelidoNovoCorretor] = useState("");
@@ -234,19 +237,23 @@ const Recepcao = () => {
       return data;
     },
     onSuccess: async (data) => {
-      // Registrar Copo automaticamente como brinde
-      try {
-        await supabase.from('brindes').insert({
-          visit_id: data.id,
-          cliente_nome: data.cliente_nome,
-          cliente_cpf: data.cliente_cpf,
-          corretor_nome: data.corretor_nome,
-          tipo_brinde: 'Copo',
-          validado: true,
-          data_validacao: new Date().toISOString(),
-        });
-      } catch (e) {
-        console.error('Erro ao registrar Copo:', e);
+      // Registrar brindes de entrega automática
+      if (brindesAutomaticos.length > 0) {
+        try {
+          await supabase.from('brindes').insert(
+            brindesAutomaticos.map((b) => ({
+              visit_id: data.id,
+              cliente_nome: data.cliente_nome,
+              cliente_cpf: data.cliente_cpf,
+              corretor_nome: data.corretor_nome,
+              tipo_brinde: b.nome,
+              validado: true,
+              data_validacao: new Date().toISOString(),
+            }))
+          );
+        } catch (e) {
+          console.error('Erro ao registrar brindes automáticos:', e);
+        }
       }
 
       toast({
@@ -394,13 +401,16 @@ const Recepcao = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Indicativo Brinde Copo */}
-              <div className="flex items-center gap-3 rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
-                <GlassWater className="h-5 w-5 text-blue-600 shrink-0" />
-                <p className="text-sm font-medium text-blue-800">
-                  Este cliente receberá um <strong>Copo</strong> de brinde ao registrar a visita.
-                </p>
-              </div>
+              {/* Indicativo Brindes Automáticos */}
+              {brindesAutomaticos.length > 0 && (
+                <div className="flex items-center gap-3 rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
+                  <GlassWater className="h-5 w-5 text-blue-600 shrink-0" />
+                  <p className="text-sm font-medium text-blue-800">
+                    Este cliente receberá ao registrar a visita:{" "}
+                    <strong>{brindesAutomaticos.map((b) => b.nome).join(", ")}</strong>.
+                  </p>
+                </div>
+              )}
 
               {/* Dados do Cliente */}
               <div className="space-y-4">

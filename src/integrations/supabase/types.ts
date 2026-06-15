@@ -1404,6 +1404,39 @@ export type Database = {
         }
         Relationships: []
       }
+      tipos_brinde: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          entrega_automatica: boolean
+          estoque: number
+          icone_url: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          entrega_automatica?: boolean
+          estoque?: number
+          icone_url?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          entrega_automatica?: boolean
+          estoque?: number
+          icone_url?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       treinamento_candidatos: {
         Row: {
           comprovante_residencia_url: string

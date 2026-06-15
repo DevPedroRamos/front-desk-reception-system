@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useQuery } from "@tanstack/react-query"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { useTiposBrinde } from "@/hooks/useTiposBrinde"
 
 interface Brinde {
   id: string
@@ -39,6 +40,7 @@ interface Brinde {
 
 const Brindes = () => {
   const { toast } = useToast()
+  const { data: tiposBrinde = [] } = useTiposBrinde()
 
   const [filtroDataInicio, setFiltroDataInicio] = useState("")
   const [filtroDataFim, setFiltroDataFim] = useState("")
@@ -254,9 +256,11 @@ const Brindes = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="Copo">Copo</SelectItem>
-                      <SelectItem value="Cooler">Cooler</SelectItem>
-                      <SelectItem value="Kit Fondue">Kit Fondue</SelectItem>
+                      {tiposBrinde.map((t) => (
+                        <SelectItem key={t.id} value={t.nome}>
+                          {t.nome}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

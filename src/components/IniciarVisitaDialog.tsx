@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { AutoSuggest } from '@/components/AutoSuggest';
 import { GlassWater } from 'lucide-react';
+import { useTiposBrindeAtivos } from '@/hooks/useTiposBrinde';
 
 interface Cliente {
   id: string;
@@ -35,6 +36,8 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
   const [empreendimento, setEmpreendimento] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { data: tiposBrinde = [] } = useTiposBrindeAtivos();
+  const brindesAutomaticos = tiposBrinde.filter((t) => t.entrega_automatica);
 
   // Configuração das lojas (mesma da recepção)
   const lojasConfig = {
@@ -238,19 +241,23 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
         return;
       }
 
-      // Registrar Copo automaticamente
-      try {
-        await supabase.from('brindes').insert({
-          visit_id: novaVisita.id,
-          cliente_nome: cliente.nome,
-          cliente_cpf: cliente.cpf,
-          corretor_nome: cliente.corretor_nome || '',
-          tipo_brinde: 'Copo',
-          validado: true,
-          data_validacao: new Date().toISOString(),
-        });
-      } catch (e) {
-        console.error('Erro ao registrar Copo:', e);
+      // Registrar brindes de entrega automática
+      if (brindesAutomaticos.length > 0) {
+        try {
+          await supabase.from('brindes').insert(
+            brindesAutomaticos.map((b) => ({
+              visit_id: novaVisita.id,
+              cliente_nome: cliente.nome,
+              cliente_cpf: cliente.cpf,
+              corretor_nome: cliente.corretor_nome || '',
+              tipo_brinde: b.nome,
+              validado: true,
+              data_validacao: new Date().toISOString(),
+            }))
+          );
+        } catch (e) {
+          console.error('Erro ao registrar brindes automáticos:', e);
+        }
       }
 
       // Atualizar status na lista de espera
@@ -291,12 +298,15 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center gap-3 rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
-            <GlassWater className="h-5 w-5 text-blue-600 shrink-0" />
-            <p className="text-sm font-medium text-blue-800">
-              Este cliente receberá um <strong>Copo</strong> de brinde ao iniciar a visita.
-            </p>
-          </div>
+          {brindesAutomaticos.length > 0 && (
+            <div className="flex items-center gap-3 rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
+              <GlassWater className="h-5 w-5 text-blue-600 shrink-0" />
+              <p className="text-sm font-medium text-blue-800">
+                Este cliente receberá ao iniciar a visita:{" "}
+                <strong>{brindesAutomaticos.map((b) => b.nome).join(", ")}</strong>.
+              </p>
+            </div>
+          )}
 
           <div>
             <Label>Cliente</Label>
