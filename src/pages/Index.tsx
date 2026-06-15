@@ -1382,43 +1382,41 @@ export default function index() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="rounded-lg border-2 border-green-300 bg-green-50 p-3 my-2 flex items-center gap-2">
-              <span className="text-green-700 text-sm font-medium">
-                ✓ Copo já foi entregue ao cliente no início da visita
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground -mt-2">Deseja entregar um brinde adicional?</p>
+            {brindesAutomaticos.length > 0 && (
+              <div className="rounded-lg border-2 border-green-300 bg-green-50 p-3 my-2 flex items-center gap-2">
+                <span className="text-green-700 text-sm font-medium">
+                  ✓ Já entregue no início da visita: {brindesAutomaticos.map((b) => b.nome).join(", ")}
+                </span>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground -mt-2">
+              Deseja entregar um brinde adicional?
+            </p>
 
             <div className="grid grid-cols-2 gap-4 py-4">
-              <Button
-                onClick={() => finalizarComBrinde("Cooler")}
-                disabled={finalizandoVisita}
-                className="h-24 flex flex-col gap-2 bg-cyan-600 hover:bg-cyan-700 text-white"
-              >
-                {finalizandoVisita ? (
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                ) : (
-                  <>
-                    <Gift className="w-8 h-8" />
-                    <span className="text-lg font-semibold">Cooler</span>
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={() => finalizarComBrinde("Kit Fondue")}
-                disabled={finalizandoVisita}
-                className="h-24 flex flex-col gap-2 bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                {finalizandoVisita ? (
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                ) : (
-                  <>
-                    <Gift className="w-8 h-8" />
-                    <span className="text-lg font-semibold">Kit Fondue</span>
-                  </>
-                )}
-              </Button>
+              {brindesOpcionais.map((b) => (
+                <Button
+                  key={b.id}
+                  onClick={() => finalizarComBrinde(b.nome)}
+                  disabled={finalizandoVisita}
+                  className="h-24 flex flex-col gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  {finalizandoVisita ? (
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  ) : (
+                    <>
+                      {b.icone_url && b.icone_url.startsWith("http") ? (
+                        <img src={b.icone_url} alt="" className="w-8 h-8 object-contain" />
+                      ) : b.icone_url ? (
+                        <span className="text-2xl">{b.icone_url}</span>
+                      ) : (
+                        <Gift className="w-8 h-8" />
+                      )}
+                      <span className="text-lg font-semibold">{b.nome}</span>
+                    </>
+                  )}
+                </Button>
+              ))}
 
               <Button
                 onClick={() => finalizarComBrinde(null)}
