@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AutoSuggest } from "@/components/AutoSuggest";
 import { GlassWater } from "lucide-react";
+import { useTiposBrindeAtivos } from "@/hooks/useTiposBrinde";
 
 interface AddClienteDialogProps {
   open: boolean;
@@ -19,6 +20,8 @@ interface AddClienteDialogProps {
 
 export function AddClienteDialog({ open, onOpenChange, onClienteAdicionado }: AddClienteDialogProps) {
   const { toast } = useToast();
+  const { data: tiposBrinde = [] } = useTiposBrindeAtivos();
+  const brindesAutomaticos = tiposBrinde.filter((t) => t.entrega_automatica);
   const [formData, setFormData] = useState({
     cliente_nome: "",
     cliente_cpf: "",
