@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { AutoSuggest } from '@/components/AutoSuggest';
 import { GlassWater } from 'lucide-react';
+import { useTiposBrindeAtivos } from '@/hooks/useTiposBrinde';
 
 interface Cliente {
   id: string;
@@ -35,6 +36,8 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
   const [empreendimento, setEmpreendimento] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { data: tiposBrinde = [] } = useTiposBrindeAtivos();
+  const brindesAutomaticos = tiposBrinde.filter((t) => t.entrega_automatica);
 
   // Configuração das lojas (mesma da recepção)
   const lojasConfig = {
