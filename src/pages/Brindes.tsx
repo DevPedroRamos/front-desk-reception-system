@@ -256,9 +256,11 @@ const Brindes = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="Copo">Copo</SelectItem>
-                      <SelectItem value="Cooler">Cooler</SelectItem>
-                      <SelectItem value="Kit Fondue">Kit Fondue</SelectItem>
+                      {tiposBrinde.map((t) => (
+                        <SelectItem key={t.id} value={t.nome}>
+                          {t.nome}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
