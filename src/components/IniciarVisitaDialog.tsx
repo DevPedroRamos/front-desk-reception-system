@@ -241,19 +241,23 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
         return;
       }
 
-      // Registrar Copo automaticamente
-      try {
-        await supabase.from('brindes').insert({
-          visit_id: novaVisita.id,
-          cliente_nome: cliente.nome,
-          cliente_cpf: cliente.cpf,
-          corretor_nome: cliente.corretor_nome || '',
-          tipo_brinde: 'Copo',
-          validado: true,
-          data_validacao: new Date().toISOString(),
-        });
-      } catch (e) {
-        console.error('Erro ao registrar Copo:', e);
+      // Registrar brindes de entrega automática
+      if (brindesAutomaticos.length > 0) {
+        try {
+          await supabase.from('brindes').insert(
+            brindesAutomaticos.map((b) => ({
+              visit_id: novaVisita.id,
+              cliente_nome: cliente.nome,
+              cliente_cpf: cliente.cpf,
+              corretor_nome: cliente.corretor_nome || '',
+              tipo_brinde: b.nome,
+              validado: true,
+              data_validacao: new Date().toISOString(),
+            }))
+          );
+        } catch (e) {
+          console.error('Erro ao registrar brindes automáticos:', e);
+        }
       }
 
       // Atualizar status na lista de espera
