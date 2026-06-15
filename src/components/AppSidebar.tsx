@@ -136,6 +136,11 @@ export function AppSidebar() {
         url: "/admin/persona",
         icon: UserCog,
       },
+      {
+        title: "Gestão de Brindes",
+        url: "/admin/brindes",
+        icon: Gift,
+      },
     ];
   };
 
