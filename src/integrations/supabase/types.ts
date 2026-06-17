@@ -2680,6 +2680,7 @@ export type Database = {
         Args: { article_id: string }
         Returns: undefined
       }
+      is_user_banned: { Args: { _user_id: string }; Returns: boolean }
       match_documents: {
         Args: { filter?: Json; match_count?: number; query_embedding: string }
         Returns: {
