@@ -62,6 +62,7 @@ export function AppSidebar() {
 
     const result = await notificarVisita({
       corretor_nome: "Corretor Teste",
+      corretor_cpf: "45566920837",
       cliente_nome: "Cliente Teste",
       loja: "Loja 1",
       andar: "N/A",
