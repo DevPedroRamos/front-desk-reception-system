@@ -1818,15 +1818,7 @@ export type Database = {
           origem_registro?: Json | null
           status?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "visits_corretor_id_fkey"
-            columns: ["corretor_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       vistorias: {
         Row: {

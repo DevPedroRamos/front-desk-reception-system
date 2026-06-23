@@ -1,0 +1,1 @@
+ALTER TABLE public.visits DROP CONSTRAINT IF EXISTS visits_corretor_id_fkey;
