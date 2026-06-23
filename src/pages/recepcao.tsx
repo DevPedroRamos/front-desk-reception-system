@@ -65,25 +65,21 @@ const Recepcao = () => {
   };
 
   // Buscar corretores do banco de dados
-  const { data: corretores = [] } = useQuery({
-    queryKey: ['corretores'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, name, apelido')
-        .eq('role', 'corretor');
-      
-      if (error) {
-        console.error('Erro ao buscar corretores:', error);
-        return [];
-      }
-      
-      return data?.map(corretor => ({
-        id: corretor.id,
-        name: corretor.apelido || corretor.name
-      })) || [];
-    }
-  });
+  // Buscar corretores da API Integra (departamento VENDAS + ACTIVE)
+  const { data: corretoresIntegra = [] } = useCorretoresIntegra();
+  const corretores = corretoresIntegra.map((c) => ({ id: c.id, name: c.nome }));
+
+  // Helper para resolver o corretor selecionado a partir do nome digitado/escolhido
+  const findCorretor = (nome: string) => {
+    if (!nome) return null;
+    const base = nome.split(' - ')[0].split(' (')[0].trim().toLowerCase();
+    return (
+      corretoresIntegra.find((c) => c.nome.toLowerCase() === base) ||
+      corretoresIntegra.find((c) => c.nome.toLowerCase() === nome.toLowerCase()) ||
+      corretoresIntegra.find((c) => c.fullName.toLowerCase() === base) ||
+      null
+    );
+  };
 
   // Buscar empreendimentos do banco de dados
   const { data: empreendimentos = [] } = useQuery({
@@ -176,34 +172,9 @@ const Recepcao = () => {
   // Mutation para criar nova visita
   const createVisitMutation = useMutation({
     mutationFn: async (visitData: typeof formData) => {
-      // Buscar ID do corretor se foi informado
-      let corretor_id = null;
-      if (visitData.corretor_nome) {
-        // Verificar se é um corretor novo (formato "Novo - apelido")
-        const isCorretorNovo = visitData.corretor_nome.toLowerCase().startsWith("novo - ");
-        
-        if (isCorretorNovo) {
-          // Buscar o ID do corretor "NOVO" que está cadastrado na base
-          const { data: corretorNovoData } = await supabase
-            .from('users')
-            .select('id')
-            .ilike('apelido', 'NOVO')
-            .limit(1)
-            .maybeSingle();
-          
-          corretor_id = corretorNovoData?.id || null;
-        } else {
-          // Busca normal para outros corretores
-          const { data: corretorData } = await supabase
-            .from('users')
-            .select('id')
-            .or(`name.ilike.%${visitData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${visitData.corretor_nome}%`)
-            .limit(1)
-            .maybeSingle();
-          
-          corretor_id = corretorData?.id || null;
-        }
-      }
+      const corretor = findCorretor(visitData.corretor_nome);
+      const corretor_id = corretor?.id || null;
+      const corretor_cpf = corretor?.cpf || null;
 
       // Usar CPF padrão se não foi preenchido
       const cpfFinal = visitData.cliente_cpf.trim() || "00000000000";
@@ -216,6 +187,7 @@ const Recepcao = () => {
           cliente_whatsapp: visitData.cliente_whatsapp || null,
           corretor_nome: visitData.corretor_nome || '',
           corretor_id: corretor_id || '00000000-0000-0000-0000-000000000000',
+          corretor_cpf,
           empreendimento: visitData.empreendimento || null,
           loja: visitData.loja,
           andar: visitData.andar || 'N/A',
@@ -240,6 +212,7 @@ const Recepcao = () => {
     onSuccess: async (data) => {
       notificarVisita({
         corretor_nome: data.corretor_nome || '',
+        corretor_cpf: data.corretor_cpf || '',
         cliente_nome: data.cliente_nome,
         loja: data.loja,
         andar: data.andar || 'N/A',
@@ -435,12 +408,7 @@ const Recepcao = () => {
                     options={corretores}
                     value={formData.corretor_nome}
                     onValueChange={(value) => {
-                      if (value.toUpperCase() === "NOVO") {
-                        setShowNovoCorretorDialog(true);
-                        setApelidoNovoCorretor("");
-                      } else {
-                        setFormData(prev => ({ ...prev, corretor_nome: value }));
-                      }
+                      setFormData(prev => ({ ...prev, corretor_nome: value }));
                     }}
                   />
                   
