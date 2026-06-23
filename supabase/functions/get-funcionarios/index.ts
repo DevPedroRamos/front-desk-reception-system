@@ -51,17 +51,6 @@ Deno.serve(async (req) => {
     const payload = await upstream.json() as { employees?: IntegraEmployee[] };
     const employees = Array.isArray(payload.employees) ? payload.employees : [];
 
-    const active = employees.filter((e) => e.status === 'ACTIVE');
-    console.log('Integra totals:', {
-      total: employees.length,
-      active: active.length,
-      sample: active.slice(0, 3).map((e) => ({
-        nome: e.fullName,
-        dept: e.department,
-        depts: e.departments,
-      })),
-    });
-
     const corretores = employees
       .filter((e) => e.status === 'ACTIVE')
       .filter((e) => {
