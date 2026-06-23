@@ -22,9 +22,21 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const integraApiKey = Deno.env.get('INTEGRA_API_KEY');
+    if (!integraApiKey) {
+      console.error('INTEGRA_API_KEY não configurada');
+      return new Response(
+        JSON.stringify({ error: 'INTEGRA_API_KEY ausente no ambiente da edge function' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const upstream = await fetch(INTEGRA_URL, {
       method: 'GET',
-      headers: { accept: '*/*' },
+      headers: {
+        accept: '*/*',
+        'x-integra-api-key': integraApiKey,
+      },
     });
 
     if (!upstream.ok) {
