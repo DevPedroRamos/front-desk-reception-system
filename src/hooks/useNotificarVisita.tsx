@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 
 export interface NotificarVisitaInput {
   corretor_nome: string;
+  corretor_cpf: string;
   cliente_nome: string;
   loja: string;
   andar: string;
@@ -19,18 +20,16 @@ export interface NotificarVisitaResult {
 
 const API_URL = 'https://api.metrocasamais.app/api/notifications/send';
 
-// TODO: substituir pelo CPF do corretor selecionado após testes
-const CPF_DESTINATARIO_TESTE = '45566920837';
-
 function buildPayload(dados: NotificarVisitaInput) {
+  const cpf = (dados.corretor_cpf || '').replace(/\D/g, '');
   return {
     title: 'Nova visita registrada',
     body: `${dados.cliente_nome} - ${dados.loja}, Mesa ${dados.mesa}`,
     platformType: 'MOBILE',
     targetType: 'USERS',
-    targetIds: [CPF_DESTINATARIO_TESTE],
+    targetIds: [cpf],
     data: {
-      cpf: CPF_DESTINATARIO_TESTE,
+      cpf,
       corretor_nome: dados.corretor_nome,
       cliente_nome: dados.cliente_nome,
       loja: dados.loja,
@@ -44,6 +43,12 @@ function buildPayload(dados: NotificarVisitaInput) {
 export function useNotificarVisita() {
   const notificarVisita = useCallback(async (dados: NotificarVisitaInput): Promise<NotificarVisitaResult | null> => {
     try {
+      const cpfLimpo = (dados.corretor_cpf || '').replace(/\D/g, '');
+      if (!cpfLimpo) {
+        console.warn('notificarVisita: corretor_cpf vazio; notificação não enviada.');
+        return null;
+      }
+
       const authToken = import.meta.env.VITE_METROCASA_API_TOKEN;
 
       if (!authToken) {

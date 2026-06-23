@@ -854,6 +854,7 @@ export type Database = {
           cliente_cpf: string
           cliente_nome: string
           cliente_whatsapp: string | null
+          corretor_cpf: string | null
           corretor_id: string | null
           corretor_nome: string | null
           created_at: string
@@ -867,6 +868,7 @@ export type Database = {
           cliente_cpf?: string
           cliente_nome: string
           cliente_whatsapp?: string | null
+          corretor_cpf?: string | null
           corretor_id?: string | null
           corretor_nome?: string | null
           created_at?: string
@@ -880,6 +882,7 @@ export type Database = {
           cliente_cpf?: string
           cliente_nome?: string
           cliente_whatsapp?: string | null
+          corretor_cpf?: string | null
           corretor_id?: string | null
           corretor_nome?: string | null
           created_at?: string
@@ -1766,6 +1769,7 @@ export type Database = {
           cliente_cpf: string
           cliente_nome: string
           cliente_whatsapp: string | null
+          corretor_cpf: string | null
           corretor_id: string
           corretor_nome: string
           created_at: string | null
@@ -1783,6 +1787,7 @@ export type Database = {
           cliente_cpf: string
           cliente_nome: string
           cliente_whatsapp?: string | null
+          corretor_cpf?: string | null
           corretor_id: string
           corretor_nome: string
           created_at?: string | null
@@ -1800,6 +1805,7 @@ export type Database = {
           cliente_cpf?: string
           cliente_nome?: string
           cliente_whatsapp?: string | null
+          corretor_cpf?: string | null
           corretor_id?: string
           corretor_nome?: string
           created_at?: string | null

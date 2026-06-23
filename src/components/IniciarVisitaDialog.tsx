@@ -21,6 +21,7 @@ interface Cliente {
   whatsapp?: string;
   corretor_id?: string;
   corretor_nome?: string;
+  corretor_cpf?: string;
 }
 
 interface IniciarVisitaDialogProps {
@@ -223,6 +224,7 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
           cliente_whatsapp: cliente.whatsapp,
           corretor_id: cliente.corretor_id || '00000000-0000-0000-0000-000000000000',
           corretor_nome: cliente.corretor_nome || '',
+          corretor_cpf: cliente.corretor_cpf || null,
           loja,
           andar: andar || 'N/A',
           mesa: parseInt(mesa),
@@ -245,6 +247,7 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
 
       notificarVisita({
         corretor_nome: cliente.corretor_nome || '',
+        corretor_cpf: cliente.corretor_cpf || '',
         cliente_nome: cliente.nome,
         loja,
         andar: andar || 'N/A',

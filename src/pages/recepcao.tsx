@@ -15,6 +15,7 @@ import { AutoSuggest } from "@/components/AutoSuggest";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useTiposBrindeAtivos } from "@/hooks/useTiposBrinde";
 import { useNotificarVisita } from "@/hooks/useNotificarVisita";
+import { useCorretoresIntegra } from "@/hooks/useCorretoresIntegra";
 import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
@@ -44,8 +45,6 @@ const Recepcao = () => {
   const { data: tiposBrinde = [] } = useTiposBrindeAtivos();
   const brindesAutomaticos = tiposBrinde.filter((t) => t.entrega_automatica);
   const [showLojaLotadaAlert, setShowLojaLotadaAlert] = useState(false);
-  const [showNovoCorretorDialog, setShowNovoCorretorDialog] = useState(false);
-  const [apelidoNovoCorretor, setApelidoNovoCorretor] = useState("");
   const [formData, setFormData] = useState({
     cliente_nome: "",
     cliente_cpf: "",
@@ -66,25 +65,21 @@ const Recepcao = () => {
   };
 
   // Buscar corretores do banco de dados
-  const { data: corretores = [] } = useQuery({
-    queryKey: ['corretores'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, name, apelido')
-        .eq('role', 'corretor');
-      
-      if (error) {
-        console.error('Erro ao buscar corretores:', error);
-        return [];
-      }
-      
-      return data?.map(corretor => ({
-        id: corretor.id,
-        name: corretor.apelido || corretor.name
-      })) || [];
-    }
-  });
+  // Buscar corretores da API Integra (departamento VENDAS + ACTIVE)
+  const { data: corretoresIntegra = [] } = useCorretoresIntegra();
+  const corretores = corretoresIntegra.map((c) => ({ id: c.id, name: c.nome }));
+
+  // Helper para resolver o corretor selecionado a partir do nome digitado/escolhido
+  const findCorretor = (nome: string) => {
+    if (!nome) return null;
+    const base = nome.split(' - ')[0].split(' (')[0].trim().toLowerCase();
+    return (
+      corretoresIntegra.find((c) => c.nome.toLowerCase() === base) ||
+      corretoresIntegra.find((c) => c.nome.toLowerCase() === nome.toLowerCase()) ||
+      corretoresIntegra.find((c) => c.fullName.toLowerCase() === base) ||
+      null
+    );
+  };
 
   // Buscar empreendimentos do banco de dados
   const { data: empreendimentos = [] } = useQuery({
@@ -177,34 +172,9 @@ const Recepcao = () => {
   // Mutation para criar nova visita
   const createVisitMutation = useMutation({
     mutationFn: async (visitData: typeof formData) => {
-      // Buscar ID do corretor se foi informado
-      let corretor_id = null;
-      if (visitData.corretor_nome) {
-        // Verificar se é um corretor novo (formato "Novo - apelido")
-        const isCorretorNovo = visitData.corretor_nome.toLowerCase().startsWith("novo - ");
-        
-        if (isCorretorNovo) {
-          // Buscar o ID do corretor "NOVO" que está cadastrado na base
-          const { data: corretorNovoData } = await supabase
-            .from('users')
-            .select('id')
-            .ilike('apelido', 'NOVO')
-            .limit(1)
-            .maybeSingle();
-          
-          corretor_id = corretorNovoData?.id || null;
-        } else {
-          // Busca normal para outros corretores
-          const { data: corretorData } = await supabase
-            .from('users')
-            .select('id')
-            .or(`name.ilike.%${visitData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${visitData.corretor_nome}%`)
-            .limit(1)
-            .maybeSingle();
-          
-          corretor_id = corretorData?.id || null;
-        }
-      }
+      const corretor = findCorretor(visitData.corretor_nome);
+      const corretor_id = corretor?.id || null;
+      const corretor_cpf = corretor?.cpf || null;
 
       // Usar CPF padrão se não foi preenchido
       const cpfFinal = visitData.cliente_cpf.trim() || "00000000000";
@@ -217,6 +187,7 @@ const Recepcao = () => {
           cliente_whatsapp: visitData.cliente_whatsapp || null,
           corretor_nome: visitData.corretor_nome || '',
           corretor_id: corretor_id || '00000000-0000-0000-0000-000000000000',
+          corretor_cpf,
           empreendimento: visitData.empreendimento || null,
           loja: visitData.loja,
           andar: visitData.andar || 'N/A',
@@ -241,6 +212,7 @@ const Recepcao = () => {
     onSuccess: async (data) => {
       notificarVisita({
         corretor_nome: data.corretor_nome || '',
+        corretor_cpf: data.corretor_cpf || '',
         cliente_nome: data.cliente_nome,
         loja: data.loja,
         andar: data.andar || 'N/A',
@@ -436,12 +408,7 @@ const Recepcao = () => {
                     options={corretores}
                     value={formData.corretor_nome}
                     onValueChange={(value) => {
-                      if (value.toUpperCase() === "NOVO") {
-                        setShowNovoCorretorDialog(true);
-                        setApelidoNovoCorretor("");
-                      } else {
-                        setFormData(prev => ({ ...prev, corretor_nome: value }));
-                      }
+                      setFormData(prev => ({ ...prev, corretor_nome: value }));
                     }}
                   />
                   
@@ -688,68 +655,6 @@ const Recepcao = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog para Apelido do Corretor Novo */}
-      <Dialog open={showNovoCorretorDialog} onOpenChange={setShowNovoCorretorDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-blue-600" />
-              Corretor Novo
-            </DialogTitle>
-            <DialogDescription>
-              Digite o apelido do corretor que ainda não está cadastrado no sistema.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="apelido_novo_corretor">Apelido do Corretor *</Label>
-              <Input
-                id="apelido_novo_corretor"
-                placeholder="Ex: João, Maria, Pedro..."
-                value={apelidoNovoCorretor}
-                onChange={(e) => setApelidoNovoCorretor(e.target.value)}
-                autoFocus
-              />
-            </div>
-            
-            {apelidoNovoCorretor && (
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-700">
-                  <span className="font-medium">Preview:</span> Corretor será exibido como{" "}
-                  <span className="font-bold">Novo - {apelidoNovoCorretor}</span>
-                </p>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowNovoCorretorDialog(false);
-                setApelidoNovoCorretor("");
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => {
-                if (apelidoNovoCorretor.trim()) {
-                  const nomeCompleto = `Novo - ${apelidoNovoCorretor.trim()}`;
-                  setFormData(prev => ({ ...prev, corretor_nome: nomeCompleto }));
-                  setShowNovoCorretorDialog(false);
-                  setApelidoNovoCorretor("");
-                }
-              }}
-              disabled={!apelidoNovoCorretor.trim()}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Confirmar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Layout>
   );
 };

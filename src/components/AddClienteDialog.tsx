@@ -11,6 +11,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { AutoSuggest } from "@/components/AutoSuggest";
 import { GlassWater } from "lucide-react";
 import { useTiposBrindeAtivos } from "@/hooks/useTiposBrinde";
+import { useCorretoresIntegra } from "@/hooks/useCorretoresIntegra";
 
 interface AddClienteDialogProps {
   open: boolean;
@@ -31,26 +32,20 @@ export function AddClienteDialog({ open, onOpenChange, onClienteAdicionado }: Ad
     loja: "",
   });
 
-  // Buscar corretores
-  const { data: corretores = [] } = useQuery({
-    queryKey: ['corretores'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, name, apelido')
-        .eq('role', 'corretor');
-      
-      if (error) {
-        console.error('Erro ao buscar corretores:', error);
-        return [];
-      }
-      
-      return data?.map(corretor => ({
-        id: corretor.id,
-        name: corretor.apelido || corretor.name
-      })) || [];
-    }
-  });
+  // Buscar corretores da API Integra (departamento VENDAS + ACTIVE)
+  const { data: corretoresIntegra = [] } = useCorretoresIntegra();
+  const corretores = corretoresIntegra.map((c) => ({ id: c.id, name: c.nome }));
+
+  const findCorretor = (nome: string) => {
+    if (!nome) return null;
+    const base = nome.split(' - ')[0].split(' (')[0].trim().toLowerCase();
+    return (
+      corretoresIntegra.find((c) => c.nome.toLowerCase() === base) ||
+      corretoresIntegra.find((c) => c.nome.toLowerCase() === nome.toLowerCase()) ||
+      corretoresIntegra.find((c) => c.fullName.toLowerCase() === base) ||
+      null
+    );
+  };
 
   // Buscar empreendimentos
   const { data: empreendimentos = [] } = useQuery({
@@ -94,20 +89,10 @@ export function AddClienteDialog({ open, onOpenChange, onClienteAdicionado }: Ad
   // Mutation para adicionar à lista de espera
   const addToListaMutation = useMutation({
     mutationFn: async (clienteData: typeof formData) => {
-      // Buscar ID do corretor se foi informado
-      let corretor_id = null;
-      let apelidoCorretor = null;
-      if (clienteData.corretor_nome) {
-        const { data: corretorData } = await supabase
-          .from('users')
-          .select('id, apelido')
-          .or(`name.ilike.%${clienteData.corretor_nome.split(' (')[0]}%,apelido.ilike.%${clienteData.corretor_nome}%`)
-          .limit(1)
-          .single();
-        
-        corretor_id = corretorData?.id || null;
-        apelidoCorretor = corretorData?.apelido || null;
-      }
+      const corretor = findCorretor(clienteData.corretor_nome);
+      const corretor_id = corretor?.id || null;
+      const corretor_cpf = corretor?.cpf || null;
+      const apelidoCorretor = corretor?.apelido || corretor?.nome || null;
 
       // Usar CPF padrão se não foi preenchido
       const cpfFinal = clienteData.cliente_cpf.trim() || "00000000000";
@@ -120,6 +105,7 @@ export function AddClienteDialog({ open, onOpenChange, onClienteAdicionado }: Ad
           cliente_whatsapp: clienteData.cliente_whatsapp || null,
           corretor_nome: clienteData.corretor_nome || null,
           corretor_id: corretor_id || '00000000-0000-0000-0000-000000000000',
+          corretor_cpf,
           empreendimento: clienteData.empreendimento || null,
           loja: clienteData.loja,
           status: 'aguardando'

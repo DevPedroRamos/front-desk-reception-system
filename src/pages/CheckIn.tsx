@@ -125,6 +125,7 @@ export default function CheckIn() {
           cliente_whatsapp: agendamento.cliente_telefone,
           corretor_id: agendamento.corretor_id,
           corretor_nome: agendamento.corretor_nome,
+        corretor_cpf: agendamento.corretor_cpf || null,
           loja: checkInData.loja,
           empreendimento: checkInData.empreendimento,
           status: 'aguardando'
@@ -154,6 +155,7 @@ export default function CheckIn() {
       } = await supabase.from('visits').insert({
         corretor_id: agendamento.corretor_id,
         corretor_nome: agendamento.corretor_nome,
+        corretor_cpf: agendamento.corretor_cpf || null,
         cliente_nome: agendamento.cliente_nome,
         cliente_cpf: agendamento.cliente_cpf,
         cliente_whatsapp: agendamento.cliente_telefone,
@@ -170,6 +172,7 @@ export default function CheckIn() {
 
       notificarVisita({
         corretor_nome: agendamento.corretor_nome || '',
+        corretor_cpf: agendamento.corretor_cpf || '',
         cliente_nome: agendamento.cliente_nome,
         loja: checkInData.loja,
         andar: checkInData.andar || 'N/A',
