@@ -352,7 +352,6 @@ export default function index() {
           mesa,
           horario_entrada,
           status,
-          users!visits_corretor_id_fkey(superintendente)
         `
         )
         .eq("status", "ativo")
@@ -402,7 +401,6 @@ export default function index() {
           horario_entrada,
           horario_saida,
           status,
-          users!visits_corretor_id_fkey(superintendente)
         `
         )
         .eq("status", "finalizado")
