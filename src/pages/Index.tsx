@@ -351,7 +351,7 @@ export default function index() {
           andar,
           mesa,
           horario_entrada,
-          status,
+          status
         `
         )
         .eq("status", "ativo")
@@ -400,7 +400,7 @@ export default function index() {
           mesa,
           horario_entrada,
           horario_saida,
-          status,
+          status
         `
         )
         .eq("status", "finalizado")
