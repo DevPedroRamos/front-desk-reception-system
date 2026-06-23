@@ -1,9 +1,12 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
 const INTEGRA_URL = 'https://integra.metrocasa.com.br/api/funcionarios';
-const VENDAS_DEPT_ID = '073f19fd-76cf-434f-992c-72b770cdad15';
+const VENDAS_DEPT_ID = '97ed983d-fff6-4764-8e2a-9ace8f154935';
+const PAGE_LIMIT = 200;
+const MAX_PAGES = 100;
 
 interface IntegraDept { id: string; name: string }
+interface IntegraPagination { page: number; limit: number; total: number; totalPages: number }
 interface IntegraEmployee {
   id: string;
   fullName: string;
@@ -31,25 +34,45 @@ Deno.serve(async (req) => {
       );
     }
 
-    const upstream = await fetch(INTEGRA_URL, {
-      method: 'GET',
-      headers: {
-        accept: '*/*',
-        'x-integra-api-key': integraApiKey,
-      },
-    });
+    const fetchPage = async (page: number) => {
+      const url = `${INTEGRA_URL}?page=${page}&limit=${PAGE_LIMIT}`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          accept: '*/*',
+          'x-integra-api-key': integraApiKey,
+        },
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Integra page ${page} erro ${res.status}: ${body}`);
+      }
+      return await res.json() as {
+        employees?: IntegraEmployee[];
+        pagination?: IntegraPagination;
+      };
+    };
 
-    if (!upstream.ok) {
-      const body = await upstream.text();
-      console.error('Integra API erro:', upstream.status, body);
+    const employees: IntegraEmployee[] = [];
+    let page = 1;
+    let totalPages = 1;
+    try {
+      const first = await fetchPage(page);
+      if (Array.isArray(first.employees)) employees.push(...first.employees);
+      totalPages = first.pagination?.totalPages ?? 1;
+      while (page < totalPages && page < MAX_PAGES) {
+        page += 1;
+        const next = await fetchPage(page);
+        if (Array.isArray(next.employees)) employees.push(...next.employees);
+      }
+    } catch (err) {
+      console.error(String(err));
       return new Response(
-        JSON.stringify({ error: 'Falha ao consultar Integra', status: upstream.status }),
+        JSON.stringify({ error: 'Falha ao consultar Integra', detail: String(err) }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
-
-    const payload = await upstream.json() as { employees?: IntegraEmployee[] };
-    const employees = Array.isArray(payload.employees) ? payload.employees : [];
+    console.log(`Integra paginação: ${employees.length} funcionários em ${page}/${totalPages} páginas`);
 
     const corretores = employees
       .filter((e) => e.status === 'ACTIVE')
@@ -75,7 +98,7 @@ Deno.serve(async (req) => {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=60',
+          'Cache-Control': 'public, max-age=300',
         },
       },
     );
