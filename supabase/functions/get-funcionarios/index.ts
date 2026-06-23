@@ -1,7 +1,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
 const INTEGRA_URL = 'https://integra.metrocasa.com.br/api/funcionarios';
-const VENDAS_DEPT_ID = '073f19fd-76cf-434f-992c-72b770cdad15';
+const VENDAS_DEPT_ID = '97ed983d-fff6-4764-8e2a-9ace8f154935';
 const PAGE_LIMIT = 200;
 const MAX_PAGES = 100;
 
@@ -73,22 +73,6 @@ Deno.serve(async (req) => {
       );
     }
     console.log(`Integra paginação: ${employees.length} funcionários em ${page}/${totalPages} páginas`);
-
-    const deptCount: Record<string, { id: string; count: number }> = {};
-    for (const e of employees) {
-      if (e.status !== 'ACTIVE') continue;
-      const depts = [
-        ...(e.department ? [e.department] : []),
-        ...(Array.isArray(e.departments) ? e.departments : []),
-      ];
-      for (const d of depts) {
-        if (!d?.name) continue;
-        const key = d.name;
-        if (!deptCount[key]) deptCount[key] = { id: d.id, count: 0 };
-        deptCount[key].count += 1;
-      }
-    }
-    console.log('Integra depts ACTIVE:', deptCount);
 
     const corretores = employees
       .filter((e) => e.status === 'ACTIVE')
