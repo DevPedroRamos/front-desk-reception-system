@@ -74,6 +74,22 @@ Deno.serve(async (req) => {
     }
     console.log(`Integra paginação: ${employees.length} funcionários em ${page}/${totalPages} páginas`);
 
+    const statusCount: Record<string, number> = {};
+    const vendasCount = { total: 0, active: 0 };
+    const sampleVendas: Array<{ nome: string; status: string }> = [];
+    for (const e of employees) {
+      statusCount[e.status ?? 'null'] = (statusCount[e.status ?? 'null'] ?? 0) + 1;
+      const inVendas =
+        e.department?.id === VENDAS_DEPT_ID ||
+        (Array.isArray(e.departments) && e.departments.some((d) => d?.id === VENDAS_DEPT_ID));
+      if (inVendas) {
+        vendasCount.total += 1;
+        if (e.status === 'ACTIVE') vendasCount.active += 1;
+        if (sampleVendas.length < 5) sampleVendas.push({ nome: e.fullName, status: e.status });
+      }
+    }
+    console.log('Integra diag:', { statusCount, vendasCount, sampleVendas });
+
     const corretores = employees
       .filter((e) => e.status === 'ACTIVE')
       .filter((e) => {
