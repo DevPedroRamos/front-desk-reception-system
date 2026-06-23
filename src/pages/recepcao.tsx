@@ -15,6 +15,7 @@ import { AutoSuggest } from "@/components/AutoSuggest";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useTiposBrindeAtivos } from "@/hooks/useTiposBrinde";
 import { useNotificarVisita } from "@/hooks/useNotificarVisita";
+import { useCorretoresIntegra } from "@/hooks/useCorretoresIntegra";
 import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
@@ -44,8 +45,6 @@ const Recepcao = () => {
   const { data: tiposBrinde = [] } = useTiposBrindeAtivos();
   const brindesAutomaticos = tiposBrinde.filter((t) => t.entrega_automatica);
   const [showLojaLotadaAlert, setShowLojaLotadaAlert] = useState(false);
-  const [showNovoCorretorDialog, setShowNovoCorretorDialog] = useState(false);
-  const [apelidoNovoCorretor, setApelidoNovoCorretor] = useState("");
   const [formData, setFormData] = useState({
     cliente_nome: "",
     cliente_cpf: "",
