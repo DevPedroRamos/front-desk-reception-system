@@ -1,25 +1,20 @@
-## Adicionar autenticação na API do Integra
+## Paginar a API do Integra para trazer todos os corretores ativos
 
-### 1. Cadastrar secret
-- Solicitar via `add_secret` a variável `INTEGRA_API_KEY` (usuário cola o valor no formulário seguro).
+### Alteração em `supabase/functions/get-funcionarios/index.ts`
 
-### 2. Atualizar edge function `get-funcionarios`
-Em `supabase/functions/get-funcionarios/index.ts`:
-- Ler `const integraApiKey = Deno.env.get("INTEGRA_API_KEY")`.
-- Se ausente, retornar 500 com mensagem clara.
-- Adicionar header na chamada `fetch`:
-  ```ts
-  headers: {
-    "x-integra-api-key": integraApiKey,
-    "accept": "*/*",
-  }
-  ```
-- Manter o restante (filtros `status === "ACTIVE"` + departamento VENDAS, CORS, cache 60s).
+- Trocar a chamada única por um loop que percorre todas as páginas:
+  - Usar `limit=200` (reduz o número de requisições; ~27 páginas para 5294 registros).
+  - Começar em `page=1`, ler `pagination.totalPages` da primeira resposta e iterar até cobrir todas.
+  - Guard de segurança: parar após 100 páginas para evitar loop infinito.
+  - Manter o header `x-integra-api-key` em todas as requisições.
+- Concatenar todos os `employees` recebidos antes de aplicar os filtros existentes (`status === "ACTIVE"` + departamento VENDAS).
+- Buscar páginas sequencialmente (mais simples e suficiente). Se latência ficar alta, podemos otimizar com `Promise.all` em lotes depois.
+- Aumentar `Cache-Control` para `public, max-age=300` (5 min) já que o dataset é grande e muda pouco.
+- Em caso de falha em qualquer página, retornar 502 com a página que falhou no log.
 
-### 3. Validação
-- Deploy automático da função.
-- Testar via `curl_edge_functions` para confirmar 200 e lista de corretores.
-- Abrir `/recepcao` e validar que o select de corretores carrega da API Integra.
+### Validação
+- `curl_edge_functions` em `/get-funcionarios` → conferir `corretores.length` > 0 e nomes de VENDAS.
+- Abrir `/recepcao` e validar o dropdown.
 
 ### Fora de escopo
-- Mudanças em UI, hooks ou tabelas (já feitos na iteração anterior).
+- Mudanças em UI, hooks, tabelas ou outras edge functions.
