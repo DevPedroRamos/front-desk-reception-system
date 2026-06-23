@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCpfValidation } from '@/hooks/useCpfValidation';
+import { useNotificarVisita } from '@/hooks/useNotificarVisita';
 import { QrCode, Loader2, CheckCircle } from 'lucide-react';
 
 export default function CheckIn() {
@@ -20,6 +21,7 @@ export default function CheckIn() {
     empreendimento: ''
   });
   const { toast } = useToast();
+  const { notificarVisita } = useNotificarVisita();
   const { formatCpf } = useCpfValidation();
 
   // Configuração das lojas (mesma configuração da recepção)
@@ -165,6 +167,15 @@ export default function CheckIn() {
         }
       });
       if (visitError) throw visitError;
+
+      notificarVisita({
+        corretor_nome: agendamento.corretor_nome || '',
+        cliente_nome: agendamento.cliente_nome,
+        loja: checkInData.loja,
+        andar: checkInData.andar || 'N/A',
+        mesa: mesaAlocada,
+        horario_entrada: new Date().toISOString(),
+      });
 
       // Atualizar agendamento
       await supabase.from('agendamentos').update({

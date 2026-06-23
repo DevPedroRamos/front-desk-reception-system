@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AutoSuggest } from '@/components/AutoSuggest';
 import { GlassWater } from 'lucide-react';
 import { useTiposBrindeAtivos } from '@/hooks/useTiposBrinde';
+import { useNotificarVisita } from '@/hooks/useNotificarVisita';
 
 interface Cliente {
   id: string;
@@ -36,6 +37,7 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
   const [empreendimento, setEmpreendimento] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { notificarVisita } = useNotificarVisita();
   const { data: tiposBrinde = [] } = useTiposBrindeAtivos();
   const brindesAutomaticos = tiposBrinde.filter((t) => t.entrega_automatica);
 
@@ -240,6 +242,15 @@ export function IniciarVisitaDialog({ isOpen, onClose, cliente, onVisitaIniciada
         setLoading(false);
         return;
       }
+
+      notificarVisita({
+        corretor_nome: cliente.corretor_nome || '',
+        cliente_nome: cliente.nome,
+        loja,
+        andar: andar || 'N/A',
+        mesa: parseInt(mesa),
+        horario_entrada: novaVisita.created_at,
+      });
 
       // Registrar brindes de entrega automática
       if (brindesAutomaticos.length > 0) {

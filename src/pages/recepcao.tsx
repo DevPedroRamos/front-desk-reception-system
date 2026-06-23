@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AutoSuggest } from "@/components/AutoSuggest";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useTiposBrindeAtivos } from "@/hooks/useTiposBrinde";
+import { useNotificarVisita } from "@/hooks/useNotificarVisita";
 import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
@@ -36,6 +37,7 @@ import {
 
 const Recepcao = () => {
   const { toast } = useToast();
+  const { notificarVisita } = useNotificarVisita();
   const queryClient = useQueryClient();
   const { userProfile } = useUserRole();
   const navigate = useNavigate();
@@ -237,6 +239,15 @@ const Recepcao = () => {
       return data;
     },
     onSuccess: async (data) => {
+      notificarVisita({
+        corretor_nome: data.corretor_nome || '',
+        cliente_nome: data.cliente_nome,
+        loja: data.loja,
+        andar: data.andar || 'N/A',
+        mesa: data.mesa,
+        horario_entrada: data.created_at,
+      });
+
       // Registrar brindes de entrega automática
       if (brindesAutomaticos.length > 0) {
         try {
