@@ -21,6 +21,7 @@ interface Cliente {
   createdAt: string;
   corretor_id?: string;
   corretor_nome?: string;
+  corretor_cpf?: string;
 }
 
 export default function ListaEspera() {
@@ -58,7 +59,8 @@ export default function ListaEspera() {
         whatsapp: item.cliente_whatsapp || undefined,
         createdAt: item.created_at,
         corretor_id: item.corretor_id || undefined,
-        corretor_nome: item.corretor_nome || undefined
+        corretor_nome: item.corretor_nome || undefined,
+        corretor_cpf: item.corretor_cpf || undefined,
       }));
 
       console.log('Clientes formatados:', clientesFormatados);
