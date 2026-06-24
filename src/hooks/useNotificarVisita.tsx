@@ -62,7 +62,7 @@ export function useNotificarVisita() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: authToken,
+          'x-api-key': authToken,
         },
         body: JSON.stringify(payload),
       });
@@ -107,7 +107,7 @@ export function useNotificarVisita() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: authToken,
+          'x-api-key': authToken,
         },
         body: JSON.stringify(payload),
       });
