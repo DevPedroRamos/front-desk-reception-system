@@ -48,7 +48,7 @@ export function AppSidebar() {
   const { signOut, user } = useAuth();
   const { userProfile, loading } = useUserRole();
   const { isAdmin } = useAdminRole();
-  const { notificarVisita } = useNotificarVisita();
+  const { testarNotificacao } = useNotificarVisita();
   const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState<NotificarVisitaResult | null>(null);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
@@ -60,15 +60,7 @@ export function AppSidebar() {
     setTestResult(null);
     setTestDialogOpen(true);
 
-    const result = await notificarVisita({
-      corretor_nome: "Corretor Teste",
-      corretor_cpf: "45566920837",
-      cliente_nome: "Cliente Teste",
-      loja: "Loja 1",
-      andar: "N/A",
-      mesa: 5,
-      horario_entrada: new Date().toISOString(),
-    });
+    const result = await testarNotificacao();
 
     if (!result) {
       setTestError("Falha no envio. Verifique se VITE_METROCASA_API_TOKEN está configurado no .env");

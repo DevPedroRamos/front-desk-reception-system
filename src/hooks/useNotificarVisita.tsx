@@ -62,7 +62,7 @@ export function useNotificarVisita() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`,
+          Authorization: authToken,
         },
         body: JSON.stringify(payload),
       });
@@ -87,5 +87,50 @@ export function useNotificarVisita() {
     }
   }, []);
 
-  return { notificarVisita };
+  const testarNotificacao = useCallback(async (): Promise<NotificarVisitaResult | null> => {
+    try {
+      const authToken = import.meta.env.VITE_METROCASA_API_TOKEN;
+      if (!authToken) {
+        console.error('VITE_METROCASA_API_TOKEN não configurado');
+        return null;
+      }
+
+      const payload = {
+        userIds: [] as string[],
+        title: 'Teste de Conexao',
+        body: 'Corpo do teste',
+        platformType: ['WEB'],
+        type: 'SYSTEM',
+      };
+
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authToken,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const body = await response.text();
+      const result: NotificarVisitaResult = {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        body,
+        payload: payload as unknown as Record<string, unknown>,
+      };
+
+      if (!response.ok) {
+        console.error('Erro no teste de notificação:', response.status, body);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Erro no teste de notificação:', error);
+      return null;
+    }
+  }, []);
+
+  return { notificarVisita, testarNotificacao };
 }
