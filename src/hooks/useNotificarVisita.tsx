@@ -18,8 +18,6 @@ export interface NotificarVisitaResult {
   payload: Record<string, unknown>;
 }
 
-const API_URL = 'https://api.metrocasamais.app/api/notifications/send';
-
 function buildPayload(dados: NotificarVisitaInput) {
   const cpf = (dados.corretor_cpf || '').replace(/\D/g, '');
   return {
@@ -40,6 +38,40 @@ function buildPayload(dados: NotificarVisitaInput) {
   };
 }
 
+async function sendNotification(payload: Record<string, unknown>): Promise<NotificarVisitaResult | null> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('VITE_SUPABASE_URL ou VITE_SUPABASE_PUBLISHABLE_KEY não configurados');
+    return null;
+  }
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/send-notification`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${supabaseKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = await response.text();
+  const result: NotificarVisitaResult = {
+    ok: response.ok,
+    status: response.status,
+    statusText: response.statusText,
+    body,
+    payload,
+  };
+
+  if (!response.ok) {
+    console.error('Erro ao enviar notificação:', response.status, body);
+  }
+
+  return result;
+}
+
 export function useNotificarVisita() {
   const notificarVisita = useCallback(async (dados: NotificarVisitaInput): Promise<NotificarVisitaResult | null> => {
     try {
@@ -49,38 +81,8 @@ export function useNotificarVisita() {
         return null;
       }
 
-      const authToken = import.meta.env.VITE_METROCASA_API_TOKEN;
-
-      if (!authToken) {
-        console.error('VITE_METROCASA_API_TOKEN não configurado');
-        return null;
-      }
-
       const payload = buildPayload(dados);
-
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': authToken,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const body = await response.text();
-      const result: NotificarVisitaResult = {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText,
-        body,
-        payload,
-      };
-
-      if (!response.ok) {
-        console.error('Erro ao notificar visita:', response.status, body);
-      }
-
-      return result;
+      return await sendNotification(payload);
     } catch (error) {
       console.error('Erro ao notificar visita:', error);
       return null;
@@ -89,43 +91,14 @@ export function useNotificarVisita() {
 
   const testarNotificacao = useCallback(async (): Promise<NotificarVisitaResult | null> => {
     try {
-      const authToken = import.meta.env.VITE_METROCASA_API_TOKEN;
-      if (!authToken) {
-        console.error('VITE_METROCASA_API_TOKEN não configurado');
-        return null;
-      }
-
       const payload = {
-        userIds: [] as string[],
+        targetType: 'ALL',
         title: 'Teste de Conexao',
         body: 'Corpo do teste',
-        platformType: ['WEB'],
-        type: 'SYSTEM',
+        platformType: 'BOTH',
       };
 
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': authToken,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const body = await response.text();
-      const result: NotificarVisitaResult = {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText,
-        body,
-        payload: payload as unknown as Record<string, unknown>,
-      };
-
-      if (!response.ok) {
-        console.error('Erro no teste de notificação:', response.status, body);
-      }
-
-      return result;
+      return await sendNotification(payload);
     } catch (error) {
       console.error('Erro no teste de notificação:', error);
       return null;

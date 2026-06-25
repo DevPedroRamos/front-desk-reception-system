@@ -63,7 +63,7 @@ export function AppSidebar() {
     const result = await testarNotificacao();
 
     if (!result) {
-      setTestError("Falha no envio. Verifique se VITE_METROCASA_API_TOKEN está configurado no .env");
+      setTestError("Falha no envio. Verifique se a edge function send-notification está deployada e se METROCASA_API_KEY está configurada no Supabase.");
     } else {
       setTestResult(result);
     }
