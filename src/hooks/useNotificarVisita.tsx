@@ -1,4 +1,6 @@
 import { useCallback } from 'react';
+import { FunctionsHttpError } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface NotificarVisitaInput {
   corretor_nome: string;
@@ -39,37 +41,37 @@ function buildPayload(dados: NotificarVisitaInput) {
 }
 
 async function sendNotification(payload: Record<string, unknown>): Promise<NotificarVisitaResult | null> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('VITE_SUPABASE_URL ou VITE_SUPABASE_PUBLISHABLE_KEY não configurados');
-    return null;
-  }
-
-  const response = await fetch(`${supabaseUrl}/functions/v1/send-notification`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${supabaseKey}`,
-    },
-    body: JSON.stringify(payload),
+  const { data, error } = await supabase.functions.invoke('send-notification', {
+    body: payload,
   });
 
-  const body = await response.text();
-  const result: NotificarVisitaResult = {
-    ok: response.ok,
-    status: response.status,
-    statusText: response.statusText,
+  if (error) {
+    let status = 500;
+    let statusText = error.name;
+    let body = error.message;
+
+    if (error instanceof FunctionsHttpError) {
+      status = error.context.status;
+      statusText = error.context.statusText;
+      try {
+        body = await error.context.text();
+      } catch {
+        body = error.message;
+      }
+    }
+
+    console.error('Erro ao enviar notificação:', status, body);
+    return { ok: false, status, statusText, body, payload };
+  }
+
+  const body = typeof data === 'string' ? data : JSON.stringify(data ?? {});
+  return {
+    ok: true,
+    status: 200,
+    statusText: 'OK',
     body,
     payload,
   };
-
-  if (!response.ok) {
-    console.error('Erro ao enviar notificação:', response.status, body);
-  }
-
-  return result;
 }
 
 export function useNotificarVisita() {
