@@ -33,6 +33,7 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useTiposBrindeAtivos } from "@/hooks/useTiposBrinde";
 import {
   Calendar,
@@ -90,6 +91,14 @@ interface Visit {
   horario_entrada: string;
   horario_saida?: string;
   status: string;
+  encerrado_por_corretor?: boolean;
+  origem_encerramento?: {
+    tipo?: string;
+    role?: string;
+    nome?: string;
+    integra_id?: string;
+    encerrado_em?: string;
+  } | null;
 }
 
 export default function index() {
@@ -400,7 +409,9 @@ export default function index() {
           mesa,
           horario_entrada,
           horario_saida,
-          status
+          status,
+          encerrado_por_corretor,
+          origem_encerramento
         `
         )
         .eq("status", "finalizado")
@@ -463,10 +474,22 @@ export default function index() {
         }
       }
 
-      // Finalizar a visita
-      const { error } = await supabase.rpc("finalizar_visita", {
-        visit_id: visitaParaFinalizar.id,
-      });
+      const encerradoEm = new Date().toISOString();
+      const { error } = await supabase
+        .from("visits")
+        .update({
+          status: "finalizado",
+          horario_saida: encerradoEm,
+          encerrado_por_corretor: false,
+          origem_encerramento: {
+            tipo: "recepcao",
+            role: userProfile?.role || "recepcionista",
+            nome: userProfile?.name || "Sistema",
+            encerrado_em: encerradoEm,
+          },
+        })
+        .eq("id", visitaParaFinalizar.id)
+        .eq("status", "ativo");
 
       if (error) {
         console.error("Erro ao finalizar visita:", error);
@@ -531,6 +554,7 @@ export default function index() {
   };
 
   const { isAdmin } = useAdminRole();
+  const { userProfile } = useUserRole();
   const { data: tiposBrinde = [] } = useTiposBrindeAtivos();
   const brindesAutomaticos = tiposBrinde.filter((t) => t.entrega_automatica);
   const brindesOpcionais = tiposBrinde.filter((t) => !t.entrega_automatica);
@@ -613,6 +637,21 @@ export default function index() {
     return `${roleCapitalizado} - ${nome}`;
   };
 
+  const formatarEncerramento = (visit: Visit) => {
+    if (visit.encerrado_por_corretor) {
+      return `Corretor - ${visit.corretor_nome}`;
+    }
+
+    const origem = visit.origem_encerramento;
+    if (origem?.tipo === "recepcao" && origem.nome) {
+      const role = origem.role || "recepcionista";
+      const roleCapitalizado = role.charAt(0).toUpperCase() + role.slice(1);
+      return `${roleCapitalizado} - ${origem.nome}`;
+    }
+
+    return "Não informado";
+  };
+
   const exportToCSV = () => {
     const csvData = finishedVisits.map((visit) => ({
       Cliente: visit.cliente_nome,
@@ -631,6 +670,7 @@ export default function index() {
             locale: ptBR,
           })
         : "",
+      "Encerrado por": formatarEncerramento(visit),
     }));
 
     const headers = Object.keys(csvData[0] || {});
@@ -1238,6 +1278,7 @@ export default function index() {
                       <TableHead className="font-semibold">Local</TableHead>
                       <TableHead className="font-semibold">Entrada</TableHead>
                       <TableHead className="font-semibold">Saída</TableHead>
+                      <TableHead className="font-semibold">Encerrado por</TableHead>
                       <TableHead className="font-semibold text-center">
                         Ações
                       </TableHead>
@@ -1328,6 +1369,11 @@ export default function index() {
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-gray-900">
+                            {formatarEncerramento(visit)}
+                          </span>
                         </TableCell>
                         <TableCell className="text-center">
                           {isAdmin ? (

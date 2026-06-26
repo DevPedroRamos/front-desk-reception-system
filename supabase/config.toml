@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.get-corretor-visitas-ativas]
 verify_jwt = false
+
+[functions.encerrar-visita-corretor]
+verify_jwt = false

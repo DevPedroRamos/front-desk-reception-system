@@ -1774,11 +1774,13 @@ export type Database = {
           corretor_nome: string
           created_at: string | null
           empreendimento: string | null
+          encerrado_por_corretor: boolean
           horario_entrada: string | null
           horario_saida: string | null
           id: string
           loja: string
           mesa: number
+          origem_encerramento: Json | null
           origem_registro: Json | null
           status: string | null
         }
@@ -1792,11 +1794,13 @@ export type Database = {
           corretor_nome: string
           created_at?: string | null
           empreendimento?: string | null
+          encerrado_por_corretor?: boolean
           horario_entrada?: string | null
           horario_saida?: string | null
           id?: string
           loja: string
           mesa: number
+          origem_encerramento?: Json | null
           origem_registro?: Json | null
           status?: string | null
         }
@@ -1810,11 +1814,13 @@ export type Database = {
           corretor_nome?: string
           created_at?: string | null
           empreendimento?: string | null
+          encerrado_por_corretor?: boolean
           horario_entrada?: string | null
           horario_saida?: string | null
           id?: string
           loja?: string
           mesa?: number
+          origem_encerramento?: Json | null
           origem_registro?: Json | null
           status?: string | null
         }

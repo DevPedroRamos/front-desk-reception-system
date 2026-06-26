@@ -29,6 +29,7 @@ Requisições sem chave ou com chave inválida retornam `401 Unauthorized`.
 |--------|--------------------------------|----------------------------------------|
 | GET    | `/get-corretor-historico`      | Histórico de visitas finalizadas       |
 | GET    | `/get-corretor-visitas-ativas` | Visitas ativas em andamento            |
+| POST   | `/encerrar-visita-corretor`    | Encerrar visita ativa pelo corretor     |
 
 ---
 
@@ -186,6 +187,81 @@ Retorna as visitas **ativas** (em andamento) de um corretor, identificado pelo *
 
 ---
 
+## POST /encerrar-visita-corretor
+
+Encerra uma visita **ativa** pelo corretor (app externo). Atualiza `status` para `finalizado`, registra `horario_saida` e marca `encerrado_por_corretor = true`.
+
+### Fluxo recomendado
+
+1. `GET /get-corretor-visitas-ativas?integraId={UUID}` — listar visitas ativas
+2. Usuário clica em "Encerrar atendimento"
+3. `POST /encerrar-visita-corretor` com `visitId` e `integraId`
+
+### Headers
+
+| Header         | Valor                |
+|----------------|----------------------|
+| `Content-Type` | `application/json`   |
+| `x-api-key`    | `FRONT_DESK_API_KEY` |
+
+### Body (JSON)
+
+| Campo       | Obrigatório | Tipo   | Descrição                          |
+|-------------|-------------|--------|------------------------------------|
+| `visitId`   | Sim         | UUID   | ID da visita a encerrar            |
+| `integraId` | Sim         | UUID   | ID Integra do corretor (validação) |
+
+```json
+{
+  "visitId": "uuid-da-visita",
+  "integraId": "ce5e8226-5f10-4fba-a560-78dee9eb764f"
+}
+```
+
+### Resposta de sucesso — `200 OK`
+
+```json
+{
+  "success": true,
+  "visita": {
+    "id": "uuid-da-visita",
+    "status": "finalizado",
+    "horario_saida": "2026-06-23T14:30:00.000Z",
+    "encerrado_por_corretor": true,
+    "origem_encerramento": {
+      "tipo": "corretor",
+      "integra_id": "ce5e8226-5f10-4fba-a560-78dee9eb764f",
+      "encerrado_em": "2026-06-23T14:30:00.000Z"
+    }
+  }
+}
+```
+
+### Erros
+
+| Status | Body | Causa |
+|--------|------|-------|
+| `400`  | `{ "error": "Campos visitId e integraId sao obrigatorios" }` | Body incompleto |
+| `401`  | `{ "error": "Nao autorizado" }` | API key inválida |
+| `403`  | `{ "error": "Corretor nao autorizado..." }` | `integraId` ≠ `corretor_id` da visita |
+| `404`  | `{ "error": "Visita nao encontrada" }` | `visitId` inexistente |
+| `409`  | `{ "error": "Visita ja finalizada" }` | Visita não está `ativo` |
+| `405`  | `{ "error": "Metodo nao permitido" }` | Método diferente de POST |
+| `500`  | `{ "error": "...", "detail": "..." }` | Erro interno |
+
+### Indicadores no banco
+
+| Coluna                  | Valor após encerramento pelo corretor |
+|-------------------------|---------------------------------------|
+| `status`                | `finalizado`                          |
+| `horario_saida`         | timestamp ISO do encerramento         |
+| `encerrado_por_corretor`| `true`                                |
+| `origem_encerramento`   | `{ tipo, integra_id, encerrado_em }`  |
+
+Encerramentos pela recepção mantêm `encerrado_por_corretor = false`.
+
+---
+
 ## Exemplos
 
 ### cURL — histórico
@@ -208,6 +284,15 @@ curl -G "https://mghsqsdfikclpktjlqpe.supabase.co/functions/v1/get-corretor-visi
   -H "x-api-key: SUA_CHAVE_AQUI"
 ```
 
+### cURL — encerrar visita
+
+```bash
+curl -X POST "https://mghsqsdfikclpktjlqpe.supabase.co/functions/v1/encerrar-visita-corretor" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: SUA_CHAVE_AQUI" \
+  -d '{"visitId":"uuid-da-visita","integraId":"ce5e8226-5f10-4fba-a560-78dee9eb764f"}'
+```
+
 ### JavaScript (fetch) — visitas ativas
 
 ```javascript
@@ -223,6 +308,28 @@ const response = await fetch(url, {
 
 const data = await response.json();
 console.log(data.total, data.visitas);
+```
+
+### JavaScript (fetch) — encerrar visita
+
+```javascript
+const response = await fetch(
+  'https://mghsqsdfikclpktjlqpe.supabase.co/functions/v1/encerrar-visita-corretor',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.FRONT_DESK_API_KEY,
+    },
+    body: JSON.stringify({
+      visitId: 'uuid-da-visita',
+      integraId: 'ce5e8226-5f10-4fba-a560-78dee9eb764f',
+    }),
+  },
+);
+
+const data = await response.json();
+console.log(data.success, data.visita);
 ```
 
 ### JavaScript (fetch) — histórico
@@ -266,7 +373,14 @@ node scripts/test-historico-corretor.mjs --api-key=SUA_CHAVE
 node scripts/test-visitas-ativas-corretor.mjs --api-key=SUA_CHAVE
 ```
 
-Parâmetros opcionais (ambos os scripts):
+**Encerrar visita:**
+```bash
+node scripts/test-encerrar-visita-corretor.mjs \
+  --visitId=UUID_DA_VISITA \
+  --integraId=ce5e8226-5f10-4fba-a560-78dee9eb764f
+```
+
+Parâmetros opcionais (scripts GET):
 
 ```bash
 node scripts/test-visitas-ativas-corretor.mjs \
@@ -286,10 +400,14 @@ Também é possível definir `FRONT_DESK_API_KEY` no `.env` local.
 |----------------------|-----------------------------------------------------------|
 | Edge Function (hist.)| `supabase/functions/get-corretor-historico/index.ts`      |
 | Edge Function (ativas)| `supabase/functions/get-corretor-visitas-ativas/index.ts`|
+| Edge Function (encerrar)| `supabase/functions/encerrar-visita-corretor/index.ts`   |
 | Módulo histórico     | `src/api/historico-corretor/`                             |
 | Módulo visitas ativas| `src/api/visitas-ativas-corretor/`                        |
+| Módulo encerrar      | `src/api/encerrar-visita-corretor/`                       |
 | Script teste hist.   | `scripts/test-historico-corretor.mjs`                     |
 | Script teste ativas  | `scripts/test-visitas-ativas-corretor.mjs`                |
+| Script teste encerrar| `scripts/test-encerrar-visita-corretor.mjs`               |
+| Migration encerramento | `supabase/migrations/20260623120000_add_encerrado_por_corretor_visits.sql` |
 | Config Supabase      | `supabase/config.toml`                                    |
 
 ---
@@ -298,5 +416,6 @@ Também é possível definir `FRONT_DESK_API_KEY` no `.env` local.
 
 | Versão | Data       | Descrição                                      |
 |--------|------------|------------------------------------------------|
+| 1.2    | 2026-06-23 | Rota POST para encerrar visita pelo corretor   |
 | 1.1    | 2026-06-22 | Rota de visitas ativas do corretor             |
 | 1.0    | 2026-06-22 | Rota inicial: histórico de visitas finalizadas |
