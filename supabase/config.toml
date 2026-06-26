@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.send-notification]
 verify_jwt = false
+
+[functions.get-corretor-historico]
+verify_jwt = false
+
+[functions.get-corretor-visitas-ativas]
+verify_jwt = false
