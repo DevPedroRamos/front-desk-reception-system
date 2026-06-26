@@ -9,7 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:notify": "node scripts/test-notification.mjs"
+    "test:notify": "node scripts/test-notification.mjs",
+    "test:notify:validate": "node scripts/validate-metrocasa-token.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

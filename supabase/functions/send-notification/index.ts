@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get('METROCASA_API_KEY');
+    const apiKey = Deno.env.get('METROCASA_API_KEY')?.trim();
     if (!apiKey) {
       console.error('METROCASA_API_KEY não configurada');
       return new Response(

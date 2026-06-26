@@ -91,21 +91,5 @@ export function useNotificarVisita() {
     }
   }, []);
 
-  const testarNotificacao = useCallback(async (): Promise<NotificarVisitaResult | null> => {
-    try {
-      const payload = {
-        targetType: 'ALL',
-        title: 'Teste de Conexao',
-        body: 'Corpo do teste',
-        platformType: 'BOTH',
-      };
-
-      return await sendNotification(payload);
-    } catch (error) {
-      console.error('Erro no teste de notificação:', error);
-      return null;
-    }
-  }, []);
-
-  return { notificarVisita, testarNotificacao };
+  return { notificarVisita };
 }
